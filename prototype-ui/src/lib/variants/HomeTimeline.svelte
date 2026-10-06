@@ -47,7 +47,7 @@
   </Collapsible.Root>
 
   <div class="relative mt-2 ml-3 border-l-2 border-violet-600/40 pl-6 lg:pl-10">
-    <span class="absolute -top-0.5 -left-3 rounded-full bg-zinc-900 px-2 py-0.5 text-[10px] font-bold tracking-wider whitespace-nowrap text-yellow-300">TODAY · {fmtDate(TODAY)}</span>
+    <span class="absolute -top-0.5 -left-3 rounded-full bg-violet-100 px-2.5 py-0.5 text-[10px] font-bold tracking-wider whitespace-nowrap text-violet-800 ring-1 ring-violet-300 dark:bg-violet-950 dark:text-violet-200 dark:ring-violet-500/40">TODAY · {fmtDate(TODAY)}</span>
 
     <ol class="flex flex-col gap-10 pt-9">
       {#if next}
