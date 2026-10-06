@@ -1,32 +1,44 @@
 # PROTOTYPE (throwaway): Prova UI, issue #12
 
 Answers: "What should Prova's main screens look like?" Built with Tailwind v4, Bits UI headless components, Lucide
-icons and pdf.js. Mock data only, no persistence, no real audio (time runs ×8 so auto-advance is quick).
-Not for merging into `main`. Earlier rounds are on `prototype/ui-v1` and in this branch's history.
+icons and pdf.js. Mock data only, no persistence (a reload resets everything), no real audio (time runs ×8 so
+auto-advance is quick). Not for merging into `main`. Earlier rounds are on `prototype/ui-v1` and in this branch's history.
 
     pnpm install && pnpm prototype      # needs Node 22.13+
 
 Layout: below `lg` (1024px) it is the phone layout (header + drawer menu). At `lg` and up it is the 16:9 desktop
 layout (sidebar, wide grids). Try 390×844 and 1920×1080.
 
-## What is settled
+## Settled
 
-- **Home** (`/`): a timeline with the next Performance as a hero. The hero's only action is `Overview`.
-  Part info is the compact "what you'd hear" label. The major Performance (the Annual Gala) is a banner across the top.
+- **Home** (`/`): a timeline with the next Performance as a hero. Every Performance tile (caret on the right) opens one
+  overview. Part info is the compact "what you'd hear" label. The major Performance is a banner across the top.
 - **Repertoire** (`/repertoire`): its own page, from the sidebar. Search is Ctrl/Cmd+K.
-- **Starting a Performance**: every Performance tile opens one overview (play options, tap a Piece to play from it,
-  Play at the bottom). `?overview=w1` opens it on load.
-- **One player screen** (`PlayerScreen.svelte`) is used for both:
-  - `/perform/<id>`: Performance play-through, with the running order beside it.
-  - `/piece/<id>`: a single Piece, same screen with a Start button and no running order.
-  - The Voice Part being played is shown as a small indicator (e.g. "Alto + mix"). Overriding is rare, so it is only
-    reachable by clicking that indicator: choose another part (saved as a Part Override; ALL plays the Combined
-    Track once). The track switches without losing your place.
-- **Score**: many Singers read their own physical music, so it is never opened for you. It is a collapsed panel on
-  the player; "Open full screen" shows the real PDF fullscreen. Fullscreen leaves when the song ends or you close it
-  (in a Performance it follows you to the next Piece while open, and leaves when the Performance finishes or pauses
-  at an empty Piece). Page turns: edge buttons, swipe, arrow / Page keys. The current page is remembered per Score
-  for the playback session, so closing and reopening returns to the same page, and the panel shares that page.
+- **Overview** (`?overview=w1` opens it on load): play options and the Pieces. Tapping a Piece opens it on its own,
+  as from the Repertoire. Play at the bottom starts the play-through from Piece 1.
+- **One player screen** (`PlayerScreen.svelte`): `/perform/<id>` with a running order, `/piece/<id>` with a Start
+  button and none. The part being played is an indicator; clicking it is the only way to override the Voice Part.
+- **Score**: a collapsed panel, never opened for you. "Open full screen" shows the real PDF. Turn pages by tapping the
+  right half (forward) or left half (back) of the screen, the edge buttons, swiping, or arrow / Page keys. The page is
+  remembered for the playback session. Fullscreen leaves when the song ends (it follows you across Pieces in a
+  Performance, and leaves when the Performance finishes).
+
+## Management (round 6)
+
+What each Role can do follows CONTEXT.md: `append` adds new things, `update` renames and tags only, `delete` removes,
+`manage-users` runs the admin portal. Anything a Role cannot do is simply not shown, so a Reader sees no management UI.
+Use **Preview as role (prototype)** in the user menu (bottom of the sidebar) to see each Role's view.
+
+- **Context menus**: right-click or long-press, or use the ⋯ button, on a Piece (Repertoire, overview rows, Piece
+  screen), a Performance tile, a Practice Track or a Score. One action list feeds both the context menu and the ⋯ menu.
+- **Uploads**: Practice Track (Voice Part or Combined, part-only or part-predominant, label, audio up to 50 MB) and
+  Score (PDF up to 20 MB, optionally the choir score). Wrong file types and oversize files are rejected with a message,
+  and the upload shows progress. The sample score PDF is shown for every Score.
+- **Renaming** (Piece, Performance, Practice Track label, Score label) and **deleting** (always a confirmation that says
+  what else goes with it). Also: New Piece, New Performance, add a Piece to a Performance, mark a Performance major.
+- **Admin portal** (`/admin`, needs `manage-users`): Members (approve or decline pending sign-ups with a Role, edit
+  Roles, remove; the only Admin can't be removed), Roles (create, edit, delete; Admin is locked), Invite Links (Roles,
+  expiry, use cap, copy, revoke; Roles holding `delete` or `manage-users` can't go on a link).
 
 ## Scores (PDF)
 
@@ -36,9 +48,9 @@ Every Score points at `static/scores/sample.pdf`. PDFs are gitignored, so copy o
 
 ## Bits UI used
 
-Button, Slider (seek), Switch + Label (options), Tabs, ToggleGroup (Voice Part, Score picker), Accordion, Collapsible,
-Dialog (drawer, overview, fullscreen score), Command (search), Popover, DropdownMenu, Avatar, Separator, Progress.
-Custom only where Bits has nothing: the sidebar layout, tiles, badges, queue list, PDF canvas.
+Button, Slider, Switch + Label, Tabs, ToggleGroup, RadioGroup, Checkbox, Select, Progress, Accordion, Collapsible,
+Dialog, AlertDialog, ContextMenu, DropdownMenu, Command, Popover, Avatar, Separator. Custom only where Bits has
+nothing: the sidebar layout, tiles, badges, text inputs, file picker, PDF canvas.
 
-Test data: Singer is Sam (Alto). Silvy has a saved Part Override (Tenor). Sicut Cervus has no tracks and Hallelujah is
-Combined-only; both are in Winter Concert, so toggle "Skip Pieces with no Practice Tracks" and "Prefer Combined Tracks".
+Test data: Singer is Sam (Alto, Admin). Silvy has a saved Part Override (Tenor). Sicut Cervus has no tracks and
+Hallelujah is Combined-only; both are in Winter Concert. Two sign-ups are pending in Admin.

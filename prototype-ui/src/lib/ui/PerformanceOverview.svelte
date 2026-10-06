@@ -4,13 +4,15 @@
   import { Dialog } from 'bits-ui';
   import Play from '@lucide/svelte/icons/play';
   import X from '@lucide/svelte/icons/x';
-  import ExternalLink from '@lucide/svelte/icons/external-link';
+  import ChevronRight from '@lucide/svelte/icons/chevron-right';
   import { goto } from '$app/navigation';
+  import { pieceActions } from '../actions';
   import { fmtDate, performance, piece, resolveTrack } from '../data.svelte';
-  import { jumpTo, options, startPlaythrough } from '../player.svelte';
+  import { options, startPlaythrough } from '../player.svelte';
   import { ui } from '../ui.svelte';
   import Btn from './Btn.svelte';
   import MajorBadge from './MajorBadge.svelte';
+  import ManageMenu from './ManageMenu.svelte';
   import PlaythroughOptions from './PlaythroughOptions.svelte';
   import TrackStatus from './TrackStatus.svelte';
 
@@ -26,13 +28,17 @@
   );
   const playing = $derived(rows.filter((r) => !r.skipped).length);
 
-  function start(pieceId?: string) {
+  function start() {
     if (!perf) return;
     startPlaythrough(perf.id);
-    if (pieceId) jumpTo(pieceId);
     const href = `/perform/${perf.id}`;
     ui.overview = null;
     goto(href);
+  }
+  /** a Piece opens on its own, exactly as if opened from the Repertoire page */
+  function openPiece(pieceId: string) {
+    ui.overview = null;
+    goto(`/piece/${pieceId}`);
   }
 </script>
 
@@ -53,19 +59,21 @@
           <h3 class="mt-3 text-xs font-semibold tracking-wider text-zinc-500 uppercase">Play options</h3>
           <PlaythroughOptions />
 
-          <h3 class="mt-4 mb-1 text-xs font-semibold tracking-wider text-zinc-500 uppercase">Pieces · tap to play from here</h3>
+          <h3 class="mt-4 mb-1 text-xs font-semibold tracking-wider text-zinc-500 uppercase">Pieces</h3>
           <ol class="divide-y divide-zinc-100 dark:divide-zinc-800">
             {#each rows as r, i (r.p.id)}
-              <li class="flex items-center gap-1 {r.skipped ? 'opacity-45' : ''}">
-                <button disabled={r.skipped} onclick={() => start(r.p.id)} class="group flex min-h-14 min-w-0 flex-1 items-center gap-3 py-2 text-left disabled:cursor-not-allowed">
-                  <span class="grid size-9 shrink-0 place-items-center rounded-full bg-violet-100 text-violet-700 transition group-hover:bg-violet-600 group-hover:text-white dark:bg-violet-500/15 dark:text-violet-300"><Play class="size-4 fill-current" /></span>
-                  <span class="min-w-0 flex-1">
-                    <span class="block truncate font-medium"><span class="mr-1.5 text-sm text-zinc-400">{i + 1}</span>{r.p.title}</span>
-                    <span class="block truncate text-sm text-zinc-500">{r.p.composer}</span>
-                  </span>
-                  {#if r.skipped}<span class="text-xs whitespace-nowrap text-zinc-500">Skipped</span>{:else}<TrackStatus piece={r.p} preferCombined={options.preferCombined} />{/if}
-                </button>
-                <a href="/piece/{r.p.id}" onclick={() => (ui.overview = null)} aria-label="Open {r.p.title} Piece page" class="grid size-10 shrink-0 place-items-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800"><ExternalLink class="size-4" /></a>
+              <li class="{r.skipped ? 'opacity-45' : ''}">
+                <ManageMenu actions={pieceActions(r.p, perf.id)}>
+                  <button onclick={() => openPiece(r.p.id)} class="group flex min-h-14 w-full items-center gap-3 py-2 text-left">
+                    <span class="w-5 shrink-0 text-sm text-zinc-400">{i + 1}</span>
+                    <span class="min-w-0 flex-1">
+                      <span class="block truncate font-medium">{r.p.title}</span>
+                      <span class="block truncate text-sm text-zinc-500">{r.p.composer}</span>
+                    </span>
+                    {#if r.skipped}<span class="text-xs whitespace-nowrap text-zinc-500">Skipped</span>{:else}<TrackStatus piece={r.p} preferCombined={options.preferCombined} />{/if}
+                    <ChevronRight class="size-4 shrink-0 text-zinc-400 transition group-hover:translate-x-0.5" />
+                  </button>
+                </ManageMenu>
               </li>
             {/each}
           </ol>

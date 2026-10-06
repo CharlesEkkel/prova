@@ -3,7 +3,7 @@
   import Star from '@lucide/svelte/icons/star';
   import { daysUntil, fmtDate, majorPerformance } from '../data.svelte';
   import { openOverview } from '../ui.svelte';
-  const perf = majorPerformance();
+  const perf = $derived(majorPerformance());
 </script>
 
 {#if perf}

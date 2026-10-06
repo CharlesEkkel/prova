@@ -8,6 +8,7 @@
   import Search from '@lucide/svelte/icons/search';
   import Music from '@lucide/svelte/icons/music';
   import X from '@lucide/svelte/icons/x';
+  import ManageDialogs from '$lib/manage/ManageDialogs.svelte';
   import MajorHighlight from '$lib/shell/MajorHighlight.svelte';
   import SearchDialog from '$lib/shell/SearchDialog.svelte';
   import Sidebar from '$lib/shell/Sidebar.svelte';
@@ -53,3 +54,4 @@
 
 <SearchDialog />
 <PerformanceOverview />
+<ManageDialogs />

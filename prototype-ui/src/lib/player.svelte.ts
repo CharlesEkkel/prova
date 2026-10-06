@@ -160,3 +160,4 @@ export function setPart(pieceId: string, choice: VoicePart | 'All') {
   }
   reresolve();
 }
+export { reresolve as refreshPlayback };

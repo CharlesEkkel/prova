@@ -3,7 +3,7 @@ export type VoicePart = 'Soprano' | 'Alto' | 'Tenor' | 'Bass';
 export const VOICE_PARTS: VoicePart[] = ['Soprano', 'Alto', 'Tenor', 'Bass'];
 
 export type TrackKind = 'part-only' | 'part-predominant' | 'combined';
-export type Track = { id: string; pieceId: string; kind: TrackKind; part?: VoicePart; durationSec: number };
+export type Track = { id: string; pieceId: string; kind: TrackKind; part?: VoicePart; durationSec: number; label?: string };
 export type Score = { id: string; label: string; choir: boolean; file: string };
 export type Piece = { id: string; title: string; composer: string; tracks: Track[]; scores: Score[] };
 /** `major`: a Performance the choir wants highlighted and always easy to reach (new concept, prototyping how) */
@@ -21,7 +21,7 @@ const t = (pieceId: string, kind: TrackKind, part: VoicePart | undefined, durati
 });
 const allParts = (pieceId: string, kind: TrackKind, d: number) => VOICE_PARTS.map((p) => t(pieceId, kind, p, d));
 
-export const PIECES: Piece[] = [
+export const PIECES = $state<Piece[]>([
   {
     id: 'p1',
     title: 'Ubi Caritas',
@@ -65,14 +65,14 @@ export const PIECES: Piece[] = [
     tracks: [...allParts('p6', 'part-predominant', 150), t('p6', 'combined', undefined, 150)],
     scores: [{ id: 's8', label: 'Choir score', choir: true, file: PDF }]
   }
-];
+]);
 
-export const PERFORMANCES: Performance[] = [
+export const PERFORMANCES = $state<Performance[]>([
   { id: 'w1', title: 'Winter Concert', date: '2026-12-12', venue: "St Mark's Church", pieceIds: ['p1', 'p2', 'p3', 'p4', 'p5'] },
   { id: 'w2', title: 'Carols by Candlelight', date: '2026-12-19', venue: 'Town Hall', pieceIds: ['p5', 'p2'] },
   { id: 'w3', title: 'Annual Gala', date: '2027-03-20', venue: 'Concert Hall', pieceIds: ['p6', 'p1', 'p3', 'p2'], major: true },
   { id: 'w0', title: 'Spring Gala', date: '2026-04-18', venue: 'Civic Theatre', pieceIds: ['p6', 'p1'] }
-];
+]);
 
 export const TODAY = '2026-10-06';
 export const SINGER = { name: 'Sam', part: 'Alto' as VoicePart };

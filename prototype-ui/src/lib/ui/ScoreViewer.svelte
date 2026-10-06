@@ -29,11 +29,16 @@
     if (e.key === 'ArrowRight' || e.key === 'PageDown') turn(1);
     if (e.key === 'ArrowLeft' || e.key === 'PageUp') turn(-1);
   }
+  // swipe turns pages; a plain tap on the right half goes forward and on the left half goes back
+  // (taps on the edge buttons are left to the buttons)
   let startX = 0;
   const onpointerdown = (e: PointerEvent) => (startX = e.clientX);
   const onpointerup = (e: PointerEvent) => {
     const dx = e.clientX - startX;
-    if (Math.abs(dx) > 60) turn(dx < 0 ? 1 : -1);
+    if (Math.abs(dx) > 60) return turn(dx < 0 ? 1 : -1);
+    if (Math.abs(dx) > 10 || (e.target as HTMLElement).closest('button')) return;
+    const { left, width } = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    turn(e.clientX - left > width / 2 ? 1 : -1);
   };
 
   let isFs = $state(false);

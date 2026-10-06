@@ -2,17 +2,26 @@
   // The one player screen. A Performance play-through shows it with a running order beside it; a single
   // Piece shows the same screen without the running order and with a Start button. The score is a
   // collapsed panel; fullscreen (ScoreViewer) only opens when the Singer asks, at the remembered page.
-  import { Collapsible, Popover, ToggleGroup } from 'bits-ui';
+  import { Collapsible, Popover } from 'bits-ui';
   import Settings from '@lucide/svelte/icons/settings-2';
   import Play from '@lucide/svelte/icons/play';
   import Maximize from '@lucide/svelte/icons/maximize';
+  import Check from '@lucide/svelte/icons/check';
+  import Upload from '@lucide/svelte/icons/upload';
+  import FileUp from '@lucide/svelte/icons/file-up';
+  import AudioLines from '@lucide/svelte/icons/audio-lines';
   import FileText from '@lucide/svelte/icons/file-text';
   import ChevronDown from '@lucide/svelte/icons/chevron-down';
   import ChevronLeft from '@lucide/svelte/icons/chevron-left';
   import ChevronRight from '@lucide/svelte/icons/chevron-right';
+  import { pieceActions, scoreActions, trackActions } from '../actions';
+  import { can } from '../access.svelte';
   import { fmt, kindLabel, type Performance } from '../data.svelte';
+  import { openManage } from '../manage.svelte';
   import { currentItem, emptyPaused, pageOf, queueOf, score, scoreOf, session, startPiece, startPlaythrough } from '../player.svelte';
   import Btn from '../ui/Btn.svelte';
+  import KindBadge from '../ui/KindBadge.svelte';
+  import ManageMenu from '../ui/ManageMenu.svelte';
   import PartPicker from '../ui/PartPicker.svelte';
   import PauseCard from '../ui/PauseCard.svelte';
   import PdfPage from '../ui/PdfPage.svelte';
@@ -64,11 +73,11 @@
         </div>
       {:else if cur}
         <div class="flex flex-col gap-5 rounded-3xl border border-zinc-200 bg-white p-5 lg:p-8 dark:border-zinc-800 dark:bg-zinc-900">
-          <div>
+          <ManageMenu actions={pieceActions(cur.piece)} label="Piece actions">
             <p class={label}>{perf ? `Piece ${idx + 1} of ${q.length}` : 'Piece'}</p>
             <h2 class="mt-1 text-3xl font-semibold tracking-tight lg:text-4xl">{cur.piece.title}</h2>
-            <p class="text-zinc-500">{cur.piece.composer}</p>
-          </div>
+            <p class="text-zinc-500">{cur.piece.composer || 'No composer'}</p>
+          </ManageMenu>
 
           {#if emptyPaused()}
             <PauseCard title={cur.piece.title} />
@@ -92,14 +101,22 @@
             <ChevronDown class="size-4 text-zinc-400 transition group-data-[state=open]:rotate-180" />
           </Collapsible.Trigger>
           <Collapsible.Content class="flex flex-col gap-3 px-4 pb-4">
+            {#if cur.piece.scores.length}
+              <ul class="flex flex-col gap-0.5">
+                {#each cur.piece.scores as s (s.id)}
+                  <li>
+                    <ManageMenu actions={scoreActions(s, cur.piece.id)} label="Score actions">
+                      <button onclick={() => (score.selected[cur.piece.id] = s.id)} aria-pressed={sc?.id === s.id} class="flex min-h-11 w-full items-center gap-2 rounded-lg px-2 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 {sc?.id === s.id ? 'font-semibold' : ''}">
+                        <span class="grid size-5 place-items-center">{#if sc?.id === s.id}<Check class="size-4 text-violet-600" />{/if}</span>
+                        <span class="flex-1 truncate">{s.label}</span>
+                        {#if s.choir}<span class="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">Choir score</span>{/if}
+                      </button>
+                    </ManageMenu>
+                  </li>
+                {/each}
+              </ul>
+            {/if}
             {#if sc}
-              {#if cur.piece.scores.length > 1}
-                <ToggleGroup.Root type="single" value={sc.id} onValueChange={(v) => v && (score.selected[cur.piece.id] = v)} aria-label="Which Score" class="flex gap-1 overflow-x-auto">
-                  {#each cur.piece.scores as s (s.id)}
-                    <ToggleGroup.Item value={s.id} class="min-h-9 rounded-full px-3 text-xs font-medium whitespace-nowrap text-zinc-600 data-[state=on]:bg-zinc-900 data-[state=on]:text-white dark:text-zinc-400 dark:data-[state=on]:bg-zinc-100 dark:data-[state=on]:text-zinc-900">{s.label}</ToggleGroup.Item>
-                  {/each}
-                </ToggleGroup.Root>
-              {/if}
               <div class="relative h-72 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 lg:h-[26rem] dark:border-zinc-800 dark:bg-zinc-950">
                 <PdfPage src={sc.file} {page} bind:numPages class="absolute inset-0 p-2" />
               </div>
@@ -114,6 +131,27 @@
             {:else}
               <p class="rounded-xl border border-dashed border-zinc-300 p-5 text-center text-sm text-zinc-500 dark:border-zinc-700">No Score uploaded for this Piece yet.</p>
             {/if}
+            {#if can('append')}<Btn variant="outline" size="sm" class="self-start" onclick={() => openManage({ kind: 'upload-score', pieceId: cur.piece.id })}><FileUp class="size-4" /> Upload Score</Btn>{/if}
+          </Collapsible.Content>
+        </Collapsible.Root>
+
+        <Collapsible.Root class="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+          <Collapsible.Trigger class="group flex min-h-14 w-full items-center gap-3 px-4 text-left">
+            <AudioLines class="size-5 text-zinc-400" />
+            <span class="flex-1 text-sm font-medium">Practice Tracks<span class="ml-1.5 font-normal text-zinc-500">· {cur.piece.tracks.length}</span></span>
+            <ChevronDown class="size-4 text-zinc-400 transition group-data-[state=open]:rotate-180" />
+          </Collapsible.Trigger>
+          <Collapsible.Content class="flex flex-col gap-1 px-4 pb-4">
+            {#each cur.piece.tracks as t (t.id)}
+              <ManageMenu actions={trackActions(t, t.label ?? kindLabel(t))} label="Practice Track actions">
+                <div class="flex min-h-12 items-center gap-3 px-2 text-sm">
+                  <KindBadge track={t} /><span class="min-w-0 flex-1 truncate text-zinc-500">{t.label ?? ''}</span><span class="tabular-nums text-zinc-500">{fmt(t.durationSec)}</span>
+                </div>
+              </ManageMenu>
+            {:else}
+              <p class="px-2 py-2 text-sm text-zinc-500">No Practice Tracks yet.</p>
+            {/each}
+            {#if can('append')}<Btn variant="outline" size="sm" class="mt-2 self-start" onclick={() => openManage({ kind: 'upload-track', pieceId: cur.piece.id })}><Upload class="size-4" /> Upload Practice Track</Btn>{/if}
           </Collapsible.Content>
         </Collapsible.Root>
 

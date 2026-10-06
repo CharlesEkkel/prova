@@ -8,7 +8,10 @@
   import ListMusic from '@lucide/svelte/icons/list-music';
   import ChevronDown from '@lucide/svelte/icons/chevron-down';
   import Star from '@lucide/svelte/icons/star';
+  import ShieldCheck from '@lucide/svelte/icons/shield-check';
+  import Check from '@lucide/svelte/icons/check';
   import { SINGER, fmtDate, past, upcoming } from '../data.svelte';
+  import { access, can, roles } from '../access.svelte';
   import { openOverview, ui } from '../ui.svelte';
 
   const path = $derived(page.url.pathname);
@@ -30,6 +33,7 @@
   <nav class="mt-2 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto" aria-label="Main">
     <a href="/" class={link(path === '/')}><House class="size-4" /> Home</a>
     <a href="/repertoire" class={link(path === '/repertoire' || path.startsWith('/piece'))}><ListMusic class="size-4" /> Repertoire</a>
+    {#if can('manage-users')}<a href="/admin" class={link(path.startsWith('/admin'))}><ShieldCheck class="size-4" /> Admin</a>{/if}
 
     <Collapsible.Root open class="mt-3">
       <Collapsible.Trigger class={trigger}>Performances <ChevronDown class="size-4 transition group-data-[state=closed]:-rotate-90" /></Collapsible.Trigger>
@@ -53,13 +57,24 @@
       <Avatar.Root class="size-9 shrink-0 overflow-hidden rounded-full bg-violet-200 text-violet-800">
         <Avatar.Fallback class="grid size-full place-items-center text-sm font-semibold">{SINGER.name[0]}</Avatar.Fallback>
       </Avatar.Root>
-      <span class="min-w-0 flex-1"><span class="block text-sm font-medium">{SINGER.name}</span><span class="block text-xs text-zinc-500">Voice Part: {SINGER.part}</span></span>
+      <span class="min-w-0 flex-1"><span class="block text-sm font-medium">{SINGER.name}</span><span class="block text-xs text-zinc-500">{access.viewAs === 'admin' ? `Voice Part: ${SINGER.part}` : `Previewing as ${roles.find((r) => r.id === access.viewAs)?.name}`}</span></span>
       <ChevronDown class="size-4 text-zinc-500" />
     </DropdownMenu.Trigger>
     <DropdownMenu.Portal>
       <DropdownMenu.Content side="top" align="start" sideOffset={8} class="z-50 w-56 rounded-xl border border-zinc-200 bg-white p-1 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
         <DropdownMenu.Item class="rounded-lg px-3 py-2 text-sm data-highlighted:bg-zinc-100 dark:data-highlighted:bg-zinc-800">Change default Voice Part</DropdownMenu.Item>
         <DropdownMenu.Item class="rounded-lg px-3 py-2 text-sm data-highlighted:bg-zinc-100 dark:data-highlighted:bg-zinc-800">Sign out</DropdownMenu.Item>
+        <DropdownMenu.Separator class="my-1 h-px bg-zinc-100 dark:bg-zinc-800" />
+        <DropdownMenu.Group>
+          <DropdownMenu.GroupHeading class="px-3 py-1.5 text-xs font-semibold tracking-wider text-zinc-500 uppercase">Preview as role (prototype)</DropdownMenu.GroupHeading>
+          <DropdownMenu.RadioGroup value={access.viewAs} onValueChange={(v) => (access.viewAs = v)}>
+            {#each roles as r (r.id)}
+              <DropdownMenu.RadioItem value={r.id} class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm data-highlighted:bg-zinc-100 dark:data-highlighted:bg-zinc-800">
+                {#snippet children({ checked })}<span class="grid size-4 place-items-center">{#if checked}<Check class="size-4 text-violet-600" />{/if}</span>{r.name}{/snippet}
+              </DropdownMenu.RadioItem>
+            {/each}
+          </DropdownMenu.RadioGroup>
+        </DropdownMenu.Group>
       </DropdownMenu.Content>
     </DropdownMenu.Portal>
   </DropdownMenu.Root>
