@@ -28,18 +28,30 @@ _Avoid_: Sheet music, chart
 A dated event the choir works toward, holding an ordered list of Pieces. A Piece may belong to several Performances and may have no Practice Tracks yet. Past ones are archived and the default view lists upcoming ones.
 _Avoid_: Milestone, event, gig, concert
 
+**Major Performance**:
+The one upcoming Performance the choir singles out. It is highlighted wherever Performances appear and shown in a banner on every screen, so it is always one tap away. A Singer with `update` marks it; at most one Performance is the Major Performance at a time.
+_Avoid_: Featured, pinned, headline
+
+**Performance Overview**:
+The view opened by tapping any Performance. It lists the Performance's Pieces, holds the Play-through options, and is the only place a Play-through is started. Tapping a Piece in it opens that Piece on its own, exactly as if opened from the repertoire.
+_Avoid_: Details page, preview
+
+**Play-through**:
+Playing a Performance's Pieces in order, from the first Piece. Two options, both off by default: skip Pieces with no usable Practice Track (otherwise it pauses at an empty Piece), and prefer Combined Tracks (otherwise it prefers the Singer's part track and falls back to the Combined Track). Started from the Performance Overview.
+_Avoid_: Playlist, queue, autoplay
+
 **Singer**:
 A signed-in choir member who listens to Practice Tracks and has a default Voice Part.
 _Avoid_: Member, user
 
 **Part Override**:
-A Singer's saved, per-Piece choice of a different Voice Part from their default, e.g. for a divisi split or a Bass covering a Tenor line.
+A Singer's saved, per-Piece choice of a different Voice Part from their default, e.g. for a divisi split or a Bass covering a Tenor line. It is made from the indicator showing which part is playing, since overriding is rare. Choosing to play the Combined Track once is not a Part Override and is not saved.
 _Avoid_: Exception, custom part
 
 ## Access
 
 **Permission**:
-A single capability: `read`, `append` (add new Pieces, Practice Tracks and Scores, never alter existing ones), `update` (edit names, labels and Performance tags only), `delete`, or `manage-users`.
+A single capability: `read`, `append` (add new Pieces, Practice Tracks and Scores, never alter existing ones), `update` (edit names, labels and Performance tags only, which includes marking the Major Performance), `delete`, or `manage-users` (run the admin portal: Roles, Invite Links, removing Singers and the Colour Theme). A Singer is only shown the actions their Permissions allow.
 _Avoid_: Right, privilege
 
 **Role**:
@@ -53,3 +65,13 @@ _Avoid_: Owner, superuser
 **Invite Link**:
 A shareable link that grants a fixed set of Roles to anyone who signs up through it. Revocable, with an optional expiry and use cap, and never able to grant `delete` or `manage-users`.
 _Avoid_: Invitation code, signup link
+
+## Appearance
+
+**Colour Theme**:
+The palette the whole app is shown in, chosen once for the entire choir by a Singer with `manage-users`. One of Forest, Violet, Ocean, Sunset or Graphite, with Forest the default. It is a site setting stored in the database, so everyone sees the same one and no Singer can pick their own.
+_Avoid_: Skin, accent, brand colour
+
+**Display Mode**:
+A Singer's own choice of Light, Dark or System (follow the device) appearance. Personal to each Singer, and independent of the Colour Theme.
+_Avoid_: Theme (ambiguous with Colour Theme), dark mode toggle
