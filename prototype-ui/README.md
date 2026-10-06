@@ -4,7 +4,9 @@ Answers: "What should Prova's three main screens look like?" Three radically dif
 switched with `?variant=A|B|C`, the ←/→ keys, or the floating bottom bar. Mock data only, no persistence,
 no real audio (time runs ×8 so auto-advance is quick). Not for merging into `main`.
 
-    cd prototype-ui && npm run prototype
+    cd prototype-ui && pnpm install && pnpm prototype
+
+(pnpm needs Node 22.13 or newer.)
 
 | Screen | Route | A | B | C |
 | --- | --- | --- | --- | --- |
