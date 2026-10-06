@@ -2,7 +2,7 @@
   import { Command, Dialog } from 'bits-ui';
   import { goto } from '$app/navigation';
   import { PERFORMANCES, PIECES } from '../data';
-  import { ui } from '../ui.svelte';
+  import { openOverview, ui } from '../ui.svelte';
 
   function open(href: string) {
     ui.search = false;
@@ -35,7 +35,7 @@
               <Command.GroupHeading class={heading}>Performances</Command.GroupHeading>
               <Command.GroupItems>
                 {#each PERFORMANCES as p (p.id)}
-                  <Command.Item value="{p.title} performance" onSelect={() => open(`/perform/${p.id}`)} class={item}>{p.title}<span class="text-xs text-zinc-500">{p.venue}</span></Command.Item>
+                  <Command.Item value="{p.title} performance" onSelect={() => openOverview(p.id)} class={item}>{p.title}<span class="text-xs text-zinc-500">{p.venue}</span></Command.Item>
                 {/each}
               </Command.GroupItems>
             </Command.Group>

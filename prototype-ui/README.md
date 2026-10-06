@@ -10,15 +10,16 @@ bar. Mock data only, no persistence, no real audio (time runs ×8). Not for merg
 Layout: below `lg` (1024px) it is the phone layout (header + drawer menu, mini player). At `lg` and up it is the
 16:9 desktop layout (sidebar, wide content grids, full-width player bar). Try it at 390×844 and 1920×1080.
 
-Round 2 feedback applied: Home is now one timeline with a hero node for the next Performance (primary: play-through,
-quiet secondary: Overview dialog; the Pieces are listed in the hero). Repertoire moved to its own page (`/repertoire`,
-via the sidebar). Variants on Home are about Voice Part info density (A dots, B "what you'd hear", C none).
-A second switcher (`major`, keys `[` / `]`, or `?major=A|B|C`) compares ways to highlight a **major Performance**
-(new concept; the Annual Gala is major): A pinned sidebar card, B top banner, C header pill. Stars/badges show in lists in all three.
+Round 3: settled so far: Home is a timeline with a hero for the next Performance; part info is the compact "what you'd
+hear" label; the major Performance is the top banner (the Annual Gala is major). The thing under test now is the
+**start-playing flow**: every Performance tile (hero, timeline cards, past ones, sidebar items, the banner, search
+results) opens the same overview, instead of starting playback. The overview holds the play options, lets you tap a
+Piece to start the play-through from it, and has a Play button at the bottom that starts from Piece 1.
+`?overview=w1` opens it on load. Repertoire is its own page (`/repertoire`).
 
 | Screen | Route | A | B | C |
 | --- | --- | --- | --- | --- |
-| Home (#17, #20, #21) | `/` | Part dots | What you'd hear | No part info |
+| Home (#17, #20, #21) | `/` | (single layout) | | |
 | Repertoire (#20) | `/repertoire` | (single layout) | | |
 | Piece (#18) | `/piece/p1` … | Track list + score | Player + part picker | Score-first |
 | Play-through (#24) | `/perform/w1` | Now playing + queue | Setlist accordion | Score-first |

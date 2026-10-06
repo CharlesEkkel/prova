@@ -9,8 +9,7 @@
   import ChevronDown from '@lucide/svelte/icons/chevron-down';
   import Star from '@lucide/svelte/icons/star';
   import { SINGER, fmtDate, past, upcoming } from '../data';
-  import { ui } from '../ui.svelte';
-  import MajorHighlight from './MajorHighlight.svelte';
+  import { openOverview, ui } from '../ui.svelte';
 
   const path = $derived(page.url.pathname);
   const link = (active: boolean) =>
@@ -28,8 +27,6 @@
     <Search class="size-4" /> Search <kbd class="ml-auto rounded bg-zinc-200 px-1.5 text-[10px] dark:bg-zinc-800">Ctrl K</kbd>
   </button>
 
-  {#if ui.major === 'A'}<div class="mt-1"><MajorHighlight kind="card" /></div>{/if}
-
   <nav class="mt-2 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto" aria-label="Main">
     <a href="/" class={link(path === '/')}><House class="size-4" /> Home</a>
     <a href="/repertoire" class={link(path === '/repertoire' || path.startsWith('/piece'))}><ListMusic class="size-4" /> Repertoire</a>
@@ -38,13 +35,13 @@
       <Collapsible.Trigger class={trigger}>Performances <ChevronDown class="size-4 transition group-data-[state=closed]:-rotate-90" /></Collapsible.Trigger>
       <Collapsible.Content class="flex flex-col gap-0.5">
         {#each upcoming() as p (p.id)}
-          <a href="/perform/{p.id}" class={link(path === `/perform/${p.id}`)}>
+          <button onclick={() => openOverview(p.id)} class="{link(path === `/perform/${p.id}`)} w-full text-left">
             {#if p.major}<Star class="size-4 fill-amber-400 text-amber-500" />{:else}<Calendar class="size-4" />{/if}
             <span class="flex-1 truncate">{p.title}</span><span class="text-xs text-zinc-500">{fmtDate(p.date).split(' ').slice(1).join(' ')}</span>
-          </a>
+          </button>
         {/each}
         {#each past() as p (p.id)}
-          <a href="/perform/{p.id}" class="{link(path === `/perform/${p.id}`)} opacity-60"><Calendar class="size-4" /><span class="flex-1 truncate">{p.title}</span><span class="text-xs">archived</span></a>
+          <button onclick={() => openOverview(p.id)} class="{link(path === `/perform/${p.id}`)} w-full text-left opacity-60"><Calendar class="size-4" /><span class="flex-1 truncate">{p.title}</span><span class="text-xs">archived</span></button>
         {/each}
       </Collapsible.Content>
     </Collapsible.Root>
