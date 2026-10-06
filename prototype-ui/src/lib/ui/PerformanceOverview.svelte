@@ -6,7 +6,7 @@
   import X from '@lucide/svelte/icons/x';
   import ExternalLink from '@lucide/svelte/icons/external-link';
   import { goto } from '$app/navigation';
-  import { fmtDate, performance, piece, resolveTrack } from '../data';
+  import { fmtDate, performance, piece, resolveTrack } from '../data.svelte';
   import { jumpTo, options, startPlaythrough } from '../player.svelte';
   import { ui } from '../ui.svelte';
   import Btn from './Btn.svelte';

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Slider } from 'bits-ui';
-  import { fmt, type Track } from '../data';
+  import { fmt, type Track } from '../data.svelte';
   import { player, seek } from '../player.svelte';
   let { track, times = true }: { track: Track; times?: boolean } = $props();
   const active = $derived(player.track?.id === track.id);

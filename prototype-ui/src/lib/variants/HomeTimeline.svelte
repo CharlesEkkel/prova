@@ -4,7 +4,7 @@
   import { Collapsible } from 'bits-ui';
   import ChevronDown from '@lucide/svelte/icons/chevron-down';
   import ChevronRight from '@lucide/svelte/icons/chevron-right';
-  import { SINGER, TODAY, daysUntil, fmtDate, past, piece, upcoming } from '../data';
+  import { SINGER, TODAY, daysUntil, fmtDate, past, piece, upcoming } from '../data.svelte';
   import MajorBadge from '../ui/MajorBadge.svelte';
   import Tile from '../ui/Tile.svelte';
   import TrackStatus from '../ui/TrackStatus.svelte';
@@ -47,7 +47,7 @@
                 <li class="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-white/15 px-3 text-sm"><span class="text-violet-200">{i + 1}</span>{piece(id).title}</li>
               {/each}
             </ol>
-            <p class="mt-6 inline-flex items-center gap-1 text-sm font-semibold">Overview and play <ChevronRight class="size-4" /></p>
+            <p class="mt-6 inline-flex items-center gap-1 text-sm font-semibold">Overview <ChevronRight class="size-4" /></p>
           </Tile>
         </li>
       {/if}

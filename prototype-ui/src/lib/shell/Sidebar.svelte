@@ -8,7 +8,7 @@
   import ListMusic from '@lucide/svelte/icons/list-music';
   import ChevronDown from '@lucide/svelte/icons/chevron-down';
   import Star from '@lucide/svelte/icons/star';
-  import { SINGER, fmtDate, past, upcoming } from '../data';
+  import { SINGER, fmtDate, past, upcoming } from '../data.svelte';
   import { openOverview, ui } from '../ui.svelte';
 
   const path = $derived(page.url.pathname);

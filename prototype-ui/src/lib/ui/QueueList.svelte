@@ -1,6 +1,6 @@
 <script lang="ts">
   import AudioLines from '@lucide/svelte/icons/audio-lines';
-  import type { Performance } from '../data';
+  import type { Performance } from '../data.svelte';
   import { currentItem, jumpTo, player, queueOf, session } from '../player.svelte';
   import KindBadge from './KindBadge.svelte';
   let { perf }: { perf: Performance } = $props();

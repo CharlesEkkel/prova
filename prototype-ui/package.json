@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "postinstall": "node scripts/copy-pdfjs-wasm.mjs",
     "dev": "vite dev --host",
     "prototype": "vite dev --host --open"
   },
@@ -14,6 +15,7 @@
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
     "@tailwindcss/vite": "^4.3.3",
     "bits-ui": "^2.19.5",
+    "pdfjs-dist": "^6.4.299",
     "svelte": "^5.20.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.7.0",

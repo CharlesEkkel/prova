@@ -1,7 +1,7 @@
 <script lang="ts">
   // The major Performance, always one tap away: a slim banner across the top of every screen.
   import Star from '@lucide/svelte/icons/star';
-  import { daysUntil, fmtDate, majorPerformance } from '../data';
+  import { daysUntil, fmtDate, majorPerformance } from '../data.svelte';
   import { openOverview } from '../ui.svelte';
   const perf = majorPerformance();
 </script>

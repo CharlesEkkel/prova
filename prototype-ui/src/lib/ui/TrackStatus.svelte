@@ -1,6 +1,6 @@
 <script lang="ts">
   // Compact part info: just what you would hear if you pressed play on this Piece.
-  import { kindLabel, partFor, partTracksOf, resolveTrack, type Piece } from '../data';
+  import { kindLabel, partFor, partTracksOf, resolveTrack, type Piece } from '../data.svelte';
   let { piece, preferCombined = false }: { piece: Piece; preferCombined?: boolean } = $props();
   const track = $derived(resolveTrack(piece, preferCombined));
   const hasMine = $derived(partTracksOf(piece, partFor(piece.id)).length > 0);

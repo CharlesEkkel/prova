@@ -2,7 +2,7 @@
   import Users from '@lucide/svelte/icons/users';
   import Mic from '@lucide/svelte/icons/mic';
   import Sliders from '@lucide/svelte/icons/sliders-horizontal';
-  import { kindLabel, type Track } from '../data';
+  import { kindLabel, type Track } from '../data.svelte';
   let { track }: { track: Track } = $props();
   // Combined = solid; part-only = outline; part-predominant = tinted outline. Icon + text, never colour alone.
   const style = {

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Command, Dialog } from 'bits-ui';
   import { goto } from '$app/navigation';
-  import { PERFORMANCES, PIECES } from '../data';
+  import { PERFORMANCES, PIECES } from '../data.svelte';
   import { openOverview, ui } from '../ui.svelte';
 
   function open(href: string) {

@@ -1,6 +1,6 @@
 <script lang="ts">
   // PROTOTYPE: Repertoire as its own page, reached from the sidebar (single layout, no variants).
-  import { PIECES, performancesOf } from '$lib/data';
+  import { PIECES, performancesOf } from '$lib/data.svelte';
   import MajorBadge from '$lib/ui/MajorBadge.svelte';
   import PartDots from '$lib/ui/PartDots.svelte';
   const sorted = PIECES.toSorted((a, b) => a.title.localeCompare(b.title));

@@ -1,27 +1,20 @@
 <script lang="ts">
-  // PROTOTYPE: three variants of the Performance play-through screen, via ?variant=A|B|C
+  // PROTOTYPE: the Performance play-through = the shared player screen with a running order.
   // Winter Concert contains an empty Piece (Sicut Cervus): try the pause state and "skip empty".
-  import { onDestroy } from 'svelte';
+  import { onDestroy, untrack } from 'svelte';
   import { page } from '$app/state';
-  import { performance as findPerf } from '$lib/data';
-  import PrototypeSwitcher from '$lib/ui/PrototypeSwitcher.svelte';
-  import { endPlaythrough, session, startPlaythrough } from '$lib/player.svelte';
-  import PerformA from '$lib/variants/PerformA.svelte';
-  import PerformB from '$lib/variants/PerformB.svelte';
-  import PerformC from '$lib/variants/PerformC.svelte';
-  const variants = [
-    { key: 'A', name: 'Now playing + queue' },
-    { key: 'B', name: 'Setlist accordion' },
-    { key: 'C', name: 'Score-first' }
-  ];
-  const variant = $derived(page.url.searchParams.get('variant') ?? 'A');
+  import { performance as findPerf } from '$lib/data.svelte';
+  import { endSession, session, startPlaythrough } from '$lib/player.svelte';
+  import PlayerScreen from '$lib/variants/PlayerScreen.svelte';
   const perf = $derived(findPerf(page.params.id));
-  // (re)start whenever the Performance changes; switching variant must not restart it
+  // arriving via the overview has already started the play-through; a direct URL starts it here
   $effect(() => {
-    if (session.perfId !== perf.id) startPlaythrough(perf.id);
+    const id = perf.id;
+    untrack(() => {
+      if (session.perfId !== id) startPlaythrough(id);
+    });
   });
-  onDestroy(endPlaythrough);
+  onDestroy(endSession);
 </script>
 
-{#if variant === 'A'}<PerformA {perf} />{:else if variant === 'B'}<PerformB {perf} />{:else}<PerformC {perf} />{/if}
-<PrototypeSwitcher {variants} />
+<PlayerScreen {perf} />

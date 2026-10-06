@@ -9,12 +9,10 @@
   import Music from '@lucide/svelte/icons/music';
   import X from '@lucide/svelte/icons/x';
   import MajorHighlight from '$lib/shell/MajorHighlight.svelte';
-  import NowPlaying from '$lib/shell/NowPlaying.svelte';
   import SearchDialog from '$lib/shell/SearchDialog.svelte';
   import Sidebar from '$lib/shell/Sidebar.svelte';
   import Btn from '$lib/ui/Btn.svelte';
   import PerformanceOverview from '$lib/ui/PerformanceOverview.svelte';
-  import { player } from '$lib/player.svelte';
   import { ui } from '$lib/ui.svelte';
   let { children } = $props();
   afterNavigate(() => (ui.menu = false));
@@ -23,8 +21,6 @@
     const id = page.url.searchParams.get('overview');
     if (id) ui.overview = id;
   });
-  // the play-through screens carry their own transport, so the global bar steps aside there
-  const showBar = $derived(player.track !== null && !page.url.pathname.startsWith('/perform'));
 </script>
 
 <div class="flex h-dvh">
@@ -40,7 +36,6 @@
     </header>
 
     <main class="min-h-0 flex-1 overflow-y-auto pb-20">{@render children()}</main>
-    {#if showBar && player.track}<NowPlaying track={player.track} />{/if}
   </div>
 </div>
 

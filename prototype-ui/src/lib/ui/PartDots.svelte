@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { VOICE_PARTS, type Piece } from '../data';
+  import { VOICE_PARTS, type Piece } from '../data.svelte';
   let { piece }: { piece: Piece } = $props();
   const cells = $derived([
     ...VOICE_PARTS.map((p) => ({ label: p[0], name: p, has: piece.tracks.some((t) => t.part === p) })),
