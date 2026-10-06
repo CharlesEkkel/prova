@@ -48,6 +48,19 @@ in `localStorage` (`prova-theme`) and applied by a tiny script in `app.html` bef
 flashes the wrong theme. Dark is a class on `<html>` (`@custom-variant dark` in `app.css`), so the toggle can override
 the OS setting; native controls follow via `color-scheme`. Logic lives in `src/lib/theme.svelte.ts`.
 
+## Colour themes
+
+Five to try, under **Colour** in the sidebar (and the phone drawer): **Violet** (the original), **Ocean** (blue to
+cyan), **Forest** (green to teal), **Sunset** (pink to orange) and **Graphite** (slate, a restrained neutral). They
+work in both light and dark, are remembered (`prova-accent`), and `?accent=ocean` picks one from a link.
+
+How it works: the app's accent is Tailwind's `violet-*` (plus `indigo-700` in the hero gradient), so a colour theme just
+points those variables at another palette (`html[data-accent='ocean'] { --color-violet-600: var(--color-blue-600); … }`).
+No component knows about it. Forest and Graphite shift the darker shades up a step so white text stays readable;
+every theme measures at least 4.5:1 for white on its primary button. To add or tweak one, edit `scripts/gen-accents.mjs`
+and run `node scripts/gen-accents.mjs` (it writes `src/accents.css`). `app.css` imports Tailwind in pieces with
+`theme(static)` so the whole default palette is always available as variables for the themes to point at.
+
 ## Scores (PDF)
 
 Every Score points at `static/scores/sample.pdf`. PDFs are gitignored, so copy one there yourself

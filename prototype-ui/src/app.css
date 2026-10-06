@@ -1,4 +1,10 @@
-@import 'tailwindcss';
+/* Tailwind, split out so the whole default palette is always emitted as CSS variables (`theme(static)`).
+   Colour themes (src/accents.css) re-point `violet-*` at another palette, so they need those variables to exist. */
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme) theme(static);
+@import 'tailwindcss/preflight.css' layer(base);
+@import 'tailwindcss/utilities.css' layer(utilities);
+@import './accents.css';
 
 /* Dark mode is a class on <html> (set by the theme choice) rather than only the OS setting, so a Singer can
    override it. The choice itself is `light`, `dark` or `system`; see src/lib/theme.svelte.ts. */
