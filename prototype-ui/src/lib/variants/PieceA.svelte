@@ -1,76 +1,53 @@
 <script lang="ts">
-  // Variant A "Part-first list": Your part first, Combined always visible, other parts collapsed,
-  // Scores below, sticky mini-player docked at the bottom.
-  import { VOICE_PARTS, combinedOf, fmt, isOverridden, partFor, partTracksOf, type Piece } from '../data';
-  import KindChip from '../KindChip.svelte';
-  import Scrubber from '../Scrubber.svelte';
-  import { isPlaying, player, playTrack, skipBy, toggle } from '../player.svelte';
+  // Variant A "Track list + score": your part first, Combined always visible, other parts folded away.
+  // Wide screens put the score beside the list; phones stack them.
+  import { Collapsible } from 'bits-ui';
+  import ChevronDown from '@lucide/svelte/icons/chevron-down';
+  import FileText from '@lucide/svelte/icons/file-text';
+  import { combinedOf, isOverridden, partFor, partTracksOf, type Piece } from '../data';
+  import ScoreMock from '../ui/ScoreMock.svelte';
+  import TrackRow from '../ui/TrackRow.svelte';
   let { piece }: { piece: Piece } = $props();
-  let showOthers = $state(false);
   const mine = $derived(partTracksOf(piece, partFor(piece.id)));
   const combined = $derived(combinedOf(piece));
   const others = $derived(piece.tracks.filter((t) => t.part && t.part !== partFor(piece.id)));
-  void VOICE_PARTS;
+  const h = 'mt-6 mb-2 flex items-center gap-2 text-xs font-semibold tracking-wider text-zinc-500 uppercase';
 </script>
 
-<div class="screen">
-  <div class="pad">
-    <a href="/" class="small muted">‹ Home</a>
-    <h1>{piece.title}</h1>
-    <p class="muted">{piece.composer}</p>
+<div class="mx-auto w-full max-w-7xl px-4 py-6 lg:px-10 lg:py-10">
+  <a href="/" class="text-sm text-zinc-500 hover:underline">‹ Home</a>
+  <h1 class="mt-2 text-2xl font-semibold tracking-tight lg:text-3xl">{piece.title}</h1>
+  <p class="text-zinc-500">{piece.composer}</p>
 
-    <h2 class="h-label sec">Your part: {partFor(piece.id)} {#if isOverridden(piece.id)}<span class="ov">Part Override</span>{/if}</h2>
-    {#each mine as t}
-      {@render trackRow(t, true)}
-    {:else}
-      <p class="empty card pad small">No {partFor(piece.id)} Practice Track yet. Use the Combined Track below.</p>
-    {/each}
+  <div class="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
+    <div>
+      <h2 class="{h} !mt-0">Your part: {partFor(piece.id)}
+        {#if isOverridden(piece.id)}<span class="rounded bg-amber-100 px-1.5 py-0.5 tracking-normal text-amber-800 normal-case dark:bg-amber-500/15 dark:text-amber-300">Part Override</span>{/if}</h2>
+      <div class="flex flex-col gap-2">
+        {#each mine as t (t.id)}<TrackRow track={t} emphasis />{:else}
+          <p class="rounded-2xl border border-dashed border-zinc-300 p-4 text-sm text-zinc-500 dark:border-zinc-700">No {partFor(piece.id)} Practice Track yet. Use the Combined Track below.</p>
+        {/each}
+      </div>
 
-    <h2 class="h-label sec">Everyone together</h2>
-    {#if combined}{@render trackRow(combined, false)}{:else}<p class="empty card pad small">No Combined Track yet.</p>{/if}
+      <h2 class={h}>Everyone together</h2>
+      {#if combined}<TrackRow track={combined} />{:else}<p class="rounded-2xl border border-dashed border-zinc-300 p-4 text-sm text-zinc-500 dark:border-zinc-700">No Combined Track yet.</p>{/if}
 
-    {#if others.length}
-      <button class="more" onclick={() => (showOthers = !showOthers)}>{showOthers ? '▾' : '▸'} Other Voice Parts ({others.length})</button>
-      {#if showOthers}{#each others as t}{@render trackRow(t, false)}{/each}{/if}
-    {/if}
+      {#if others.length}
+        <Collapsible.Root class="mt-4">
+          <Collapsible.Trigger class="group flex min-h-11 items-center gap-1 text-sm font-medium text-violet-700 dark:text-violet-300"><ChevronDown class="size-4 transition group-data-[state=closed]:-rotate-90" /> Other Voice Parts ({others.length})</Collapsible.Trigger>
+          <Collapsible.Content class="mt-2 flex flex-col gap-2">{#each others as t (t.id)}<TrackRow track={t} />{/each}</Collapsible.Content>
+        </Collapsible.Root>
+      {/if}
+    </div>
 
-    <h2 class="h-label sec">Scores</h2>
-    {#each piece.scores as s}
-      <a class="card row score" href="#score"><span class="grow">{s.label}</span>{#if s.choir}<b class="choir">Choir score</b>{/if}<span>›</span></a>
-    {:else}
-      <p class="muted small">No Scores uploaded.</p>
-    {/each}
+    <div class="lg:sticky lg:top-6 lg:self-start">
+      <h2 class="{h} !mt-0">Score</h2>
+      <ScoreMock {piece} class="h-72 lg:h-[26rem]" />
+      <ul class="mt-3 flex flex-col gap-1">
+        {#each piece.scores as s (s.id)}
+          <li class="flex min-h-10 items-center gap-2 text-sm"><FileText class="size-4 text-zinc-400" /><span class="flex-1">{s.label}</span>{#if s.choir}<span class="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">Choir score</span>{/if}</li>
+        {/each}
+      </ul>
+    </div>
   </div>
 </div>
-
-{#if player.track}
-  <div class="mini">
-    <div class="row">
-      <div class="grow small"><b>{player.track.part ?? 'Combined'}</b> · {piece.title}</div>
-      <button class="icon-btn" aria-label="Back 10 seconds" onclick={() => skipBy(-10)}>↺</button>
-      <button class="icon-btn" aria-label={player.playing ? 'Pause' : 'Play'} onclick={toggle}>{player.playing ? '❚❚' : '▶'}</button>
-    </div>
-    <Scrubber track={player.track} />
-  </div>
-{/if}
-
-{#snippet trackRow(t, strong)}
-  <div class="card trk" class:strong>
-    <button class="icon-btn" aria-label="{isPlaying(t) ? 'Pause' : 'Play'} {t.part ?? 'Combined'} track" onclick={() => playTrack(t)}>{isPlaying(t) ? '❚❚' : '▶'}</button>
-    <div class="grow"><KindChip track={t} /></div>
-    <span class="small muted">{fmt(t.durationSec)}</span>
-  </div>
-{/snippet}
-
-<style>
-  h1 { font-size: 26px; margin-top: 6px; }
-  .sec { margin: 22px 0 8px; display: flex; gap: 8px; align-items: center; }
-  .ov { background: #fff3c4; color: #7a5b00; padding: 1px 8px; border-radius: 6px; text-transform: none; letter-spacing: 0; }
-  .trk { display: flex; align-items: center; gap: 12px; padding: 8px 14px 8px 8px; margin-bottom: 8px; }
-  .trk.strong { border: 2px solid var(--accent); }
-  .more { min-height: 48px; color: var(--accent); font-weight: 600; }
-  .empty { color: var(--muted); border-style: dashed; }
-  .score { padding: 0 14px; min-height: 52px; margin-bottom: 8px; }
-  .choir { font-size: 11px; background: var(--accent-soft); color: var(--accent); padding: 2px 8px; border-radius: 99px; }
-  .mini { flex: none; background: var(--surface); border-top: 1px solid var(--line); padding: 8px 14px 4px; margin-bottom: 56px; box-shadow: 0 -4px 14px #0001; }
-</style>

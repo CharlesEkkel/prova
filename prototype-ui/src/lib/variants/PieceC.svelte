@@ -1,69 +1,51 @@
 <script lang="ts">
-  // Variant C "Score-first": the choir score is the hero (read while you listen). Combined Track
-  // is a permanently pinned dark button; part tracks scroll horizontally; transport docks at bottom.
-  import { combinedOf, fmt, isOverridden, partFor, type Piece } from '../data';
-  import KindChip from '../KindChip.svelte';
-  import ScoreMock from '../ScoreMock.svelte';
-  import Scrubber from '../Scrubber.svelte';
-  import { isCurrent, isPlaying, load, player, playTrack, skipBy, toggle } from '../player.svelte';
+  // Variant C "Score-first": the choir score is the hero (read while you listen). On wide screens the
+  // tracks live in a right rail with the Combined Track pinned on top; on phones they become a chip row.
+  import { combinedOf, isOverridden, partFor, type Piece } from '../data';
+  import { isCurrent, playTrack } from '../player.svelte';
+  import KindBadge from '../ui/KindBadge.svelte';
+  import ScoreMock from '../ui/ScoreMock.svelte';
+  import TrackRow from '../ui/TrackRow.svelte';
   let { piece }: { piece: Piece } = $props();
   const combined = $derived(combinedOf(piece));
   const parts = $derived(piece.tracks.filter((t) => t.part));
   const mine = $derived(partFor(piece.id));
+  const chip = 'flex min-h-14 shrink-0 flex-col items-start justify-center gap-0.5 rounded-xl border-2 px-3';
 </script>
 
-<div class="screen">
-  <div class="pad head">
-    <a href="/" class="small muted">‹ Home</a>
-    <h1>{piece.title}</h1>
-    <p class="small muted">{piece.composer} · you: <b>{mine}</b>{#if isOverridden(piece.id)} (override){/if}</p>
+<div class="mx-auto w-full max-w-7xl px-4 py-6 lg:px-10 lg:py-8">
+  <a href="/" class="text-sm text-zinc-500 hover:underline">‹ Home</a>
+  <div class="mt-2 flex flex-wrap items-baseline gap-x-4">
+    <h1 class="text-2xl font-semibold tracking-tight">{piece.title}</h1>
+    <p class="text-zinc-500">{piece.composer} · you: <b>{mine}</b>{#if isOverridden(piece.id)} (Part Override){/if}</p>
   </div>
 
-  <div class="pad"><ScoreMock {piece} height={300} />
-    {#if piece.scores.length > 1}<p class="small muted others">Also: {piece.scores.filter((s) => !s.choir).map((s) => s.label).join(', ')}</p>{/if}
-  </div>
-
-  <div class="dock">
-    <div class="picker">
-      {#if combined}
-        <button class="pin" class:active={isCurrent(combined)} onclick={() => load(combined)} aria-label="Play Combined Track">
-          <KindChip track={combined} />
-        </button>
-      {:else}<span class="pin none small">No Combined Track</span>{/if}
-      <div class="scroller">
-        {#each parts as t}
-          <button class="pt" class:mine={t.part === mine} class:active={isCurrent(t)} onclick={() => playTrack(t)}>
-            <KindChip track={t} />{#if t.part === mine}<small>★ yours</small>{/if}
-          </button>
-        {:else}<span class="muted small">No part tracks yet</span>{/each}
-      </div>
+  <div class="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+    <div>
+      <ScoreMock {piece} class="h-96 lg:h-[34rem]" />
+      {#if piece.scores.length > 1}<p class="mt-2 text-sm text-zinc-500">Also: {piece.scores.filter((s) => !s.choir).map((s) => s.label).join(', ')}</p>{/if}
     </div>
-    {#if player.track}
-      <Scrubber track={player.track} />
-      <div class="row ctl">
-        <span class="small muted">{player.track.part ?? 'Combined'} · {fmt(player.track.durationSec)}</span>
-        <span class="grow"></span>
-        <button class="icon-btn" aria-label="Back 10 seconds" onclick={() => skipBy(-10)}>↺</button>
-        <button class="icon-btn big small-big" aria-label={player.playing ? 'Pause' : 'Play'} onclick={toggle}>{player.playing ? '❚❚' : '▶'}</button>
-      </div>
-    {:else}
-      <p class="small muted pad">Pick a track to start. Your score stays on screen.</p>
-    {/if}
+
+    <!-- phones: horizontal chips -->
+    <div class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:hidden">
+      {#if combined}
+        <button onclick={() => playTrack(combined)} aria-label="Play Combined Track" class="{chip} {isCurrent(combined) ? 'border-violet-500' : 'border-transparent bg-zinc-100 dark:bg-zinc-800'}"><KindBadge track={combined} /></button>
+      {/if}
+      {#each parts as t (t.id)}
+        <button onclick={() => playTrack(t)} class="{chip} {isCurrent(t) ? 'border-violet-500' : 'border-transparent'} {t.part === mine ? 'bg-amber-100 dark:bg-amber-500/15' : 'bg-zinc-100 dark:bg-zinc-800'}">
+          <KindBadge track={t} />{#if t.part === mine}<small class="text-[11px] text-amber-800 dark:text-amber-300">★ yours</small>{/if}
+        </button>
+      {/each}
+    </div>
+
+    <!-- wide: right rail -->
+    <aside class="hidden flex-col gap-2 lg:flex">
+      <h2 class="text-xs font-semibold tracking-wider text-zinc-500 uppercase">Combined</h2>
+      {#if combined}<TrackRow track={combined} emphasis />{:else}<p class="text-sm text-zinc-500">No Combined Track yet.</p>{/if}
+      <h2 class="mt-4 text-xs font-semibold tracking-wider text-zinc-500 uppercase">Voice Parts</h2>
+      {#each parts as t (t.id)}
+        <div class={t.part === mine ? 'rounded-2xl ring-2 ring-amber-400' : ''}><TrackRow track={t} /></div>
+      {:else}<p class="text-sm text-zinc-500">No part tracks yet.</p>{/each}
+    </aside>
   </div>
 </div>
-
-<style>
-  h1 { font-size: 22px; }
-  .head { padding-bottom: 4px; }
-  .others { margin-top: 6px; }
-  .dock { position: sticky; bottom: 0; margin-top: auto; background: var(--surface); border-top: 1px solid var(--line); padding: 10px 14px 62px; box-shadow: 0 -4px 14px #0001; }
-  .picker { display: flex; gap: 8px; align-items: stretch; margin-bottom: 6px; }
-  .pin { flex: none; min-height: 56px; padding: 0 10px; border-radius: 12px; border: 3px solid transparent; background: var(--bg); }
-  .pin.active, .pt.active { border-color: var(--accent); }
-  .pin.none { display: grid; place-items: center; }
-  .scroller { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
-  .pt { flex: none; min-height: 56px; padding: 0 10px; border-radius: 12px; border: 3px solid transparent; background: var(--bg); display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 2px; }
-  .pt.mine { background: #fff3c4; }
-  .pt small { font-size: 11px; color: #7a5b00; }
-  .small-big { width: 56px; height: 56px; font-size: 22px; }
-</style>

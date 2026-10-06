@@ -1,69 +1,61 @@
 <script lang="ts">
-  // Variant B "Setlist": the whole running order is the screen. Current Piece is expanded inline
-  // with its player; empty Pieces show as dashed rows; options are two switches pinned at the top.
-  import { fmt, type Performance } from '../data';
-  import KindChip from '../KindChip.svelte';
-  import Options from '../Options.svelte';
-  import ScoreMock from '../ScoreMock.svelte';
-  import Scrubber from '../Scrubber.svelte';
-  import { currentItem, emptyPaused, go, jumpTo, options, player, queueOf, session, skipBy, toggle } from '../player.svelte';
+  // Variant B "Setlist accordion": the whole running order is the screen. The current Piece is the open
+  // accordion item with player and score; options are always visible in a side card (top card on phones).
+  import { Accordion } from 'bits-ui';
+  import ChevronDown from '@lucide/svelte/icons/chevron-down';
+  import type { Performance } from '../data';
+  import { currentItem, emptyPaused, jumpTo, options, queueOf, session, startPlaythrough } from '../player.svelte';
+  import Btn from '../ui/Btn.svelte';
+  import KindBadge from '../ui/KindBadge.svelte';
+  import PauseCard from '../ui/PauseCard.svelte';
+  import PlaythroughOptions from '../ui/PlaythroughOptions.svelte';
+  import ScoreMock from '../ui/ScoreMock.svelte';
+  import Scrubber from '../ui/Scrubber.svelte';
+  import Transport from '../ui/Transport.svelte';
   let { perf }: { perf: Performance } = $props();
   const q = $derived(queueOf(perf));
   const cur = $derived(currentItem());
   const hidden = $derived(perf.pieceIds.length - q.length);
 </script>
 
-<div class="screen">
-  <div class="top pad">
-    <a href="/" class="small muted">‹ Home</a>
-    <h1>{perf.title}</h1>
-    <Options />
-    {#if options.skipEmpty && hidden > 0}<p class="small muted">{hidden} Piece hidden (no Practice Tracks)</p>{/if}
-  </div>
+<div class="mx-auto w-full max-w-6xl px-4 py-6 lg:px-10 lg:py-10">
+  <a href="/" class="text-sm text-zinc-500 hover:underline">‹ Home</a>
+  <h1 class="text-2xl font-semibold tracking-tight lg:text-3xl">{perf.title}</h1>
 
-  {#if session.done}<p class="pad"><b>Finished the Performance.</b></p>{/if}
+  <div class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+    <div class="order-2 lg:order-1">
+      {#if session.done}
+        <div class="mb-4 rounded-2xl border border-zinc-200 bg-white p-6 text-center dark:border-zinc-800 dark:bg-zinc-900"><b>Finished the Performance 🎶</b><br /><Btn class="mt-3" size="sm" onclick={() => startPlaythrough(perf.id)}>Play again</Btn></div>
+      {/if}
+      <Accordion.Root type="single" value={session.done ? '' : (cur?.piece.id ?? '')} onValueChange={(v) => v && jumpTo(v)} class="flex flex-col gap-2">
+        {#each q as item, i (item.piece.id)}
+          <Accordion.Item value={item.piece.id} class="overflow-hidden rounded-2xl border {item.track ? 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900' : 'border-dashed border-zinc-300 dark:border-zinc-700'} data-[state=open]:border-violet-500">
+            <Accordion.Header>
+              <Accordion.Trigger class="group flex min-h-16 w-full items-center gap-3 px-4 text-left">
+                <span class="grid size-8 shrink-0 place-items-center rounded-full bg-violet-100 text-sm font-bold text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">{i + 1}</span>
+                <span class="min-w-0 flex-1"><span class="block truncate font-medium">{item.piece.title}</span>{#if !item.track}<span class="text-xs text-amber-700 dark:text-amber-400">no Practice Track yet</span>{/if}</span>
+                {#if item.track}<KindBadge track={item.track} />{/if}
+                <ChevronDown class="size-4 shrink-0 text-zinc-400 transition group-data-[state=open]:rotate-180" />
+              </Accordion.Trigger>
+            </Accordion.Header>
+            <Accordion.Content class="flex flex-col gap-4 px-4 pb-4">
+              {#if item.track && !emptyPaused()}
+                <Scrubber track={item.track} />
+                <Transport big={false} />
+              {:else}
+                <PauseCard title={item.piece.title} />
+              {/if}
+              <ScoreMock piece={item.piece} class="h-48 lg:h-72" />
+            </Accordion.Content>
+          </Accordion.Item>
+        {/each}
+      </Accordion.Root>
+    </div>
 
-  <ol class="set">
-    {#each q as item, i}
-      {@const here = !session.done && item.piece.id === cur?.piece.id}
-      <li class="slot" class:here class:empty={!item.track}>
-        <button class="head row" onclick={() => jumpTo(item.piece.id)}>
-          <span class="n">{here && player.playing ? '▶' : i + 1}</span>
-          <span class="grow"><b>{item.piece.title}</b>{#if !item.track}<br /><small class="warn">no Practice Track yet</small>{/if}</span>
-          {#if item.track}<KindChip track={item.track} />{/if}
-        </button>
-        {#if here && item.track}
-          <div class="open"><Scrubber track={item.track} />
-            <div class="row"><span class="small muted grow">{fmt(item.track.durationSec)}</span>
-              <button class="icon-btn" aria-label="Back 10 seconds" onclick={() => skipBy(-10)}>↺</button>
-              <button class="icon-btn" aria-label={player.playing ? 'Pause' : 'Play'} onclick={toggle}>{player.playing ? '❚❚' : '▶'}</button>
-            </div>
-            <ScoreMock piece={item.piece} height={150} />
-          </div>
-        {:else if here && emptyPaused()}
-          <div class="open"><p class="small"><b>⏸ Paused.</b> Nothing to play for this Piece.</p><button class="btn" onclick={() => go(1)}>Continue</button></div>
-        {/if}
-      </li>
-    {/each}
-  </ol>
-
-  <div class="foot row">
-    <button class="icon-btn" aria-label="Previous Piece" onclick={() => go(-1)}>⏮</button>
-    <span class="grow small muted" style="text-align:center">{cur ? cur.piece.title : ''}</span>
-    <button class="icon-btn" aria-label="Next Piece" onclick={() => go(1)}>⏭</button>
+    <aside class="order-1 rounded-2xl border border-zinc-200 bg-white p-4 lg:sticky lg:top-6 lg:order-2 dark:border-zinc-800 dark:bg-zinc-900">
+      <h2 class="font-semibold">Options</h2>
+      <PlaythroughOptions />
+      {#if options.skipEmpty && hidden > 0}<p class="mt-1 text-xs text-zinc-500">{hidden} Piece hidden (no Practice Tracks)</p>{/if}
+    </aside>
   </div>
 </div>
-
-<style>
-  h1 { font-size: 22px; margin-bottom: 6px; }
-  .top { background: var(--surface); border-bottom: 1px solid var(--line); }
-  .set { list-style: none; margin: 0; padding: 8px 12px; flex: 1; }
-  .slot { border-radius: 12px; border: 1px solid var(--line); background: var(--surface); margin-bottom: 8px; overflow: hidden; }
-  .slot.here { border: 2px solid var(--accent); }
-  .slot.empty { border-style: dashed; background: none; }
-  .head { width: 100%; padding: 8px 12px; min-height: 56px; text-align: left; }
-  .n { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-size: 13px; font-weight: 700; flex: none; }
-  .warn { color: var(--warn); font-weight: 400; }
-  .open { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px; }
-  .foot { position: sticky; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); padding: 8px 14px 62px; }
-</style>
