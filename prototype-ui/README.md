@@ -19,12 +19,14 @@ layout (sidebar, wide grids). Try 390×844 and 1920×1080.
 - **One player screen** (`PlayerScreen.svelte`) is used for both:
   - `/perform/<id>`: Performance play-through, with the running order beside it.
   - `/piece/<id>`: a single Piece, same screen with a Start button and no running order.
-  - Both let you override the Voice Part for the Piece (saved as a Part Override; ALL plays the Combined Track once),
-    switching the track without losing your place.
-- **Score**: goes fullscreen when playback starts, renders the real PDF, and leaves fullscreen when the song ends
-  (in a Performance it stays up across Pieces and leaves when the Performance finishes or pauses at an empty Piece).
-  Page turns: edge buttons, swipe, arrow / Page keys. The current page is remembered per Score for the playback
-  session, so closing and reopening returns to the same page. The inline preview shares that page.
+  - The Voice Part being played is shown as a small indicator (e.g. "Alto + mix"). Overriding is rare, so it is only
+    reachable by clicking that indicator: choose another part (saved as a Part Override; ALL plays the Combined
+    Track once). The track switches without losing your place.
+- **Score**: many Singers read their own physical music, so it is never opened for you. It is a collapsed panel on
+  the player; "Open full screen" shows the real PDF fullscreen. Fullscreen leaves when the song ends or you close it
+  (in a Performance it follows you to the next Piece while open, and leaves when the Performance finishes or pauses
+  at an empty Piece). Page turns: edge buttons, swipe, arrow / Page keys. The current page is remembered per Score
+  for the playback session, so closing and reopening returns to the same page, and the panel shares that page.
 
 ## Scores (PDF)
 

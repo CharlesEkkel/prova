@@ -76,8 +76,7 @@ function enter(item: QueueItem | undefined) {
   session.started = true;
   session.done = false;
   if (item.track) {
-    load(item.track);
-    score.open = scoreOf(item.piece) !== undefined; // the score goes fullscreen while a Piece plays
+    load(item.track); // the score is never opened for you; if it is already fullscreen it follows to this Piece
   } else {
     stop();
     score.open = false;

@@ -1,17 +1,18 @@
 <script lang="ts">
   // The one player screen. A Performance play-through shows it with a running order beside it; a single
-  // Piece shows the same screen without the running order and with a Start button. The score goes
-  // fullscreen while playing (ScoreViewer); the inline preview here reopens it at the remembered page.
-  import { Popover, ToggleGroup } from 'bits-ui';
+  // Piece shows the same screen without the running order and with a Start button. The score is a
+  // collapsed panel; fullscreen (ScoreViewer) only opens when the Singer asks, at the remembered page.
+  import { Collapsible, Popover, ToggleGroup } from 'bits-ui';
   import Settings from '@lucide/svelte/icons/settings-2';
   import Play from '@lucide/svelte/icons/play';
   import Maximize from '@lucide/svelte/icons/maximize';
+  import FileText from '@lucide/svelte/icons/file-text';
+  import ChevronDown from '@lucide/svelte/icons/chevron-down';
   import ChevronLeft from '@lucide/svelte/icons/chevron-left';
   import ChevronRight from '@lucide/svelte/icons/chevron-right';
   import { fmt, kindLabel, type Performance } from '../data.svelte';
   import { currentItem, emptyPaused, pageOf, queueOf, score, scoreOf, session, startPiece, startPlaythrough } from '../player.svelte';
   import Btn from '../ui/Btn.svelte';
-  import KindBadge from '../ui/KindBadge.svelte';
   import PartPicker from '../ui/PartPicker.svelte';
   import PauseCard from '../ui/PauseCard.svelte';
   import PdfPage from '../ui/PdfPage.svelte';
@@ -69,50 +70,55 @@
             <p class="text-zinc-500">{cur.piece.composer}</p>
           </div>
 
-          <PartPicker piece={cur.piece} />
-
           {#if emptyPaused()}
             <PauseCard title={cur.piece.title} />
           {:else if session.started && cur.track}
-            <div><KindBadge track={cur.track} /></div>
+            <div><PartPicker piece={cur.piece} track={cur.track} /></div>
             <Scrubber track={cur.track} />
             <Transport queue={!!perf} />
           {:else if cur.track}
-            <div><KindBadge track={cur.track} /></div>
+            <div><PartPicker piece={cur.piece} track={cur.track} /></div>
             <Btn onclick={startPiece} class="self-start"><Play class="size-5 fill-current" /> Start</Btn>
           {:else}
             <p class="rounded-2xl border border-dashed border-zinc-300 p-4 text-sm text-zinc-500 dark:border-zinc-700">No Practice Track for this Piece yet.</p>
           {/if}
         </div>
 
-        <div class="flex flex-col gap-3">
-          <div class="flex items-center justify-between gap-3">
-            <h2 class={label}>Score</h2>
-            {#if cur.piece.scores.length > 1}
-              <ToggleGroup.Root type="single" value={sc?.id} onValueChange={(v) => v && (score.selected[cur.piece.id] = v)} aria-label="Which Score" class="flex gap-1 overflow-x-auto">
-                {#each cur.piece.scores as s (s.id)}
-                  <ToggleGroup.Item value={s.id} class="min-h-9 rounded-full px-3 text-xs font-medium whitespace-nowrap text-zinc-600 data-[state=on]:bg-zinc-900 data-[state=on]:text-white dark:text-zinc-400 dark:data-[state=on]:bg-zinc-100 dark:data-[state=on]:text-zinc-900">{s.label}</ToggleGroup.Item>
-                {/each}
-              </ToggleGroup.Root>
+        <!-- Many Singers read their own physical music, so the score is a collapsed panel; fullscreen is opt-in. -->
+        <Collapsible.Root class="rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+          <Collapsible.Trigger class="group flex min-h-14 w-full items-center gap-3 px-4 text-left">
+            <FileText class="size-5 text-zinc-400" />
+            <span class="flex-1 text-sm font-medium">Score{#if sc}<span class="ml-1.5 font-normal text-zinc-500">· {sc.label}</span>{/if}</span>
+            <ChevronDown class="size-4 text-zinc-400 transition group-data-[state=open]:rotate-180" />
+          </Collapsible.Trigger>
+          <Collapsible.Content class="flex flex-col gap-3 px-4 pb-4">
+            {#if sc}
+              {#if cur.piece.scores.length > 1}
+                <ToggleGroup.Root type="single" value={sc.id} onValueChange={(v) => v && (score.selected[cur.piece.id] = v)} aria-label="Which Score" class="flex gap-1 overflow-x-auto">
+                  {#each cur.piece.scores as s (s.id)}
+                    <ToggleGroup.Item value={s.id} class="min-h-9 rounded-full px-3 text-xs font-medium whitespace-nowrap text-zinc-600 data-[state=on]:bg-zinc-900 data-[state=on]:text-white dark:text-zinc-400 dark:data-[state=on]:bg-zinc-100 dark:data-[state=on]:text-zinc-900">{s.label}</ToggleGroup.Item>
+                  {/each}
+                </ToggleGroup.Root>
+              {/if}
+              <div class="relative h-72 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 lg:h-[26rem] dark:border-zinc-800 dark:bg-zinc-950">
+                <PdfPage src={sc.file} {page} bind:numPages class="absolute inset-0 p-2" />
+              </div>
+              <div class="flex items-center justify-between gap-3 text-sm">
+                <div class="flex items-center gap-1">
+                  <Btn variant="ghost" size="icon" aria-label="Previous page" disabled={page <= 1} onclick={() => turn(-1)}><ChevronLeft class="size-5" /></Btn>
+                  <span class="tabular-nums">Page <b>{page}</b> / {numPages || '…'}</span>
+                  <Btn variant="ghost" size="icon" aria-label="Next page" disabled={numPages > 0 && page >= numPages} onclick={() => turn(1)}><ChevronRight class="size-5" /></Btn>
+                </div>
+                <Btn variant="soft" size="sm" onclick={() => (score.open = true)}><Maximize class="size-4" /> Open full screen</Btn>
+              </div>
+            {:else}
+              <p class="rounded-xl border border-dashed border-zinc-300 p-5 text-center text-sm text-zinc-500 dark:border-zinc-700">No Score uploaded for this Piece yet.</p>
             {/if}
-          </div>
-          {#if sc}
-            <button onclick={() => (score.open = true)} class="group relative h-72 overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 lg:h-[26rem] dark:border-zinc-800 dark:bg-zinc-900" aria-label="Open score full screen">
-              <PdfPage src={sc.file} {page} bind:numPages class="absolute inset-0 p-2" />
-              <span class="absolute right-3 bottom-3 inline-flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-semibold text-white opacity-90 transition group-hover:opacity-100"><Maximize class="size-3.5" /> Open full screen</span>
-            </button>
-            <div class="flex items-center justify-center gap-3 text-sm">
-              <Btn variant="ghost" size="icon" aria-label="Previous page" disabled={page <= 1} onclick={() => turn(-1)}><ChevronLeft class="size-5" /></Btn>
-              <span class="tabular-nums">Page <b>{page}</b> / {numPages || '…'}</span>
-              <Btn variant="ghost" size="icon" aria-label="Next page" disabled={numPages > 0 && page >= numPages} onclick={() => turn(1)}><ChevronRight class="size-5" /></Btn>
-            </div>
-          {:else}
-            <p class="rounded-2xl border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700">No Score uploaded for this Piece yet.</p>
-          {/if}
-        </div>
+          </Collapsible.Content>
+        </Collapsible.Root>
 
         {#if perf}
-          <p class="text-sm text-zinc-500">Up next: <b class="text-zinc-900 dark:text-zinc-100">{next ? next.piece.title : 'end of the Performance'}</b>{#if next?.track} · {kindLabel(next.track)} · {fmt(next.track.durationSec)}{/if}</p>
+          <p class="text-sm text-zinc-500">Up next: <b class="text-zinc-900 dark:text-zinc-100">{next ? next.piece.title : 'end of the Performance'}</b>{#if next?.track}{' '}· {kindLabel(next.track)} · {fmt(next.track.durationSec)}{/if}</p>
         {/if}
       {/if}
     </section>
