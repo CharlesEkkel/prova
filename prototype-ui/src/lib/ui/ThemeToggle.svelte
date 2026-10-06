@@ -20,7 +20,7 @@
     {#if theme.dark}<Sun class="size-5" />{:else}<Moon class="size-5" />{/if}
   </Btn>
 {:else}
-  <ToggleGroup.Root type="single" value={theme.choice} onValueChange={(v) => v && setTheme(v as ThemeChoice)} aria-label="Colour theme" class="flex gap-1 rounded-xl bg-zinc-200/70 p-1 dark:bg-zinc-800">
+  <ToggleGroup.Root type="single" value={theme.choice} onValueChange={(v) => v && setTheme(v as ThemeChoice)} aria-label="Light, dark or system mode" class="flex gap-1 rounded-xl bg-zinc-200/70 p-1 dark:bg-zinc-800">
     {#each options as o (o.value)}
       <ToggleGroup.Item value={o.value} aria-label="{o.label} theme" class="grid h-9 flex-1 place-items-center rounded-lg text-zinc-600 transition data-[state=on]:bg-white data-[state=on]:text-violet-700 data-[state=on]:shadow-sm dark:text-zinc-400 dark:data-[state=on]:bg-zinc-950 dark:data-[state=on]:text-violet-300">
         <o.icon class="size-4" />

@@ -14,7 +14,7 @@
   import Sidebar from '$lib/shell/Sidebar.svelte';
   import Btn from '$lib/ui/Btn.svelte';
   import PerformanceOverview from '$lib/ui/PerformanceOverview.svelte';
-  import { ACCENTS, initTheme, setAccent, type Accent } from '$lib/theme.svelte';
+  import { initTheme } from '$lib/theme.svelte';
   import ThemeToggle from '$lib/ui/ThemeToggle.svelte';
   import { ui } from '$lib/ui.svelte';
   let { children } = $props();
@@ -24,9 +24,6 @@
     const stopTheme = initTheme();
     const id = page.url.searchParams.get('overview');
     if (id) ui.overview = id;
-    // ?accent=ocean picks a colour theme (and remembers it), handy for sharing a link
-    const accent = page.url.searchParams.get('accent');
-    if (ACCENTS.some((a) => a.id === accent)) setAccent(accent as Accent);
     return stopTheme;
   });
 </script>

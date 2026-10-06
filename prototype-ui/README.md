@@ -38,28 +38,37 @@ Use **Preview as role (prototype)** in the user menu (bottom of the sidebar) to 
   what else goes with it). Also: New Piece, New Performance, add a Piece to a Performance, mark a Performance major.
 - **Admin portal** (`/admin`, needs `manage-users`): Members (approve or decline pending sign-ups with a Role, edit
   Roles, remove; the only Admin can't be removed), Roles (create, edit, delete; Admin is locked), Invite Links (Roles,
-  expiry, use cap, copy, revoke; Roles holding `delete` or `manage-users` can't go on a link).
+  expiry, use cap, copy, revoke; Roles holding `delete` or `manage-users` can't go on a link), and Appearance (the site
+  colour theme, see below).
 
-## Light and dark theme
+## Appearance: personal mode, site-wide colour
 
-Light, Dark or System (the default, which follows the OS live). The three-way toggle is at the bottom of the sidebar
-(and in the phone drawer); on phones there is also a quick light/dark button in the header. The choice is remembered
-in `localStorage` (`prova-theme`) and applied by a tiny script in `app.html` before first paint, so a reload never
-flashes the wrong theme. Dark is a class on `<html>` (`@custom-variant dark` in `app.css`), so the toggle can override
-the OS setting; native controls follow via `color-scheme`. Logic lives in `src/lib/theme.svelte.ts`.
+Two separate things:
 
-## Colour themes
+- **Light / dark / system is personal.** Each Singer picks their own with the toggle at the bottom of the sidebar (and
+  the phone drawer; phones also get a quick button in the header). Remembered in `localStorage` (`prova-theme`).
+  System, the default, follows the OS live.
+- **The colour theme is one site-wide setting, chosen by an Admin, for everyone.** It lives in **Admin > Appearance**
+  (needs `manage-users`). The default is **Forest**. The others are **Violet**, **Ocean** (blue to cyan), **Sunset** (pink
+  to orange) and **Graphite** (a quiet slate). Everyone sees the change; nobody else can choose their own, and the setter
+  refuses anyone without `manage-users` (not just the hidden UI).
 
-Five to try, under **Colour** in the sidebar (and the phone drawer): **Violet** (the original), **Ocean** (blue to
-cyan), **Forest** (green to teal), **Sunset** (pink to orange) and **Graphite** (slate, a restrained neutral). They
-work in both light and dark, are remembered (`prova-accent`), and `?accent=ocean` picks one from a link.
+There is no backend, so the prototype keeps the site colour in `localStorage` (`prova-site-accent`) as a stand-in for a
+setting stored by the server. In the real app every Singer would read the same stored value.
 
-How it works: the app's accent is Tailwind's `violet-*` (plus `indigo-700` in the hero gradient), so a colour theme just
-points those variables at another palette (`html[data-accent='ocean'] { --color-violet-600: var(--color-blue-600); … }`).
-No component knows about it. Forest and Graphite shift the darker shades up a step so white text stays readable;
-every theme measures at least 4.5:1 for white on its primary button. To add or tweak one, edit `scripts/gen-accents.mjs`
-and run `node scripts/gen-accents.mjs` (it writes `src/accents.css`). `app.css` imports Tailwind in pieces with
-`theme(static)` so the whole default palette is always available as variables for the themes to point at.
+Both are applied by a tiny script in `app.html` before first paint, so a reload never flashes the wrong theme. Dark is a
+class on `<html>` (`@custom-variant dark` in `app.css`); the colour is `data-accent` on `<html>` (Forest is also written
+there in the HTML, so it is the default even before any script runs). Logic is in `src/lib/theme.svelte.ts`.
+
+How the colour themes work: the app's accent is Tailwind's `violet-*` (plus `indigo-700` in the hero gradient), so a theme
+just points those variables at another palette (`html[data-accent='forest'] { --color-violet-600: var(--color-green-700); … }`).
+No component knows about it. Forest and Graphite shift the darker shades up a step so white text stays readable; every
+theme measures at least 4.5:1 for white on its primary button. To add or tweak one, edit `scripts/gen-accents.mjs` and run
+`node scripts/gen-accents.mjs` (it writes `src/accents.css`). `app.css` imports Tailwind in pieces with `theme(static)` so the
+whole default palette is always available as variables for the themes to point at.
+
+Known gap: Graphite in dark mode needs work before it should be used for real (the seek slider's fill, primary buttons and
+"on" switches are low contrast, and the part-predominant badge looks too much like part-only). The other four are fine.
 
 ## Scores (PDF)
 

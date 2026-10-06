@@ -1,18 +1,19 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-accent="forest">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <title>Prova UI prototype (throwaway)</title>
-    <!-- Apply the saved mode and colour theme before first paint so there is no flash. Keep in step with theme.svelte.ts. -->
+    <!-- Apply the saved light/dark choice and the site colour theme before first paint so there is no flash.
+         Keep in step with theme.svelte.ts. The default colour theme (forest) is also set on <html> above. -->
     <script>
       try {
         var root = document.documentElement;
         var choice = localStorage.getItem('prova-theme') || 'system';
         var dark = choice === 'dark' || (choice === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
         root.classList.toggle('dark', dark);
-        root.dataset.accent = localStorage.getItem('prova-accent') || 'violet';
+        root.dataset.accent = localStorage.getItem('prova-site-accent') || 'forest';
       } catch (e) {}
     </script>
     %sveltekit.head%

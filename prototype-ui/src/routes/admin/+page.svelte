@@ -4,6 +4,7 @@
   import ShieldAlert from '@lucide/svelte/icons/shield-alert';
   import { can } from '$lib/access.svelte';
   import { invites, inviteStatus, members } from '$lib/admin.svelte';
+  import AppearanceTab from '$lib/admin/AppearanceTab.svelte';
   import InvitesTab from '$lib/admin/InvitesTab.svelte';
   import MembersTab from '$lib/admin/MembersTab.svelte';
   import RolesTab from '$lib/admin/RolesTab.svelte';
@@ -16,7 +17,7 @@
 
 <div class="mx-auto w-full max-w-4xl px-4 py-6 lg:px-10 lg:py-10">
   <h1 class="text-2xl font-semibold tracking-tight lg:text-3xl">Admin</h1>
-  <p class="text-zinc-500">Members, Roles and Invite Links.</p>
+  <p class="text-zinc-500">Members, Roles, Invite Links and appearance.</p>
 
   {#if !can('manage-users')}
     <div class="mt-8 flex flex-col items-center gap-2 rounded-3xl border border-dashed border-zinc-300 p-10 text-center dark:border-zinc-700">
@@ -30,10 +31,12 @@
         <Tabs.Trigger value="members" class={tab}>Members {#if pending}<span class="rounded-full bg-amber-100 px-1.5 text-xs font-semibold text-amber-800">{pending} pending</span>{/if}</Tabs.Trigger>
         <Tabs.Trigger value="roles" class={tab}>Roles <span class={count}>{roles.length}</span></Tabs.Trigger>
         <Tabs.Trigger value="invites" class={tab}>Invite links <span class={count}>{live}</span></Tabs.Trigger>
+        <Tabs.Trigger value="appearance" class={tab}>Appearance</Tabs.Trigger>
       </Tabs.List>
       <Tabs.Content value="members" class="pt-6"><MembersTab /></Tabs.Content>
       <Tabs.Content value="roles" class="pt-6"><RolesTab /></Tabs.Content>
       <Tabs.Content value="invites" class="pt-6"><InvitesTab /></Tabs.Content>
+      <Tabs.Content value="appearance" class="pt-6"><AppearanceTab /></Tabs.Content>
     </Tabs.Root>
   {/if}
 </div>
