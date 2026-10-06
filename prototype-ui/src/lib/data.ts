@@ -6,7 +6,8 @@ export type TrackKind = 'part-only' | 'part-predominant' | 'combined';
 export type Track = { id: string; pieceId: string; kind: TrackKind; part?: VoicePart; durationSec: number };
 export type Score = { id: string; label: string; choir: boolean };
 export type Piece = { id: string; title: string; composer: string; tracks: Track[]; scores: Score[] };
-export type Performance = { id: string; title: string; date: string; venue: string; pieceIds: string[] };
+/** `major`: a Performance the choir wants highlighted and always easy to reach (new concept, prototyping how) */
+export type Performance = { id: string; title: string; date: string; venue: string; pieceIds: string[]; major?: boolean };
 
 const t = (pieceId: string, kind: TrackKind, part: VoicePart | undefined, durationSec: number): Track => ({
   id: `${pieceId}-${part ?? 'all'}-${kind}`,
@@ -66,6 +67,7 @@ export const PIECES: Piece[] = [
 export const PERFORMANCES: Performance[] = [
   { id: 'w1', title: 'Winter Concert', date: '2026-12-12', venue: "St Mark's Church", pieceIds: ['p1', 'p2', 'p3', 'p4', 'p5'] },
   { id: 'w2', title: 'Carols by Candlelight', date: '2026-12-19', venue: 'Town Hall', pieceIds: ['p5', 'p2'] },
+  { id: 'w3', title: 'Annual Gala', date: '2027-03-20', venue: 'Concert Hall', pieceIds: ['p6', 'p1', 'p3', 'p2'], major: true },
   { id: 'w0', title: 'Spring Gala', date: '2026-04-18', venue: 'Civic Theatre', pieceIds: ['p6', 'p1'] }
 ];
 
@@ -83,6 +85,7 @@ export const combinedOf = (p: Piece): Track | undefined => p.tracks.find((x) => 
 export const partTracksOf = (p: Piece, part: VoicePart): Track[] => p.tracks.filter((x) => x.part === part);
 export const upcoming = () => PERFORMANCES.filter((x) => x.date >= TODAY).toSorted((a, b) => a.date.localeCompare(b.date));
 export const past = () => PERFORMANCES.filter((x) => x.date < TODAY).toSorted((a, b) => b.date.localeCompare(a.date));
+export const majorPerformance = () => upcoming().find((x) => x.major);
 export const performancesOf = (pieceId: string) => PERFORMANCES.filter((x) => x.pieceIds.includes(pieceId));
 
 export function resolveTrack(p: Piece, preferCombined: boolean): Track | null {
