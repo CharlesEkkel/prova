@@ -14,13 +14,17 @@
   import Sidebar from '$lib/shell/Sidebar.svelte';
   import Btn from '$lib/ui/Btn.svelte';
   import PerformanceOverview from '$lib/ui/PerformanceOverview.svelte';
+  import { initTheme } from '$lib/theme.svelte';
+  import ThemeToggle from '$lib/ui/ThemeToggle.svelte';
   import { ui } from '$lib/ui.svelte';
   let { children } = $props();
   afterNavigate(() => (ui.menu = false));
   // prototype convenience: ?overview=w1 opens that Performance's overview on load (for sharing and screenshots)
   onMount(() => {
+    const stopTheme = initTheme();
     const id = page.url.searchParams.get('overview');
     if (id) ui.overview = id;
+    return stopTheme;
   });
 </script>
 
@@ -33,6 +37,7 @@
     <header class="flex items-center gap-2 border-b border-zinc-200 px-3 py-2 lg:hidden dark:border-zinc-800">
       <Btn variant="ghost" size="icon" aria-label="Open menu" onclick={() => (ui.menu = true)}><Menu class="size-5" /></Btn>
       <div class="flex flex-1 items-center gap-2"><div class="grid size-7 place-items-center rounded-lg bg-violet-600 text-white"><Music class="size-4" /></div><span class="font-semibold tracking-tight">Prova</span></div>
+      <ThemeToggle compact />
       <Btn variant="ghost" size="icon" aria-label="Search" onclick={() => (ui.search = true)}><Search class="size-5" /></Btn>
     </header>
 

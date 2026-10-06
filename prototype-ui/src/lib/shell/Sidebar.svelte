@@ -13,6 +13,7 @@
   import { SINGER, fmtDate, past, upcoming } from '../data.svelte';
   import { access, can, roles } from '../access.svelte';
   import { openOverview, ui } from '../ui.svelte';
+  import ThemeToggle from '../ui/ThemeToggle.svelte';
 
   const path = $derived(page.url.pathname);
   const link = (active: boolean) =>
@@ -51,6 +52,7 @@
     </Collapsible.Root>
   </nav>
 
+  <ThemeToggle />
   <Separator.Root class="my-2 h-px bg-zinc-200 dark:bg-zinc-800" />
   <DropdownMenu.Root>
     <DropdownMenu.Trigger class="flex items-center gap-3 rounded-lg p-2 text-left hover:bg-zinc-200/60 dark:hover:bg-zinc-800/70">

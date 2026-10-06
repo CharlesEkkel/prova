@@ -55,7 +55,7 @@
 
 <!-- callers position this box (absolute inset-0 inside a sized parent) so its size never depends on the canvas -->
 <div bind:this={box} class="grid place-items-center overflow-hidden {cls}">
-  <canvas bind:this={canvas} class="bg-white shadow-sm {status === 'error' ? 'hidden' : ''}" aria-label="Score page {page}"></canvas>
+  <canvas bind:this={canvas} class="bg-white shadow-sm {status === 'error' ? 'hidden' : status === 'loading' ? 'invisible' : ''}" aria-label="Score page {page}"></canvas>
   {#if status === 'loading'}<span class="absolute text-sm text-zinc-500">Loading score…</span>{/if}
   {#if status === 'error'}<span class="absolute max-w-xs text-center text-sm text-zinc-500">Couldn't load the score PDF. Copy a PDF to <code>static/scores/sample.pdf</code>.</span>{/if}
 </div>

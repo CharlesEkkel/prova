@@ -40,6 +40,14 @@ Use **Preview as role (prototype)** in the user menu (bottom of the sidebar) to 
   Roles, remove; the only Admin can't be removed), Roles (create, edit, delete; Admin is locked), Invite Links (Roles,
   expiry, use cap, copy, revoke; Roles holding `delete` or `manage-users` can't go on a link).
 
+## Light and dark theme
+
+Light, Dark or System (the default, which follows the OS live). The three-way toggle is at the bottom of the sidebar
+(and in the phone drawer); on phones there is also a quick light/dark button in the header. The choice is remembered
+in `localStorage` (`prova-theme`) and applied by a tiny script in `app.html` before first paint, so a reload never
+flashes the wrong theme. Dark is a class on `<html>` (`@custom-variant dark` in `app.css`), so the toggle can override
+the OS setting; native controls follow via `color-scheme`. Logic lives in `src/lib/theme.svelte.ts`.
+
 ## Scores (PDF)
 
 Every Score points at `static/scores/sample.pdf`. PDFs are gitignored, so copy one there yourself

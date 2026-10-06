@@ -3,7 +3,16 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
     <title>Prova UI prototype (throwaway)</title>
+    <!-- Apply the saved theme before first paint so there is no flash of the wrong one. Keep in step with theme.svelte.ts. -->
+    <script>
+      try {
+        var choice = localStorage.getItem('prova-theme') || 'system';
+        var dark = choice === 'dark' || (choice === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.classList.toggle('dark', dark);
+      } catch (e) {}
+    </script>
     %sveltekit.head%
   </head>
   <body>%sveltekit.body%</body>
