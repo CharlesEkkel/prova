@@ -9,7 +9,7 @@ A single musical work the choir is learning or performing.
 _Avoid_: Song, track, number
 
 **Voice Part**:
-The section a singer sings in for a Piece (e.g. Soprano, Alto, Tenor, Bass). A label can carry a number, such as Alto 1 and Alto 2, for a divisi split.
+The section a singer sings in for a Piece (e.g. Soprano, Alto, Tenor, Bass). A label can carry a number, such as Alto 1 and Alto 2, for a divisi split. Each also has a short label for compact screens, by default its first letter plus any number (A1, T2, and A for a plain Alto), and the Combined Track is labelled All.
 _Avoid_: Part (ambiguous with Practice Track), section, voice
 
 **Practice Track**:
@@ -25,11 +25,11 @@ A document (e.g. PDF) of the written music for a Piece, uploaded alongside its P
 _Avoid_: Sheet music, chart
 
 **Performance**:
-A dated event the choir works toward, holding an ordered list of Pieces. A Piece may belong to several Performances and may have no Practice Tracks yet. Past ones are archived and the default view lists upcoming ones.
+An event with a start and an end (each a date and time) that the choir works toward, holding an ordered list of Pieces. A Piece may belong to several Performances and may have no Practice Tracks yet. A Performance is upcoming until it has ended and past after that; past ones are archived and the default view lists upcoming ones.
 _Avoid_: Milestone, event, gig, concert
 
 **Major Performance**:
-A Performance the choir singles out. Any number can be major. Each is highlighted wherever Performances appear, and a banner on every screen shows the closest upcoming one, so it is always one tap away. A Singer with `update` marks it, or a Singer with `append` when first creating the Performance.
+A Performance the choir singles out. Any number can be major. Each is highlighted wherever Performances appear, and a banner on every screen shows the closest upcoming one (the earliest start among those not yet ended), so it is always one tap away. A Singer with `update` marks it, or a Singer with `append` when first creating the Performance.
 _Avoid_: Featured, pinned, headline
 
 **Performance Overview**:
@@ -37,7 +37,7 @@ The view opened by tapping any Performance. It lists the Performance's Pieces, h
 _Avoid_: Details page, preview
 
 **Play-through**:
-Playing a Performance's Pieces in order, from the first Piece. Two options, both off by default: skip Pieces with no usable Practice Track (otherwise it pauses at an empty Piece), and prefer Combined Tracks (otherwise it prefers the Singer's part track and falls back to the Combined Track). Started from the Performance Overview.
+Playing a Performance's Pieces in order, from the first Piece. Two options, both off by default: skip Pieces with no usable Practice Track (otherwise it pauses at an empty Piece), and prefer Combined Tracks (off: it plays the Singer's part track and falls back to the Combined Track; on: the reverse, the Combined Track falling back to the Singer's part track). Started from the Performance Overview.
 _Avoid_: Playlist, queue, autoplay
 
 **Singer**:
