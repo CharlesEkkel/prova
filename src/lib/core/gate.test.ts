@@ -43,6 +43,10 @@ describe('safeNextPath', () => {
     ['an absolute URL', 'https://evil.example/steal'],
     ['a protocol-relative URL', '//evil.example'],
     ['a backslash trick', '/\\evil.example'],
+    ['a dot segment hiding a protocol-relative URL', '/.//evil.example'],
+    ['a parent segment hiding a protocol-relative URL', '/..//evil.example'],
+    ['a nested parent segment hiding a protocol-relative URL', '/a/..//evil.example'],
+    ['a dot segment hiding a backslash trick', '/./\\evil.example'],
     ['a path with no leading slash', 'piece/3'],
     ['a javascript URL', 'javascript:alert(1)'],
     ['a path with a newline', '/ok\nSet-Cookie: x=1'],
@@ -99,6 +103,7 @@ describe('resolveGate', () => {
     ['ready', '/sign-in?next=%2Fpiece%2F3', redirectTo('/piece/3')],
     ['ready', '/choose-part?next=%2Fpiece%2F3', redirectTo('/piece/3')],
     ['ready', '/sign-in?next=https%3A%2F%2Fevil.example', redirectTo('/')],
+    ['ready', '/sign-in?next=%2F.%2F%2Fevil.example', redirectTo('/')],
   ];
 
   it.each(cases)('for %s at %s', (stage, path, expected) => {

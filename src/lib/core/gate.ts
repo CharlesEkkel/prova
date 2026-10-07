@@ -58,6 +58,8 @@ export const safeNextPath = (raw: string | null): string => {
   if (hasControlCharacter(raw)) return '/';
   const url = new URL(raw, placeholderOrigin);
   if (url.origin !== placeholderOrigin) return '/';
+  // Dot segments normalise away, so `/.//evil.example` parses to the pathname `//evil.example`.
+  if (url.pathname.startsWith('//')) return '/';
   if (gatePages.includes(url.pathname) || url.pathname === '/auth/callback') return '/';
   return `${url.pathname}${url.search}${url.hash}`;
 };
