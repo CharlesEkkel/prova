@@ -174,6 +174,23 @@ test.describe('a Pending Singer', () => {
     await expect(page).toHaveURL('/');
   });
 
+  test('re-checks by itself when the Singer comes back to the window', async ({
+    page,
+    context,
+  }) => {
+    const singer = await signInAsNewSinger(context);
+    await page.goto('/choose-part');
+    await page.getByRole('radio', { name: /Alto/ }).click();
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(page).toHaveURL('/waiting');
+    await expect(page.getByRole('button', { name: 'Check again' })).toBeEnabled();
+
+    await grantRole(singer, ['read']);
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+
+    await expect(page).toHaveURL('/');
+  });
+
   test('can sign out from the waiting screen, and is then signed out', async ({
     page,
     context,

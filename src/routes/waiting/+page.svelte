@@ -11,18 +11,24 @@
   // Re-running the loads makes the gate look again: once an Admin has approved this Singer it sends
   // them to the app instead of rendering this screen.
   const checkAgain = async () => {
+    if (checking) return;
     checking = true;
     await refreshAll();
     checking = false;
   };
 
+  // Coming back to the tab or to the window both count; the two often fire together, and
+  // `checkAgain` ignores the second while the first is still running.
   onMount(() => {
     const recheckWhenVisible = () => {
       if (document.visibilityState === 'visible') void checkAgain();
     };
+    const recheckOnFocus = () => void checkAgain();
     document.addEventListener('visibilitychange', recheckWhenVisible);
+    window.addEventListener('focus', recheckOnFocus);
     return () => {
       document.removeEventListener('visibilitychange', recheckWhenVisible);
+      window.removeEventListener('focus', recheckOnFocus);
     };
   });
 </script>
