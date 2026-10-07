@@ -7,6 +7,10 @@ A mobile-first web app where choir singers find and play practice audio for the 
 - Node 22.13 or newer (`.nvmrc` pins it), and `pnpm` 11 (`corepack enable` picks the right version from `package.json`)
 - Docker, for the local Supabase stack
 
+## Shortcuts with `just`
+
+If you have [`just`](https://github.com/casey/just) installed, `just` lists shortcuts for the commands below. The useful ones: `just setup` (once), `just dev` (starts Supabase, writes `.env`, runs the dev server) and `just preflight` (everything CI runs, before you push). No Docker Compose file is needed: `supabase start` manages its own containers.
+
 ## Run it locally
 
 ```sh
