@@ -37,7 +37,8 @@ env:
       "PUBLIC_SUPABASE_URL=$API_URL" \
       "PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY" \
       "SUPABASE_URL=$API_URL" \
-      "SUPABASE_ANON_KEY=$ANON_KEY" > .env
+      "SUPABASE_ANON_KEY=$ANON_KEY" \
+      "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" > .env
     echo "wrote .env"
 
 # Lint, Prettier check and type checks (no tests).
@@ -60,10 +61,10 @@ test-contract: db-up
     #!/usr/bin/env bash
     set -euo pipefail
     eval "$(pnpm --silent exec supabase status -o env | sed 's/^/export /')"
-    SUPABASE_URL="$API_URL" SUPABASE_ANON_KEY="$ANON_KEY" pnpm test:contract
+    SUPABASE_URL="$API_URL" SUPABASE_ANON_KEY="$ANON_KEY" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" pnpm test:contract
 
-# Playwright browser tests at phone and desktop viewports.
-test-e2e:
+# Playwright browser tests at phone and desktop viewports (needs the local Supabase stack and `just env`).
+test-e2e: db-up env
     pnpm test:e2e
 
 # All three test seams.

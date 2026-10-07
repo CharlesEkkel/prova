@@ -1,4 +1,9 @@
 import { defineConfig } from '@playwright/test';
+import { loadEnv } from 'vite';
+
+// Tests sign people in through the local Supabase stack. Values come from `.env` (written by
+// `just env`); real environment variables win, which is how CI passes them.
+Object.assign(process.env, { ...loadEnv('test', process.cwd(), 'SUPABASE_'), ...process.env });
 
 // Two viewports because the layouts differ at the `lg` (1024 px) breakpoint.
 export default defineConfig({

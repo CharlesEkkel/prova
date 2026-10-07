@@ -23,12 +23,13 @@
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
     "supabase:reset": "supabase db reset",
+    "supabase:types": "supabase gen types typescript --local > src/lib/shell/database.types.ts && prettier --write src/lib/shell/database.types.ts",
     "bundle-size": "node scripts/report-bundle-size.mjs",
     "prepare": "husky"
   },
   "lint-staged": {
     "*.{ts,js,mjs,svelte}": [
-      "eslint --max-warnings 0",
+      "eslint --max-warnings 0 --no-warn-ignored",
       "prettier --write"
     ],
     "*.{json,md,css,yml,yaml,html}": [
@@ -40,6 +41,7 @@
     "@eslint/js": "^10.0.1",
     "@lucide/svelte": "^1.49.0",
     "@playwright/test": "^1.63.0",
+    "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
     "@sveltejs/adapter-cloudflare": "^8.0.0",
     "@sveltejs/kit": "^3.0.1",

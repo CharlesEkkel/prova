@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
+import { signInAsApprovedSinger } from './support';
 
-test('the app renders and a Bits UI dialog works in light and dark', async ({ page }) => {
+test('the app renders and a Bits UI dialog works in light and dark', async ({ page, context }) => {
+  await signInAsApprovedSinger(context);
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Prova' })).toBeVisible();
 
@@ -16,7 +18,8 @@ test('the app renders and a Bits UI dialog works in light and dark', async ({ pa
   await expect(page.getByRole('dialog')).toBeVisible();
 });
 
-test('the saved Display Mode is applied before first paint', async ({ page }) => {
+test('the saved Display Mode is applied before first paint', async ({ page, context }) => {
+  await signInAsApprovedSinger(context);
   await page.goto('/');
   await page.evaluate(() => {
     localStorage.setItem('prova-display-mode', 'dark');
