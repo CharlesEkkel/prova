@@ -28,6 +28,34 @@ db-down:
 db-reset:
     pnpm supabase:reset
 
+# Approve a Singer locally: give them an "Admin" Role holding every Permission. They must have signed in once. Stopgap until #15.
+make-admin email:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    granted=$(docker exec -i supabase_db_prova psql -U postgres -qtA -v ON_ERROR_STOP=1 -v email={{ quote(email) }} <<'SQL'
+    with r as (
+      insert into public.roles (name) values ('Admin')
+      on conflict (name) do update set name = excluded.name
+      returning id
+    ), p as (
+      insert into public.role_permissions (role_id, permission)
+      select r.id, x from r, unnest(enum_range(null::public.permission)) x
+      on conflict do nothing
+    ), g as (
+      insert into public.singer_roles (singer_id, role_id)
+      select s.id, r.id from public.singers s, r where s.email = :'email'
+      on conflict do nothing
+      returning 1
+    )
+    select count(*) from public.singers where email = :'email';
+    SQL
+    )
+    if [ "$granted" = "0" ]; then
+      echo "No Singer with email {{ email }}: sign in with Google once first." >&2
+      exit 1
+    fi
+    echo "{{ email }} is now an Admin"
+
 # Write .env from the running Supabase stack (replaces any existing .env).
 env:
     #!/usr/bin/env bash

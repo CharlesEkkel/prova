@@ -36,6 +36,8 @@ Google is the only way in: email sign-up and anonymous sign-ins are switched off
 
    Without them the stack still starts and the tests still pass; only the real Google button fails.
 
+   To get past the waiting screen locally, sign in once, then run `just make-admin you@example.com`. It gives that Singer an `Admin` Role holding every Permission (a stopgap until Role management lands in #15).
+
 3. On Supabase cloud, in the dashboard: enable the Google provider with the same client; under Authentication → Sign In / Providers turn the **Email** provider off and **Allow anonymous sign-ins** off; under URL Configuration set the Site URL to the app's URL and add `https://<your-app>/auth/callback` to the redirect URLs.
 4. On Cloudflare Pages, set `PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_ANON_KEY`. Never set `SUPABASE_SERVICE_ROLE_KEY` anywhere the app runs; only the tests use it, against the local stack.
 
