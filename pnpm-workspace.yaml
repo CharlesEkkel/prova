@@ -1,0 +1,24 @@
+allowBuilds:
+  esbuild: true
+  supabase: true
+  unrs-resolver: true
+  workerd: true
+
+# Supply-chain guards. See docs/agents/security.md.
+# Refuse versions published less than 7 days ago (minutes).
+minimumReleaseAge: 10080
+# Exemptions are for exact versions only, so any later release still has to age 7 days.
+# Remove each line once that version is a week old (date published in the comment).
+minimumReleaseAgeExclude:
+  - effect@4.0.1 # published 2026-10-05
+  - '@sveltejs/kit@3.0.1' # published 2026-10-06
+  - '@sveltejs/adapter-cloudflare@8.0.0' # published 2026-10-01
+# Transitive dependencies may not come from git or tarball URLs.
+blockExoticSubdeps: true
+# Fail if a package's publish provenance is weaker than an earlier version's.
+trustPolicy: no-downgrade
+
+# Dev-only advisories (GHSA); remove once upstream ranges catch up.
+overrides:
+  sharp: '>=0.35.5'
+  deepmerge-ts: '>=8.0.0'

@@ -1,0 +1,88 @@
+import js from '@eslint/js';
+import eslintComments from '@eslint-community/eslint-plugin-eslint-comments';
+import functional from 'eslint-plugin-functional';
+import svelte from 'eslint-plugin-svelte';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
+
+const shellFiles = ['src/lib/shell/**', 'src/routes/**', 'src/hooks*.ts'];
+const testFiles = ['**/*.test.ts', 'tests/**'];
+
+export default tseslint.config(
+  {
+    ignores: ['.svelte-kit/', 'build/', '.wrangler/', 'node_modules/', 'static/pdfjs/', '.claude/'],
+  },
+  { linterOptions: { reportUnusedDisableDirectives: 'error' } },
+  js.configs.recommended,
+  ...tseslint.configs.strictTypeChecked,
+  ...svelte.configs['flat/recommended'],
+  {
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.node },
+      parserOptions: {
+        projectService: { allowDefaultProject: ['*.config.js', 'scripts/*.mjs'] },
+        extraFileExtensions: ['.svelte'],
+      },
+    },
+  },
+  {
+    files: ['**/*.svelte'],
+    languageOptions: { parserOptions: { parser: tseslint.parser } },
+  },
+  {
+    files: ['**/*.js', '**/*.mjs'],
+    ...tseslint.configs.disableTypeChecked,
+  },
+  {
+    // Every rule is an error, never a warning.
+    plugins: { functional, 'eslint-comments': eslintComments },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-non-null-assertion': 'error',
+      '@typescript-eslint/consistent-type-assertions': ['error', { assertionStyle: 'never' }],
+      // Immutability.
+      'functional/immutable-data': 'error',
+      'functional/prefer-readonly-type': 'error',
+      'functional/no-let': 'error',
+      // A reason is required on every disable comment.
+      'eslint-comments/require-description': 'error',
+      'eslint-comments/no-unlimited-disable': 'error',
+      'eslint-comments/disable-enable-pair': 'error',
+    },
+  },
+  {
+    // Core never imports shell (or anything platform-specific).
+    files: ['src/lib/core/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/shell/**', '**/routes/**'],
+              message: 'Core must not import shell modules.',
+            },
+            {
+              group: ['effect', 'effect/*', '@supabase/*', '$app/*'],
+              message: 'Core logic stays plain: no Effect or I/O libraries.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // Immutability is relaxed in the shell, in components ($state) and in tests.
+    files: [...shellFiles, ...testFiles, '**/*.svelte', '*.config.*'],
+    rules: {
+      'functional/immutable-data': 'off',
+      'functional/no-let': 'off',
+      'functional/prefer-readonly-type': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+    },
+  },
+  {
+    files: testFiles,
+    rules: { '@typescript-eslint/no-unsafe-member-access': 'off' },
+  },
+);
