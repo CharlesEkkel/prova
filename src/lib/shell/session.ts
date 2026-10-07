@@ -1,8 +1,15 @@
 // Shell: who is asking, and how far through sign-in they are. Reads the Auth session, then asks the
 // database what access they hold right now (never the token), and decodes it once at this edge.
 import { Effect, Schema } from 'effect';
-import { accessOf, permissions as allPermissions, signedOut, type Access } from '../core/gate';
-import { callSupabaseAs, decodeReply, SupabaseCallFailed, type Supabase } from './supabase';
+import { accessOf, signedOut, type Access } from '../core/gate';
+import { permissions as allPermissions } from '../core/permissions';
+import {
+  callSupabaseAs,
+  decodeReply,
+  trySupabase,
+  type Supabase,
+  type SupabaseCallFailed,
+} from './supabase';
 import { VoicePart } from './voice-parts';
 
 export const SingerId = Schema.String.pipe(Schema.brand('SingerId'));
@@ -20,7 +27,8 @@ const Permissions = Schema.Array(Schema.Literals(allPermissions));
 
 const AuthUser = Schema.Struct({
   id: SingerId,
-  email: Schema.optional(Schema.String),
+  // Google always reports one; a Singer without an email is not one Prova can show or reach.
+  email: Schema.NonEmptyString,
   user_metadata: Schema.Unknown,
 });
 type AuthUser = typeof AuthUser.Type;
@@ -33,10 +41,7 @@ const decodeProfile = Schema.decodeUnknownEffect(GoogleProfile);
 
 /** The Auth user behind the cookies, checked with the Auth server, or null for no one. */
 const currentUser = (supabase: Supabase): Effect.Effect<AuthUser | null, SupabaseCallFailed> =>
-  Effect.tryPromise({
-    try: () => supabase.auth.getUser(),
-    catch: (cause) => new SupabaseCallFailed({ cause }),
-  }).pipe(
+  trySupabase(() => supabase.auth.getUser()).pipe(
     // With no session Auth also reports an error; no user is the whole answer.
     Effect.map(({ data }) => data.user),
     Effect.flatMap(decodeReply(Schema.NullOr(AuthUser))),
@@ -48,12 +53,8 @@ const nameOf = (metadata: unknown, email: string) =>
     Effect.orElseSucceed(() => email),
   );
 
-const signedInSinger = (user: AuthUser): Effect.Effect<SignedInSinger> => {
-  const email = user.email ?? '';
-  return nameOf(user.user_metadata, email).pipe(
-    Effect.map((displayName) => ({ id: user.id, email, displayName })),
-  );
-};
+const signedInSinger = ({ id, email, user_metadata }: AuthUser): Effect.Effect<SignedInSinger> =>
+  nameOf(user_metadata, email).pipe(Effect.map((displayName) => ({ id, email, displayName })));
 
 export const loadSession = (supabase: Supabase): Effect.Effect<Session, SupabaseCallFailed> =>
   Effect.gen(function* () {

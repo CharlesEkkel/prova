@@ -6,23 +6,21 @@ import type { Cookies } from '@sveltejs/kit';
 import { Data, Effect, Schema } from 'effect';
 import type { Database } from './database.types';
 
+// Both are required: a build without them fails here, rather than talking to the wrong project.
 const PublicEnv = Schema.Struct({
-  PUBLIC_SUPABASE_URL: Schema.optional(Schema.String),
-  PUBLIC_SUPABASE_ANON_KEY: Schema.optional(Schema.String),
+  PUBLIC_SUPABASE_URL: Schema.NonEmptyString,
+  PUBLIC_SUPABASE_ANON_KEY: Schema.NonEmptyString,
 });
 const publicEnv = Schema.decodeUnknownSync(PublicEnv)(import.meta.env);
-
-/** The local Supabase stack, when no URL is configured. */
-const supabaseUrl = publicEnv.PUBLIC_SUPABASE_URL ?? 'http://127.0.0.1:54321';
 
 export type Supabase = SupabaseClient<Database>;
 
 /** Where Supabase Auth lives; the only place the sign-in action may send a person off-site. */
-export const supabaseOrigin = new URL(supabaseUrl).origin;
+export const supabaseOrigin = new URL(publicEnv.PUBLIC_SUPABASE_URL).origin;
 
 /** A client acting as whoever the request's cookies say they are (or no one). */
 export const createRequestSupabase = (cookies: Cookies): Supabase =>
-  createServerClient<Database>(supabaseUrl, publicEnv.PUBLIC_SUPABASE_ANON_KEY ?? '', {
+  createServerClient<Database>(publicEnv.PUBLIC_SUPABASE_URL, publicEnv.PUBLIC_SUPABASE_ANON_KEY, {
     cookies: {
       getAll: () => cookies.getAll(),
       setAll: (toSet) => {
@@ -49,11 +47,15 @@ export const decodeReply =
       Effect.mapError((cause) => new SupabaseCallFailed({ cause })),
     );
 
+/** Runs a Supabase call, failing only when it rejects; reading the reply is up to the caller. */
+export const trySupabase = <R>(run: () => PromiseLike<R>): Effect.Effect<R, SupabaseCallFailed> =>
+  Effect.tryPromise({ try: run, catch: (cause) => new SupabaseCallFailed({ cause }) });
+
 /** Runs a Supabase call, failing when it rejects or replies with an error. */
 export const callSupabase = (
   run: () => PromiseLike<Reply>,
 ): Effect.Effect<unknown, SupabaseCallFailed> =>
-  Effect.tryPromise({ try: run, catch: (cause) => new SupabaseCallFailed({ cause }) }).pipe(
+  trySupabase(run).pipe(
     Effect.flatMap(({ data, error }) =>
       error === null ? Effect.succeed(data) : Effect.fail(new SupabaseCallFailed({ cause: error })),
     ),

@@ -32,12 +32,33 @@ export const startGoogleSignIn = (
     }),
   ).pipe(Effect.map(({ url }) => url));
 
-/** Turns the one-time code Google sent back into a session, stored in cookies. */
+/** What Google sends back to the callback: a one-time code, or an error. */
+const GoogleReply = Schema.Struct({
+  code: Schema.optional(Schema.NonEmptyString),
+  error: Schema.optional(Schema.String),
+});
+const decodeGoogleReply = Schema.decodeUnknownEffect(GoogleReply);
+
+/** Google says `access_denied` when the person cancelled; any other error is a failure. */
+const problemFromGoogle = (error: string): SignInProblem =>
+  error === 'access_denied' ? 'cancelled' : 'failed';
+
+/** Turns Google's reply into a session stored in cookies, or says why sign-in did not finish. */
 export const finishGoogleSignIn = (
   supabase: Supabase,
-  code: string,
-): Effect.Effect<void, SupabaseCallFailed> =>
-  callSupabase(() => supabase.auth.exchangeCodeForSession(code)).pipe(Effect.asVoid);
+  reply: URLSearchParams,
+): Effect.Effect<void, SignInProblem> =>
+  decodeGoogleReply(Object.fromEntries(reply)).pipe(
+    Effect.mapError((): SignInProblem => 'failed'),
+    Effect.flatMap(({ code, error }) => {
+      if (error !== undefined) return Effect.fail(problemFromGoogle(error));
+      if (code === undefined) return Effect.fail<SignInProblem>('failed');
+      return callSupabase(() => supabase.auth.exchangeCodeForSession(code)).pipe(
+        Effect.mapError((): SignInProblem => 'failed'),
+      );
+    }),
+    Effect.asVoid,
+  );
 
 /** Ends this device's session only, leaving the Singer's other devices signed in. */
 export const signOutHere = (supabase: Supabase): Effect.Effect<void, SupabaseCallFailed> =>

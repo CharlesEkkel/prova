@@ -2,16 +2,14 @@
 // person is, and let the gate decide before any page renders.
 import { error, redirect } from '@sveltejs/kit';
 import type { Handle } from '@sveltejs/kit/hooks';
-import { Effect } from 'effect';
 import { resolveGate } from './lib/core/gate';
+import { valueOrNull } from './lib/shell/run';
 import { loadSession } from './lib/shell/session';
 import { createRequestSupabase } from './lib/shell/supabase';
 
 export const handle: Handle = async ({ event, resolve }) => {
   const supabase = createRequestSupabase(event.cookies);
-  const session = await Effect.runPromise(
-    loadSession(supabase).pipe(Effect.orElseSucceed(() => null)),
-  );
+  const session = await valueOrNull(loadSession(supabase));
   if (session === null) {
     error(503, 'Prova cannot check your access right now. Try again in a moment.');
   }
