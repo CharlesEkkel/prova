@@ -9,7 +9,7 @@ A single musical work the choir is learning or performing.
 _Avoid_: Song, track, number
 
 **Voice Part**:
-The section a singer sings in for a Piece (e.g. Soprano, Alto, Tenor, Bass).
+The section a singer sings in for a Piece (e.g. Soprano, Alto, Tenor, Bass). A label can carry a number, such as Alto 1 and Alto 2, for a divisi split.
 _Avoid_: Part (ambiguous with Practice Track), section, voice
 
 **Practice Track**:
@@ -29,7 +29,7 @@ A dated event the choir works toward, holding an ordered list of Pieces. A Piece
 _Avoid_: Milestone, event, gig, concert
 
 **Major Performance**:
-The one upcoming Performance the choir singles out. It is highlighted wherever Performances appear and shown in a banner on every screen, so it is always one tap away. A Singer with `update` marks it; at most one Performance is the Major Performance at a time.
+A Performance the choir singles out. Any number can be major. Each is highlighted wherever Performances appear, and a banner on every screen shows the closest upcoming one, so it is always one tap away. A Singer with `update` marks it, or a Singer with `append` when first creating the Performance.
 _Avoid_: Featured, pinned, headline
 
 **Performance Overview**:
@@ -51,7 +51,7 @@ _Avoid_: Exception, custom part
 ## Access
 
 **Permission**:
-A single capability: `read`, `append` (add new Pieces, Practice Tracks and Scores, never alter existing ones), `update` (edit names, labels and Performance tags only, which includes marking the Major Performance), `delete`, or `manage-users` (run the admin portal: Roles, Invite Links, removing Singers and the Colour Theme). A Singer is only shown the actions their Permissions allow.
+A single capability: `read`, `append` (add new Pieces, Practice Tracks, Scores and Performances, including tagging them as they are first added, never alter existing ones), `update` (edit names, labels and Performance tags, and reorder a Performance's Pieces, only; this includes marking a Performance major), `delete`, or `manage-users` (run the admin portal: Roles, Invite Links, removing Singers and the Colour Theme). A Singer is only shown the actions their Permissions allow.
 _Avoid_: Right, privilege
 
 **Role**:
@@ -69,7 +69,7 @@ _Avoid_: Invitation code, signup link
 ## Appearance
 
 **Colour Theme**:
-The palette the whole app is shown in, chosen once for the entire choir by a Singer with `manage-users`. One of Forest, Violet, Ocean, Sunset or Graphite, with Forest the default. It is a site setting stored in the database, so everyone sees the same one and no Singer can pick their own.
+The palette the whole app is shown in, chosen once for the entire choir by a Singer with `manage-users`. One of Forest, Violet, Ocean, Sunset or Graphite, with Forest the default. It is a site setting stored in the database, so everyone sees the same one, including a visitor who has not signed in, and no Singer can pick their own.
 _Avoid_: Skin, accent, brand colour
 
 **Display Mode**:
