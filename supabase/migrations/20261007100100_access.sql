@@ -39,6 +39,8 @@ as $$
   where sr.singer_id = auth.uid();
 $$;
 
+-- Takes the enum rather than text, so a misspelt Permission in an RLS policy fails when the
+-- migration runs instead of quietly answering false.
 create function public.has_permission(required public.permission)
 returns boolean
 language sql

@@ -23,17 +23,46 @@ const readableBeforeApproval: ReadonlyMap<string, string> = new Map([
   ['app_info', 'scaffold ping row, holds no choir data'],
 ]);
 
+/**
+ * Functions a Pending Singer may call, each with the reason. Anything else the API lets them call
+ * is a way around "reads nothing".
+ */
+const callableBeforeApproval: ReadonlyMap<string, string> = new Map([
+  ['my_permissions', 'the one way to learn their access: an empty list'],
+  [
+    'has_permission',
+    'RLS policies call it as the signed-in Singer; it tells them no more than my_permissions',
+  ],
+  [
+    'my_default_voice_part',
+    'the gate asks whether to send them to /choose-part, and /waiting shows it; only their own part',
+  ],
+  ['set_my_default_voice_part', 'a new Singer saves their part before approval; only their own'],
+]);
+
 const OpenApiDocument = Schema.Struct({
   definitions: Schema.Record(Schema.String, Schema.Unknown),
+  paths: Schema.Record(Schema.String, Schema.Unknown),
 });
 const Rows = Schema.Array(Schema.Unknown);
 
-/** Every table the API exposes, from the same OpenAPI document PostgREST serves to clients. */
-const exposedTables = async (): Promise<readonly string[]> => {
-  const response = await fetch(`${url}/rest/v1/`, { headers: { apikey: serviceRoleKey } });
-  const document = Schema.decodeUnknownSync(OpenApiDocument)(await response.json());
-  return Object.keys(document.definitions);
+/** The OpenAPI document PostgREST serves to a client with this token. */
+const openApiDocumentFor = async (apikey: string, bearer: string) => {
+  const response = await fetch(`${url}/rest/v1/`, {
+    headers: { apikey, authorization: `Bearer ${bearer}` },
+  });
+  return Schema.decodeUnknownSync(OpenApiDocument)(await response.json());
 };
+
+/** Every table the API exposes. */
+const exposedTables = async (): Promise<readonly string[]> =>
+  Object.keys((await openApiDocumentFor(serviceRoleKey, serviceRoleKey)).definitions);
+
+/** Every function this token may call. PostgREST lists only those it has execute rights on. */
+const callableFunctions = async (bearer: string): Promise<readonly string[]> =>
+  Object.keys((await openApiDocumentFor(anonKey, bearer)).paths)
+    .filter((path) => path.startsWith('/rpc/'))
+    .map((path) => path.slice('/rpc/'.length));
 
 /** How many rows `select *` returns over the API with this token. A refusal counts as none. */
 const rowsVisibleTo = async (table: string, apikey: string, bearer: string): Promise<number> => {
@@ -83,6 +112,18 @@ describe('a Pending Singer', () => {
 
     expect(leaking, 'tables a Pending Singer can read').toEqual([]);
     expect(unproven, 'empty tables: add a sample row to arrangeSampleRows').toEqual([]);
+  });
+
+  it('can call no function the API exposes, apart from the allowlisted ones', async () => {
+    const pending = await pendingSinger();
+
+    const callable = await callableFunctions(await accessTokenOf(pending));
+
+    expect(callable, 'the listing works at all').toContain('my_permissions');
+    expect(
+      callable.filter((name) => !callableBeforeApproval.has(name)),
+      'functions a Pending Singer can call',
+    ).toEqual([]);
   });
 
   it('cannot read their own Singer row', async () => {
