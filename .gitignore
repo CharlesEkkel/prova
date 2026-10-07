@@ -1,0 +1,14 @@
+node_modules
+.svelte-kit
+.wrangler
+build
+.output
+/static/pdfjs/
+/playwright-report/
+/test-results/
+/supabase/.temp/
+/supabase/.branches/
+.env
+.env.*
+!.env.example
+.claude/worktrees/

@@ -1,0 +1,11 @@
+node_modules
+.svelte-kit
+.wrangler
+build
+static/pdfjs
+pnpm-lock.yaml
+supabase/.temp
+.scratch
+.claude
+playwright-report
+test-results

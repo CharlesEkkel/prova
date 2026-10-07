@@ -1,0 +1,8 @@
+@import 'tailwindcss';
+
+/* Dark mode is a class on <html>, so a Singer can override the device setting. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+body {
+  @apply bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100;
+}
