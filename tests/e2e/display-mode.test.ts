@@ -17,11 +17,13 @@ test('the app renders and a Bits UI dialog works in light and dark', async ({ pa
 });
 
 test('the saved Display Mode is applied before first paint', async ({ page }) => {
-  await page.addInitScript(() => {
+  await page.goto('/');
+  await page.evaluate(() => {
     localStorage.setItem('prova-display-mode', 'dark');
   });
-  await page.goto('/');
-  // The inline script in app.html runs before hydration, so the class is there on load.
+  // Block the app's own scripts: only the inline script in app.html can set the class.
+  await page.route('**/_app/**', (route) => route.abort());
+  await page.reload();
   await expect(page.locator('html')).toHaveClass(/dark/);
 });
 

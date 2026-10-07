@@ -12,7 +12,7 @@ export const resolveDark = (mode: DisplayMode, systemPrefersDark: boolean): bool
 const decodeDisplayMode = Schema.decodeUnknownEffect(DisplayMode);
 
 /** Reads the saved Display Mode, falling back to `system` when nothing valid is saved. */
-export const loadDisplayMode: Effect.Effect<DisplayMode> = Effect.sync(() =>
+export const loadDisplayMode: Effect.Effect<DisplayMode> = Effect.try(() =>
   localStorage.getItem(displayModeStorageKey),
 ).pipe(
   Effect.flatMap(decodeDisplayMode),

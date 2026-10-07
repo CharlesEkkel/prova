@@ -56,4 +56,4 @@ CI cannot enable this itself. In GitHub, under Settings → Branches, protect `m
 - `Backend contract tests`
 - `Playwright (phone and desktop)`
 
-Deployment should start only after these pass on `main`.
+Deployment, once it is set up, should start only after these pass on `main`. There is no deploy configuration yet.
