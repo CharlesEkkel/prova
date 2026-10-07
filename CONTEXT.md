@@ -73,5 +73,5 @@ The palette the whole app is shown in, chosen once for the entire choir by a Sin
 _Avoid_: Skin, accent, brand colour
 
 **Display Mode**:
-A Singer's own choice of Light, Dark or System (follow the device) appearance. Personal to each Singer, and independent of the Colour Theme.
+A Singer's own choice of Light, Dark or System (follow the device) appearance. Remembered per device, not per Singer, so it does not follow a Singer to another device. Independent of the Colour Theme.
 _Avoid_: Theme (ambiguous with Colour Theme), dark mode toggle
