@@ -1,30 +1,35 @@
 import { describe, expect, it } from 'vitest';
-import { accessStage, resolveGate, safeNextPath, type Stage } from './gate';
+import { accessOf, resolveGate, safeNextPath, type Stage } from './gate';
 
-describe('accessStage', () => {
-  it('is signed-out for someone with no session', () => {
-    expect(accessStage({ signedIn: false, hasVoicePart: false, permissions: [] })).toBe(
-      'signed-out',
-    );
-  });
+describe('accessOf', () => {
+  const singer = 'a Singer';
+  const alto = 'Alto';
 
   it('asks a new Singer for their Voice Part before anything else, even with access', () => {
-    expect(accessStage({ signedIn: true, hasVoicePart: false, permissions: ['read'] })).toBe(
-      'needs-voice-part',
-    );
+    expect(accessOf({ singer, voicePart: null, permissions: ['read'] })).toEqual({
+      stage: 'needs-voice-part',
+      singer,
+      permissions: ['read'],
+    });
   });
 
   it('is pending for a Singer with a Voice Part but no read', () => {
-    expect(accessStage({ signedIn: true, hasVoicePart: true, permissions: [] })).toBe('pending');
-    expect(accessStage({ signedIn: true, hasVoicePart: true, permissions: ['append'] })).toBe(
-      'pending',
-    );
+    expect(accessOf({ singer, voicePart: alto, permissions: [] })).toEqual({
+      stage: 'pending',
+      singer,
+      permissions: [],
+      voicePart: alto,
+    });
+    expect(accessOf({ singer, voicePart: alto, permissions: ['append'] }).stage).toBe('pending');
   });
 
   it('is ready for a Singer with a Voice Part and read', () => {
-    expect(
-      accessStage({ signedIn: true, hasVoicePart: true, permissions: ['read', 'append'] }),
-    ).toBe('ready');
+    expect(accessOf({ singer, voicePart: alto, permissions: ['read', 'append'] })).toEqual({
+      stage: 'ready',
+      singer,
+      permissions: ['read', 'append'],
+      voicePart: alto,
+    });
   });
 });
 

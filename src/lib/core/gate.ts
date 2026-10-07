@@ -1,26 +1,50 @@
 // The sign-in gate: where a person belongs, given how far through sign-in they are. Pure; the
 // shell reads the session and the database, then asks this where to send the request.
 
-export type Stage = 'signed-out' | 'needs-voice-part' | 'pending' | 'ready';
-
 export const permissions = ['read', 'append', 'update', 'delete', 'manage-users'] as const;
 export type Permission = (typeof permissions)[number];
 
-export type Standing = {
-  readonly signedIn: boolean;
-  readonly hasVoicePart: boolean;
+/** What the shell knows about a signed-in person. The Singer and Voice Part are the shell's types. */
+export type Standing<Singer, Part> = {
+  readonly singer: Singer;
+  readonly voicePart: Part | null;
   readonly permissions: readonly Permission[];
 };
+
+/** How far through sign-in a person is, carrying only what is known at that stage. */
+export type Access<Singer, Part> =
+  | { readonly stage: 'signed-out' }
+  | {
+      readonly stage: 'needs-voice-part';
+      readonly singer: Singer;
+      readonly permissions: readonly Permission[];
+    }
+  | {
+      readonly stage: 'pending' | 'ready';
+      readonly singer: Singer;
+      readonly permissions: readonly Permission[];
+      readonly voicePart: Part;
+    };
+
+export type Stage = Access<unknown, unknown>['stage'];
 
 export type GateDecision =
   { readonly kind: 'allow' } | { readonly kind: 'redirect'; readonly to: string };
 
+export const signedOut = { stage: 'signed-out' } as const;
+
 /** A new Singer chooses their Voice Part first. After that, a Singer without `read` is Pending. */
-export const accessStage = ({ signedIn, hasVoicePart, permissions }: Standing): Stage => {
-  if (!signedIn) return 'signed-out';
-  if (!hasVoicePart) return 'needs-voice-part';
-  return permissions.includes('read') ? 'ready' : 'pending';
-};
+export const accessOf = <Singer, Part>({
+  singer,
+  voicePart,
+  permissions,
+}: Standing<Singer, Part>): Access<Singer, Part> =>
+  voicePart === null
+    ? { stage: 'needs-voice-part', singer, permissions }
+    : { stage: permissions.includes('read') ? 'ready' : 'pending', singer, permissions, voicePart };
+
+/** Where Google sends a person back to, with the one-time code that becomes their session. */
+export const callbackPath = '/auth/callback';
 
 const gatePageOf: Readonly<Record<Exclude<Stage, 'ready'>, string>> = {
   'signed-out': '/sign-in',
@@ -34,7 +58,7 @@ const homeOf = (stage: Stage): string => (stage === 'ready' ? '/' : gatePageOf[s
 
 /** Reachable at every stage: sign-in plumbing, sign-out, Invite Links, the manifest and built assets. */
 const isAlwaysPublic = (pathname: string): boolean =>
-  pathname === '/auth/callback' ||
+  pathname === callbackPath ||
   pathname === '/sign-out' ||
   pathname === '/manifest.webmanifest' ||
   pathname.startsWith('/invite/') ||
@@ -60,7 +84,7 @@ export const safeNextPath = (raw: string | null): string => {
   if (url.origin !== placeholderOrigin) return '/';
   // Dot segments normalise away, so `/.//evil.example` parses to the pathname `//evil.example`.
   if (url.pathname.startsWith('//')) return '/';
-  if (gatePages.includes(url.pathname) || url.pathname === '/auth/callback') return '/';
+  if (gatePages.includes(url.pathname) || url.pathname === callbackPath) return '/';
   return `${url.pathname}${url.search}${url.hash}`;
 };
 

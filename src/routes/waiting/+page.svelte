@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { refreshAll } from '$app/navigation';
   import GateScreen from '../../lib/components/GateScreen.svelte';
+  import PrimaryButton from '../../lib/components/PrimaryButton.svelte';
   import type { PageData } from './$types';
 
   const { data }: { readonly data: PageData } = $props();
@@ -52,13 +53,7 @@
     </div>
   </dl>
 
-  <button
-    class="min-h-11 rounded bg-emerald-700 px-4 py-2 font-medium text-white hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:opacity-60"
-    disabled={checking}
-    onclick={checkAgain}
-  >
-    Check again
-  </button>
+  <PrimaryButton disabled={checking} onclick={checkAgain}>Check again</PrimaryButton>
 
   <form method="POST" action="/sign-out">
     <button class="min-h-11 w-full rounded border px-4 py-2 font-medium">Sign out</button>

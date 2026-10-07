@@ -1,18 +1,21 @@
 import { fail, redirect } from '@sveltejs/kit';
+import { Effect } from 'effect';
 import { safeNextPath } from '../../lib/core/gate';
+import { signInProblemFrom, startGoogleSignIn, type SignInProblem } from '../../lib/shell/auth';
 import { destinationCookie, destinationCookieOptions } from '../../lib/shell/destination-cookie';
 import { supabaseOrigin } from '../../lib/shell/supabase';
 import type { Actions, PageServerLoad } from './$types';
 
-const messages: Readonly<Record<string, string>> = {
+// Never the provider's own error text.
+const messages: Readonly<Record<SignInProblem, string>> = {
   cancelled: 'Sign-in was cancelled. Try again when you are ready.',
   failed: 'We could not sign you in with Google. Please try again.',
 };
 
 export const load: PageServerLoad = ({ url }) => {
-  const code = url.searchParams.get('error');
+  const problem = signInProblemFrom(url.searchParams.get('error'));
   return {
-    problem: code === null ? null : (messages[code] ?? messages['failed'] ?? null),
+    problem: problem === null ? null : messages[problem],
     next: safeNextPath(url.searchParams.get('next')),
   };
 };
@@ -25,13 +28,11 @@ export const actions: Actions = {
       destinationCookieOptions,
     );
 
-    const { data, error } = await locals.supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${url.origin}/auth/callback`, skipBrowserRedirect: true },
-    });
-    if (error !== null) {
-      return fail(502, { problem: messages['failed'] ?? null });
-    }
-    return redirect(303, data.url, { external: [supabaseOrigin] });
+    const googleUrl = await Effect.runPromise(
+      startGoogleSignIn(locals.supabase, url.origin).pipe(Effect.orElseSucceed(() => null)),
+    );
+    return googleUrl === null
+      ? fail(502, { problem: messages.failed })
+      : redirect(303, googleUrl, { external: [supabaseOrigin] });
   },
 };

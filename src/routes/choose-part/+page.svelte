@@ -1,6 +1,7 @@
 <script lang="ts">
   import { RadioGroup } from 'bits-ui';
   import GateScreen from '../../lib/components/GateScreen.svelte';
+  import PrimaryButton from '../../lib/components/PrimaryButton.svelte';
   import type { ActionData, PageData } from './$types';
 
   const { data, form }: { readonly data: PageData; readonly form: ActionData } = $props();
@@ -26,10 +27,6 @@
       <p role="alert" class="text-sm text-red-700 dark:text-red-300">{form.problem}</p>
     {/if}
 
-    <button
-      class="min-h-11 rounded bg-emerald-700 px-4 py-2 font-medium text-white hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
-    >
-      Continue
-    </button>
+    <PrimaryButton>Continue</PrimaryButton>
   </form>
 </GateScreen>

@@ -1,5 +1,6 @@
 <script lang="ts">
   import GateScreen from '../../lib/components/GateScreen.svelte';
+  import PrimaryButton from '../../lib/components/PrimaryButton.svelte';
   import type { ActionData, PageData } from './$types';
 
   const { data, form }: { readonly data: PageData; readonly form: ActionData } = $props();
@@ -21,10 +22,6 @@
   {/if}
 
   <form method="POST" action="?/google&next={encodeURIComponent(data.next)}">
-    <button
-      class="min-h-11 w-full rounded bg-emerald-700 px-4 py-2 font-medium text-white hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700"
-    >
-      {problem === null ? 'Continue with Google' : 'Try again'}
-    </button>
+    <PrimaryButton>{problem === null ? 'Continue with Google' : 'Try again'}</PrimaryButton>
   </form>
 </GateScreen>
