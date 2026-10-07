@@ -11,4 +11,7 @@ build
 .env
 .env.*
 !.env.example
+
+# Claude Code: throwaway git worktrees (full nested checkouts) and personal permissions
 .claude/worktrees/
+.claude/settings.local.json
