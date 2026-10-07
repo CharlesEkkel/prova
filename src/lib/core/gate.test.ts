@@ -67,9 +67,21 @@ type Case = readonly [Stage, string, ReturnType<typeof resolveGate>];
 
 const allow = { kind: 'allow' } as const;
 const redirectTo = (to: string) => ({ kind: 'redirect', to }) as const;
+const unavailable = { kind: 'unavailable' } as const;
 
 describe('resolveGate', () => {
   const cases: readonly Case[] = [
+    // Access could not be checked: the public pages and sign-in still work, nothing else does.
+    ['unknown', '/sign-in', allow],
+    ['unknown', '/sign-in?next=%2Fpiece%2F3', allow],
+    ['unknown', '/auth/callback', allow],
+    ['unknown', '/invite/abc123', allow],
+    ['unknown', '/sign-out', allow],
+    ['unknown', '/_app/immutable/entry.js', allow],
+    ['unknown', '/', unavailable],
+    ['unknown', '/piece/3', unavailable],
+    ['unknown', '/waiting', unavailable],
+    ['unknown', '/choose-part', unavailable],
     // Signed out: only the public pages.
     ['signed-out', '/sign-in', allow],
     ['signed-out', '/auth/callback', allow],

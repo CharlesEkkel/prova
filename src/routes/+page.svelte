@@ -57,4 +57,9 @@
       </Dialog.Content>
     </Dialog.Portal>
   </Dialog.Root>
+
+  <!-- Until the app shell (#30) puts Sign out in the user menu. -->
+  <form method="POST" action="/sign-out">
+    <button class="w-fit rounded border px-3 py-1">Sign out</button>
+  </form>
 </main>

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { grantRole } from '../contract/support';
-import { signInAsNewSinger } from './support';
+import { signInAsApprovedSinger, signInAsNewSinger } from './support';
 
 test.describe('signed out', () => {
   test('a visitor to any page is sent to sign-in, remembering where they were headed', async ({
@@ -199,6 +199,40 @@ test.describe('a Pending Singer', () => {
     await page.goto('/choose-part');
     await page.getByRole('radio', { name: /Soprano/ }).click();
     await page.getByRole('button', { name: 'Continue' }).click();
+
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    await expect(page).toHaveURL('/sign-in');
+
+    await page.goto('/');
+    await expect(page).toHaveURL('/sign-in');
+  });
+
+  test('keeps the Display Mode and other cookies when signing out', async ({ page, context }) => {
+    await signInAsNewSinger(context);
+    // Stands in for the Colour Theme cookie that #31 adds.
+    await context.addCookies([
+      { name: 'prova-colour-theme', value: 'forest', url: 'http://localhost:4173' },
+    ]);
+    await page.goto('/choose-part');
+    await page.evaluate(() => {
+      localStorage.setItem('prova-display-mode', 'dark');
+    });
+    await page.getByRole('radio', { name: /Soprano/ }).click();
+    await page.getByRole('button', { name: 'Continue' }).click();
+
+    await page.getByRole('button', { name: 'Sign out' }).click();
+    await expect(page).toHaveURL('/sign-in');
+
+    await expect(page.locator('html')).toHaveClass(/dark/);
+    const cookies = await context.cookies();
+    expect(cookies.find(({ name }) => name === 'prova-colour-theme')?.value).toBe('forest');
+  });
+});
+
+test.describe('an approved Singer', () => {
+  test('can sign out from the app, and is then signed out', async ({ page, context }) => {
+    await signInAsApprovedSinger(context);
+    await page.goto('/');
 
     await page.getByRole('button', { name: 'Sign out' }).click();
     await expect(page).toHaveURL('/sign-in');

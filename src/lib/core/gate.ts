@@ -12,6 +12,7 @@ export type Standing<Singer, Part> = {
 
 /** How far through sign-in a person is, carrying only what is known at that stage. */
 export type Access<Singer, Part> =
+  | { readonly stage: 'unknown' }
   | { readonly stage: 'signed-out' }
   | {
       readonly stage: 'needs-voice-part';
@@ -28,9 +29,14 @@ export type Access<Singer, Part> =
 export type Stage = Access<unknown, unknown>['stage'];
 
 export type GateDecision =
-  { readonly kind: 'allow' } | { readonly kind: 'redirect'; readonly to: string };
+  | { readonly kind: 'allow' }
+  | { readonly kind: 'redirect'; readonly to: string }
+  | { readonly kind: 'unavailable' };
 
 export const signedOut = { stage: 'signed-out' } as const;
+
+/** Access could not be checked, for example because the database did not answer. */
+export const accessUnknown = { stage: 'unknown' } as const;
 
 /** A new Singer chooses their Voice Part first. After that, a Singer without `read` is Pending. */
 export const accessOf = <Singer, Part>({
@@ -45,7 +51,7 @@ export const accessOf = <Singer, Part>({
 /** Where Google sends a person back to, with the one-time code that becomes their session. */
 export const callbackPath = '/auth/callback';
 
-const gatePageOf: Readonly<Record<Exclude<Stage, 'ready'>, string>> = {
+const gatePageOf: Readonly<Record<Exclude<Stage, 'ready' | 'unknown'>, string>> = {
   'signed-out': '/sign-in',
   'needs-voice-part': '/choose-part',
   pending: '/waiting',
@@ -55,7 +61,8 @@ const gatePages: readonly string[] = Object.values(gatePageOf);
 
 const isGatePage = (pathname: string): boolean => gatePages.includes(pathname);
 
-const homeOf = (stage: Stage): string => (stage === 'ready' ? homePath : gatePageOf[stage]);
+const homeOf = (stage: Exclude<Stage, 'unknown'>): string =>
+  stage === 'ready' ? homePath : gatePageOf[stage];
 
 /** Reachable at every stage: sign-in plumbing, sign-out, Invite Links, the manifest and built assets. */
 const isAlwaysPublic = (pathname: string): boolean =>
@@ -93,6 +100,11 @@ const withNext = (page: string, headedFor: string): string => {
 export const resolveGate = (stage: Stage, pathAndSearch: string): GateDecision => {
   const url = onThisSite(pathAndSearch);
   if (isAlwaysPublic(url.pathname)) return { kind: 'allow' };
+
+  // Without knowing who is asking, only signing in can still work.
+  if (stage === 'unknown') {
+    return url.pathname === gatePageOf['signed-out'] ? { kind: 'allow' } : { kind: 'unavailable' };
+  }
 
   if (stage === 'ready') {
     return isGatePage(url.pathname)

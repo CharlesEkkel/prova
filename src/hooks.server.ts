@@ -2,22 +2,22 @@
 // person is, and let the gate decide before any page renders.
 import { error, redirect } from '@sveltejs/kit';
 import type { Handle } from '@sveltejs/kit/hooks';
-import { resolveGate } from './lib/core/gate';
+import { accessUnknown, resolveGate } from './lib/core/gate';
 import { valueOrNull } from './lib/shell/run';
 import { loadSession } from './lib/shell/session';
 import { createRequestSupabase } from './lib/shell/supabase';
 
 export const handle: Handle = async ({ event, resolve }) => {
   const supabase = createRequestSupabase(event.cookies);
-  const session = await valueOrNull(loadSession(supabase));
-  if (session === null) {
-    error(503, 'Prova cannot check your access right now. Try again in a moment.');
-  }
+  const session = (await valueOrNull(loadSession(supabase))) ?? accessUnknown;
   // `locals` is read-only in its type but SvelteKit expects it filled in here, once per request.
   Object.assign(event.locals, { supabase, session });
 
   const decision = resolveGate(session.stage, `${event.url.pathname}${event.url.search}`);
   if (decision.kind === 'redirect') redirect(303, decision.to);
+  if (decision.kind === 'unavailable') {
+    error(503, 'Prova cannot check your access right now. Try again in a moment.');
+  }
 
   const response = await resolve(event, {
     filterSerializedResponseHeaders: (name) => name === 'content-range',

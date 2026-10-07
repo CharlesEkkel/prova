@@ -14,13 +14,24 @@ import {
   type TestSinger,
 } from './support';
 
+type CarveOut = { readonly reason: string; readonly columns: readonly string[] };
+
 /**
- * Tables any signed-in person may read before approval, each with the reason. Anything not listed
- * here must read as empty for a Pending Singer. The site Colour Theme (#31) is added by #31.
+ * Tables any signed-in person may read before approval, each with the reason and the only columns
+ * they may see. Anything not listed here must read as empty for a Pending Singer. The site Colour
+ * Theme (#31) is added by #31.
  */
-const readableBeforeApproval: ReadonlyMap<string, string> = new Map([
-  ['voice_parts', 'a new Singer chooses their Voice Part before approval; only names and labels'],
-  ['app_info', 'scaffold ping row, holds no choir data'],
+const readableBeforeApproval: ReadonlyMap<string, CarveOut> = new Map([
+  [
+    'voice_parts',
+    {
+      reason:
+        'a new Singer chooses their Voice Part before approval: the names and labels to show, ' +
+        'the id the choice is saved by and the position the list is ordered by',
+      columns: ['id', 'name', 'short_label', 'position'],
+    },
+  ],
+  ['app_info', { reason: 'scaffold ping row, holds no choir data', columns: ['key', 'value'] }],
 ]);
 
 /**
@@ -44,7 +55,7 @@ const OpenApiDocument = Schema.Struct({
   definitions: Schema.Record(Schema.String, Schema.Unknown),
   paths: Schema.Record(Schema.String, Schema.Unknown),
 });
-const Rows = Schema.Array(Schema.Unknown);
+const Rows = Schema.Array(Schema.Record(Schema.String, Schema.Unknown));
 
 /** The OpenAPI document PostgREST serves to a client with this token. */
 const openApiDocumentFor = async (apikey: string, bearer: string) => {
@@ -64,12 +75,16 @@ const callableFunctions = async (bearer: string): Promise<readonly string[]> =>
     .filter((path) => path.startsWith('/rpc/'))
     .map((path) => path.slice('/rpc/'.length));
 
-/** How many rows `select *` returns over the API with this token. A refusal counts as none. */
-const rowsVisibleTo = async (table: string, apikey: string, bearer: string): Promise<number> => {
+/** The rows `select *` returns over the API with this token. A refusal counts as none. */
+const rowsVisibleTo = async (
+  table: string,
+  apikey: string,
+  bearer: string,
+): Promise<readonly Readonly<Record<string, unknown>>[]> => {
   const response = await fetch(`${url}/rest/v1/${table}?select=*`, {
     headers: { apikey, authorization: `Bearer ${bearer}` },
   });
-  return response.ok ? Schema.decodeUnknownSync(Rows)(await response.json()).length : 0;
+  return response.ok ? Schema.decodeUnknownSync(Rows)(await response.json()) : [];
 };
 
 const accessTokenOf = async (singer: TestSinger): Promise<string> => {
@@ -98,20 +113,26 @@ describe('a Pending Singer', () => {
     const verdicts = await Promise.all(
       tables.map(async (table) => ({
         table,
-        rowsInTable: await rowsVisibleTo(table, serviceRoleKey, serviceRoleKey),
+        rowsInTable: (await rowsVisibleTo(table, serviceRoleKey, serviceRoleKey)).length,
         rowsSeen: await rowsVisibleTo(table, anonKey, token),
       })),
     );
 
     const leaking = verdicts
-      .filter(({ table, rowsSeen }) => rowsSeen > 0 && !readableBeforeApproval.has(table))
+      .filter(({ table, rowsSeen }) => rowsSeen.length > 0 && !readableBeforeApproval.has(table))
       .map(({ table }) => table);
     const unproven = verdicts
       .filter(({ table, rowsInTable }) => rowsInTable === 0 && !readableBeforeApproval.has(table))
       .map(({ table }) => table);
+    const overshared = verdicts.flatMap(({ table, rowsSeen }) => {
+      const allowed = readableBeforeApproval.get(table)?.columns ?? [];
+      const seen = new Set(rowsSeen.flatMap((row) => Object.keys(row)));
+      return [...seen].filter((column) => !allowed.includes(column)).map((c) => `${table}.${c}`);
+    });
 
     expect(leaking, 'tables a Pending Singer can read').toEqual([]);
     expect(unproven, 'empty tables: add a sample row to arrangeSampleRows').toEqual([]);
+    expect(overshared, 'columns of carved-out tables beyond the allowlist').toEqual([]);
   });
 
   it('can call no function the API exposes, apart from the allowlisted ones', async () => {
