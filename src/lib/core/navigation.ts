@@ -6,7 +6,13 @@ import { homePath } from './safe-path';
 
 export type NavItem = {
   readonly key:
-    'home' | 'admin' | 'admin-singers' | 'admin-roles' | 'admin-voice-parts' | 'admin-appearance';
+    | 'home'
+    | 'repertoire'
+    | 'admin'
+    | 'admin-singers'
+    | 'admin-roles'
+    | 'admin-voice-parts'
+    | 'admin-appearance';
   readonly label: string;
   readonly path: string;
   /** `section` stays lit for every page below its path, `page` only for the page itself. */
@@ -14,11 +20,17 @@ export type NavItem = {
 };
 
 const home: NavItem = { key: 'home', label: 'Home', path: paths.home, match: 'page' };
+const repertoire: NavItem = {
+  key: 'repertoire',
+  label: 'Repertoire',
+  path: paths.repertoire,
+  match: 'section',
+};
 const admin: NavItem = { key: 'admin', label: 'Admin', path: paths.admin, match: 'section' };
 
 /** The sidebar's main links; Admin only for a Singer who may open the admin portal. */
 export const mainNavigation = (showAdmin: boolean): readonly NavItem[] =>
-  showAdmin ? [home, admin] : [home];
+  showAdmin ? [home, repertoire, admin] : [home, repertoire];
 
 /** The admin portal's tabs. */
 export const adminTabs: readonly NavItem[] = [

@@ -145,10 +145,9 @@ test.describe('the app shell', () => {
     await signInAsApprovedSinger(context);
     await page.goto('/');
     await page.waitForLoadState('networkidle');
-    const nav = await openNavigation(page);
+    await openNavigation(page);
 
     await expect(page.getByRole('button', { name: /search/i })).toHaveCount(0);
-    await expect(nav.getByRole('link', { name: 'Repertoire' })).toHaveCount(0);
     await page.getByRole('button', { name: /^User menu for/ }).click();
     await expect(page.getByRole('menuitem')).toHaveText(['Change default Voice Part', 'Sign out']);
   });

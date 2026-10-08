@@ -50,6 +50,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      pieces: {
+        Row: {
+          composer: string;
+          created_at: string;
+          id: string;
+          notes: string;
+          title: string;
+        };
+        Insert: {
+          composer?: string;
+          created_at?: string;
+          id?: string;
+          notes?: string;
+          title: string;
+        };
+        Update: {
+          composer?: string;
+          created_at?: string;
+          id?: string;
+          notes?: string;
+          title?: string;
+        };
+        Relationships: [];
+      };
       role_permissions: {
         Row: {
           permission: Database['public']['Enums']['permission'];
@@ -200,6 +224,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      add_piece: {
+        Args: { piece_composer: string; piece_notes: string; piece_title: string };
+        Returns: string;
+      };
       admin_add_voice_part: { Args: { part_label: string; part_name: string }; Returns: string };
       admin_create_role: {
         Args: { perms: Database['public']['Enums']['permission'][]; role_name: string };
@@ -233,6 +261,15 @@ export type Database = {
           singer_count: number;
         }[];
       };
+      check_piece: {
+        Args: {
+          except_piece: string;
+          piece_composer: string;
+          piece_notes: string;
+          piece_title: string;
+        };
+        Returns: undefined;
+      };
       check_role_definition: {
         Args: {
           except_role: string;
@@ -245,6 +282,7 @@ export type Database = {
         Args: { except_part: string; part_label: string; part_name: string };
         Returns: undefined;
       };
+      delete_piece: { Args: { target: string }; Returns: undefined };
       grant_admin_to_owners: { Args: Record<PropertyKey, never>; Returns: undefined };
       has_permission: {
         Args: { required: Database['public']['Enums']['permission'] };
@@ -260,6 +298,18 @@ export type Database = {
         Args: { singer: string };
         Returns: Database['public']['Enums']['permission'][];
       };
+      repertoire: {
+        Args: { only_piece?: string };
+        Returns: {
+          composer: string;
+          id: string;
+          notes: string;
+          performances: number;
+          practice_tracks: number;
+          scores: number;
+          title: string;
+        }[];
+      };
       require_manage_admins_if: { Args: { touches_manage_users: boolean }; Returns: undefined };
       require_permission: {
         Args: { required: Database['public']['Enums']['permission'] };
@@ -268,6 +318,11 @@ export type Database = {
       role_grants_manage_users: { Args: { role: string }; Returns: boolean };
       set_my_default_voice_part: { Args: { chosen: string }; Returns: undefined };
       set_owner_emails: { Args: { emails: string[] }; Returns: undefined };
+      tidy_text: { Args: { raw: string }; Returns: string };
+      update_piece: {
+        Args: { piece_composer: string; piece_notes: string; piece_title: string; target: string };
+        Returns: undefined;
+      };
     };
     Enums: {
       permission: 'read' | 'append' | 'update' | 'delete' | 'manage-users' | 'manage-admins';

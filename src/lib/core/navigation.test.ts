@@ -14,13 +14,13 @@ const itemWith = (items: readonly NavItem[], key: NavItem['key']): NavItem => {
 };
 
 describe('mainNavigation', () => {
-  it('is Home, and Admin only for a Singer who may open the admin portal', () => {
-    expect(mainNavigation(false).map(({ label }) => label)).toEqual(['Home']);
-    expect(mainNavigation(true).map(({ label }) => label)).toEqual(['Home', 'Admin']);
+  it('is Home and the Repertoire, and Admin only for a Singer who may open the admin portal', () => {
+    expect(mainNavigation(false).map(({ label }) => label)).toEqual(['Home', 'Repertoire']);
+    expect(mainNavigation(true).map(({ label }) => label)).toEqual(['Home', 'Repertoire', 'Admin']);
   });
 
   it('points Home at the home page and Admin at the admin portal', () => {
-    expect(mainNavigation(true).map(({ path }) => path)).toEqual(['/', '/admin']);
+    expect(mainNavigation(true).map(({ path }) => path)).toEqual(['/', '/repertoire', '/admin']);
   });
 });
 
@@ -48,6 +48,13 @@ describe('isActive', () => {
     expect(isActive(admin, '/')).toBe(false);
     expect(isActive(home, '/')).toBe(true);
     expect(isActive(home, '/admin')).toBe(false);
+  });
+
+  it('lights the Repertoire for its page and every Piece page below it', () => {
+    const repertoire = itemWith(mainNavigation(false), 'repertoire');
+    expect(isActive(repertoire, '/repertoire')).toBe(true);
+    expect(isActive(repertoire, '/repertoire/3f8c1a52-7d4e-4b8a-9c21-0e5f6a7b8c9d')).toBe(true);
+    expect(isActive(repertoire, '/')).toBe(false);
   });
 
   it('lights exactly one admin tab', () => {
