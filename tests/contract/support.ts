@@ -100,9 +100,7 @@ export const revokeRole = async (singer: Pick<TestSinger, 'id'>, roleId: string)
   if (error) throw error;
 };
 
-export type RoleId = string;
-
-const builtinRoleId = async (builtin: 'admin' | 'owner'): Promise<RoleId> => {
+const builtinRoleId = async (builtin: 'admin' | 'owner'): Promise<string> => {
   const { data, error } = await serviceClient()
     .from('roles')
     .select('id')
@@ -120,8 +118,8 @@ export const makeAdmin = async (singer: Pick<TestSinger, 'id'>): Promise<void> =
   if (error) throw error;
 };
 
-export const adminRoleId = (): Promise<RoleId> => builtinRoleId('admin');
-export const ownerRoleId = (): Promise<RoleId> => builtinRoleId('owner');
+export const adminRoleId = (): Promise<string> => builtinRoleId('admin');
+export const ownerRoleId = (): Promise<string> => builtinRoleId('owner');
 
 /**
  * Adds an owner email without touching the others, because contract test files run side by side
@@ -158,11 +156,41 @@ export const signInNewAdmin = async (): Promise<TestSinger> => {
 };
 
 /** The ids of the Roles a Singer holds, read with the service role. */
-export const rolesHeldBy = async (singer: Pick<TestSinger, 'id'>): Promise<readonly RoleId[]> => {
+export const rolesHeldBy = async (singer: Pick<TestSinger, 'id'>): Promise<readonly string[]> => {
   const { data, error } = await serviceClient()
     .from('singer_roles')
     .select('role_id')
     .eq('singer_id', singer.id);
   if (error) throw error;
   return data.map(({ role_id }) => role_id);
+};
+
+/** The id of the Role with this name (any case). Throws when there is none. */
+export const roleIdNamed = async (name: string): Promise<string> => {
+  const { data, error } = await serviceClient().from('roles').select('id').ilike('name', name);
+  if (error) throw error;
+  const [role] = data;
+  if (role === undefined) throw new Error(`no Role named ${name}`);
+  return role.id;
+};
+
+/** Builds a Role through the admin portal's own call, as this Singer. Throws if it is refused. */
+export const createRoleAs = async (
+  singer: Pick<TestSinger, 'client'>,
+  name: string,
+  permissions: readonly Permission[],
+): Promise<string> => {
+  const { data, error } = await singer.client.rpc('admin_create_role', {
+    role_name: name,
+    perms: [...permissions],
+  });
+  if (error) throw error;
+  return data;
+};
+
+/** A Singer who may run the admin portal but is neither an Owner nor an Admin: just `manage-users`. */
+export const signInNewManager = async (): Promise<TestSinger> => {
+  const manager = await signInNewSinger();
+  await grantRole(manager, ['read', 'manage-users']);
+  return manager;
 };

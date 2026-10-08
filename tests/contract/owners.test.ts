@@ -1,17 +1,21 @@
 // Backend contract seam: Owners are derived live from the configured owner emails.
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
+import { permissions } from '../../src/lib/core/permissions';
+import { Constants } from '../../src/lib/shell/database.types';
 import {
   addOwnerEmail,
   adminRoleId,
   anonClient,
+  grantRole,
   rolesHeldBy,
   serviceClient,
   signInNewSinger,
 } from './support';
 
-const allSix = ['append', 'delete', 'manage-admins', 'manage-users', 'read', 'update'];
-const adminSet = ['append', 'delete', 'manage-users', 'read', 'update'];
+// Every Permission the database knows, and the ones the built-in Admin Role holds.
+const allSix = Constants.public.Enums.permission.toSorted();
+const adminSet = allSix.filter((permission) => permission !== 'manage-admins');
 
 const permissionsOf = async (singer: Awaited<ReturnType<typeof signInNewSinger>>) =>
   (await singer.client.rpc('my_permissions')).data?.toSorted();
@@ -118,5 +122,44 @@ describe('set_owner_emails', () => {
 
     expect(error).not.toBeNull();
     expect(await permissionsOf(singer)).toEqual([]);
+  });
+});
+
+describe('the Permissions', () => {
+  it('are the same six in the app as in the database', () => {
+    expect(permissions.toSorted()).toEqual(allSix);
+    expect(allSix).toHaveLength(6);
+  });
+
+  it.each(adminSet.filter((permission) => permission !== 'manage-users'))(
+    'a Role holding only %s grants exactly that, so each is enforced on its own',
+    async (permission) => {
+      const singer = await signInNewSinger();
+      await grantRole(singer, [permission]);
+
+      const held = await singer.client.rpc('my_permissions');
+      const asked = await Promise.all(
+        Constants.public.Enums.permission.map(async (required) => [
+          required,
+          (await singer.client.rpc('has_permission', { required })).data,
+        ]),
+      );
+
+      expect(held.data).toEqual([permission]);
+      expect(asked.filter(([, holds]) => holds).map(([name]) => name)).toEqual([permission]);
+    },
+  );
+
+  it('manage-users on its own is held through a Role, and manage-admins only by an Owner', async () => {
+    const manager = await signInNewSinger();
+    await grantRole(manager, ['manage-users']);
+    const owner = await signInNewSinger();
+    await addOwnerEmail(owner.email);
+
+    const asked = (singer: typeof manager) =>
+      singer.client.rpc('has_permission', { required: 'manage-admins' });
+
+    expect((await manager.client.rpc('my_permissions')).data).toEqual(['manage-users']);
+    expect([(await asked(manager)).data, (await asked(owner)).data]).toEqual([false, true]);
   });
 });

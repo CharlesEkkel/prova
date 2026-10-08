@@ -1,5 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { serviceClient, signInNewSinger } from '../contract/support';
+import { randomUUID } from 'node:crypto';
+import {
+  createRoleAs,
+  makeAdmin,
+  signInNewManager,
+  serviceClient,
+  signInNewSinger,
+} from '../contract/support';
 import { signInAsApprovedSinger, signInAsSingerWith } from './support';
 
 test.describe('without manage-users', () => {
@@ -27,8 +34,10 @@ test.describe('with manage-users', () => {
     await page.getByRole('link', { name: 'Admin' }).click();
 
     await expect(page).toHaveURL('/admin');
+    // The Singers list can be long; clicking mid-hydration loses the click.
+    await page.waitForLoadState('networkidle');
     await page.getByRole('link', { name: 'Roles' }).click();
-    await expect(page).toHaveURL('/admin/roles');
+    await page.waitForURL('/admin/roles');
     await expect(page.getByRole('link', { name: 'Appearance' })).toHaveCount(0);
   });
 
@@ -37,10 +46,13 @@ test.describe('with manage-users', () => {
     const pending = await signInNewSinger({ metadata: { full_name: 'Pat Pending' } });
 
     await page.goto('/admin');
+    // The Singers list can be long; interacting mid-hydration loses the click.
+    await page.waitForLoadState('networkidle');
     const card = page.getByTestId('pending-singer').filter({ hasText: pending.email });
     await expect(card).toContainText('Pat Pending');
     await expect(card).toContainText('Direct');
-    await card.getByLabel('Role').selectOption({ label: 'Reader' });
+    await card.getByRole('checkbox', { name: 'Reader' }).check();
+    await card.getByRole('checkbox', { name: 'Contributor' }).check();
     await card.getByRole('button', { name: 'Approve' }).click();
 
     await expect(page.getByTestId('pending-singer').filter({ hasText: pending.email })).toHaveCount(
@@ -49,7 +61,50 @@ test.describe('with manage-users', () => {
     await expect(page.getByTestId('singer').filter({ hasText: pending.email })).toContainText(
       'Reader',
     );
-    expect((await pending.client.rpc('my_permissions')).data).toEqual(['read']);
+    await expect(page.getByTestId('singer').filter({ hasText: pending.email })).toContainText(
+      'Contributor',
+    );
+    expect((await pending.client.rpc('my_permissions')).data).toEqual(['read', 'append']);
+  });
+
+  test('shows a Role without read on the Pending row, and the Role picker keeps it ticked', async ({
+    page,
+    context,
+  }) => {
+    await signInAsSingerWith(context, ['manage-users']);
+    const pending = await signInNewSinger();
+    const roleName = `Append only ${randomUUID()}`;
+    const roleId = await createRoleAs(await signInNewManager(), roleName, ['append']);
+    await serviceClient().from('singer_roles').insert({ singer_id: pending.id, role_id: roleId });
+
+    await page.goto('/admin');
+    // The Singers list can be long; interacting mid-hydration loses the click.
+    await page.waitForLoadState('networkidle');
+    const card = page.getByTestId('pending-singer').filter({ hasText: pending.email });
+
+    await expect(card.getByRole('list', { name: 'Roles' })).toContainText(roleName);
+    await expect(card.getByRole('checkbox', { name: roleName })).toBeChecked();
+  });
+
+  test('a Role that includes manage-users is shown but disabled, with the reason', async ({
+    page,
+    context,
+  }) => {
+    await signInAsSingerWith(context, ['manage-users']);
+    await signInNewSinger();
+
+    await page.goto('/admin');
+    // The Singers list can be long; interacting mid-hydration loses the click.
+    await page.waitForLoadState('networkidle');
+    const card = page.getByTestId('pending-singer').first();
+
+    await expect(card.getByRole('checkbox', { name: /^Admin/ })).toBeDisabled();
+    await expect(card).toContainText('Only an Owner can grant or change anything that includes');
+    await expect(card.getByRole('checkbox', { name: /^Owner/ })).toHaveCount(0);
+
+    await page.goto('/admin/roles');
+    await page.getByRole('button', { name: 'New Role' }).click();
+    await expect(page.getByRole('checkbox', { name: /^manage-users/ })).toBeDisabled();
   });
 
   test('declines a Pending Singer after confirming', async ({ page, context }) => {
@@ -57,6 +112,8 @@ test.describe('with manage-users', () => {
     const pending = await signInNewSinger();
 
     await page.goto('/admin');
+    // The Singers list can be long; interacting mid-hydration loses the click.
+    await page.waitForLoadState('networkidle');
     const card = page.getByTestId('pending-singer').filter({ hasText: pending.email });
     await card.getByRole('button', { name: 'Decline' }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Decline' }).click();
@@ -82,7 +139,7 @@ test.describe('with manage-users', () => {
     await dialog.getByRole('checkbox', { name: /^append/ }).check();
     await expect(dialog).toContainText('Singers with only this Role stay Pending');
     await expect(dialog.getByRole('checkbox', { name: /^manage-admins/ })).toHaveCount(0);
-    await expect(dialog.getByRole('checkbox', { name: /^manage-users/ })).toHaveCount(0);
+    await expect(dialog.getByRole('checkbox', { name: /^manage-users/ })).toBeDisabled();
     await dialog.getByRole('button', { name: 'Save Role' }).click();
 
     const role = page.getByTestId('role').filter({ hasText: name });
@@ -111,16 +168,11 @@ test.describe('with manage-users', () => {
   }) => {
     await signInAsSingerWith(context, ['manage-users']);
     const other = await signInNewSinger();
-    await serviceClient()
-      .from('singer_roles')
-      .insert({
-        singer_id: other.id,
-        role_id:
-          (await serviceClient().from('roles').select('id').eq('builtin', 'admin').single()).data
-            ?.id ?? '',
-      });
+    await makeAdmin(other);
 
     await page.goto('/admin');
+    // The Singers list can be long; interacting mid-hydration loses the click.
+    await page.waitForLoadState('networkidle');
     const card = page.getByTestId('singer').filter({ hasText: other.email });
 
     await expect(card.getByRole('button', { name: 'Remove' })).toBeDisabled();

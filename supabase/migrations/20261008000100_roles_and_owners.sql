@@ -15,7 +15,7 @@ alter table public.roles
   add constraint roles_name_is_trimmed check (name = btrim(name) and name <> '');
 create unique index roles_name_unique_ci on public.roles (lower(name));
 
--- The built-in Roles. A hand-made "Admin" from the stopgap `just make-admin` becomes the built-in.
+-- The built-in Roles. A hand-made "Admin" Role already in a dev database becomes the built-in.
 update public.roles set name = 'Admin', builtin = 'admin' where lower(name) = 'admin';
 insert into public.roles (name, builtin)
   select 'Admin', 'admin' where not exists (select 1 from public.roles where builtin = 'admin');

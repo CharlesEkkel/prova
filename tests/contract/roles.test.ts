@@ -4,11 +4,14 @@ import { Schema } from 'effect';
 import { describe, expect, it } from 'vitest';
 import {
   adminRoleId,
+  createRoleAs,
   grantRole,
   ownerRoleId,
+  roleIdNamed,
   rolesHeldBy,
   serviceClient,
   signInNewAdmin,
+  signInNewManager,
   signInNewOwner,
   signInNewSinger,
   type TestSinger,
@@ -17,16 +20,6 @@ import {
 const rowsOf = Schema.decodeUnknownSync(Schema.Array(Schema.Record(Schema.String, Schema.Unknown)));
 
 const roleName = () => `Role ${randomUUID()}`;
-
-/** A Singer who may run the admin portal but is not an Owner or an Admin: just `manage-users`. */
-const signInNewManager = async (): Promise<TestSinger> => {
-  const manager = await signInNewSinger();
-  await grantRole(manager, ['read', 'manage-users']);
-  return manager;
-};
-
-const rolesNamed = async (name: string) =>
-  (await serviceClient().from('roles').select('id, name').ilike('name', name)).data ?? [];
 
 describe('the seeded Roles', () => {
   it('has Editor, Contributor and Reader beside the built-in Admin and Owner', async () => {
@@ -67,15 +60,16 @@ describe('manage-admins', () => {
   });
 
   it('cannot be inserted into a custom Role by any other route either', async () => {
-    const { data: role } = await serviceClient()
+    const role = await serviceClient()
       .from('roles')
       .insert({ name: roleName() })
       .select('id')
       .single();
+    if (role.error) throw role.error;
 
     const { error } = await serviceClient()
       .from('role_permissions')
-      .insert({ role_id: role?.id ?? '', permission: 'manage-admins' });
+      .insert({ role_id: role.data.id, permission: 'manage-admins' });
 
     expect(error).not.toBeNull();
   });
@@ -106,16 +100,8 @@ describe('a Singer without manage-admins', () => {
   it('cannot edit a Role into, or out of, including manage-users', async () => {
     const admin = await signInNewAdmin();
     const owner = await signInNewOwner();
-    const plain =
-      (await owner.client.rpc('admin_create_role', { role_name: roleName(), perms: ['read'] }))
-        .data ?? '';
-    const powerful =
-      (
-        await owner.client.rpc('admin_create_role', {
-          role_name: roleName(),
-          perms: ['read', 'manage-users'],
-        })
-      ).data ?? '';
+    const plain = await createRoleAs(owner, roleName(), ['read']);
+    const powerful = await createRoleAs(owner, roleName(), ['read', 'manage-users']);
 
     const into = await admin.client.rpc('admin_update_role', {
       target: plain,
@@ -165,8 +151,7 @@ describe('a Singer without manage-admins', () => {
   it('cannot remove, or change the Roles of, a Singer who holds manage-users', async () => {
     const manager = await signInNewManager();
     const holder = await signInNewAdmin();
-    const reader = await rolesNamed('Reader');
-    const readerId = reader[0]?.id ?? '';
+    const readerId = await roleIdNamed('Reader');
 
     const change = await manager.client.rpc('admin_set_singer_roles', {
       target: holder.id,
@@ -183,7 +168,7 @@ describe('a Singer without manage-admins', () => {
   it('can still do everything else: assign other Roles, build Roles, remove ordinary Singers', async () => {
     const admin = await signInNewAdmin();
     const target = await signInNewSinger();
-    const readerId = (await rolesNamed('Reader'))[0]?.id ?? '';
+    const readerId = await roleIdNamed('Reader');
 
     const assign = await admin.client.rpc('admin_set_singer_roles', {
       target: target.id,
@@ -268,7 +253,8 @@ describe('a Role', () => {
     });
 
     expect([blank.error?.code, empty.error?.code, padded.error]).toEqual(['22023', '22023', null]);
-    expect(await rolesNamed(name)).toHaveLength(1);
+    // Stored trimmed: looking it up by the trimmed name finds it.
+    expect(await roleIdNamed(name)).toBeTruthy();
   });
 
   it('has a name unique ignoring case, with Admin and Owner reserved', async () => {
@@ -298,11 +284,7 @@ describe('a Role', () => {
 
   it('can be renamed and have its Permissions changed, keeping a unique name', async () => {
     const manager = await signInNewManager();
-    const created = await manager.client.rpc('admin_create_role', {
-      role_name: roleName(),
-      perms: ['read'],
-    });
-    const target = created.data ?? '';
+    const target = await createRoleAs(manager, roleName(), ['read']);
     const name = roleName();
 
     const update = await manager.client.rpc('admin_update_role', {
@@ -340,9 +322,7 @@ describe('a Role', () => {
   it('when deleted, is taken from every Singer who held it', async () => {
     const manager = await signInNewManager();
     const holders = await Promise.all([signInNewSinger(), signInNewSinger()]);
-    const roleId =
-      (await manager.client.rpc('admin_create_role', { role_name: roleName(), perms: ['read'] }))
-        .data ?? '';
+    const roleId = await createRoleAs(manager, roleName(), ['read']);
     await Promise.all(
       holders.map((holder) =>
         manager.client.rpc('admin_set_singer_roles', { target: holder.id, role_ids: [roleId] }),
@@ -384,7 +364,7 @@ describe('a Singer with manage-users', () => {
   it('approves a Pending Singer by assigning a Role, who then holds its Permissions', async () => {
     const manager = await signInNewManager();
     const pending = await signInNewSinger();
-    const editorId = (await rolesNamed('Editor'))[0]?.id ?? '';
+    const editorId = await roleIdNamed('Editor');
 
     const { error } = await manager.client.rpc('admin_set_singer_roles', {
       target: pending.id,
@@ -401,13 +381,7 @@ describe('a Singer with manage-users', () => {
 
   it('lists the Roles with their Permissions and how many Singers hold each', async () => {
     const manager = await signInNewManager();
-    const roleId =
-      (
-        await manager.client.rpc('admin_create_role', {
-          role_name: roleName(),
-          perms: ['read', 'delete'],
-        })
-      ).data ?? '';
+    const roleId = await createRoleAs(manager, roleName(), ['read', 'delete']);
     await manager.client.rpc('admin_set_singer_roles', {
       target: (await signInNewSinger()).id,
       role_ids: [roleId],
@@ -487,7 +461,7 @@ describe('a Singer without manage-users', () => {
     const singer = await signInNewSinger();
     if (permissions.length > 0) await grantRole(singer, permissions);
     const bystander = await signInNewSinger();
-    const readerId = (await rolesNamed('Reader'))[0]?.id ?? '';
+    const readerId = await roleIdNamed('Reader');
 
     const verdicts = await Promise.all(
       everyOperation(singer.client, readerId).map(async ([name, call]) => [
@@ -500,12 +474,12 @@ describe('a Singer without manage-users', () => {
     expect(
       (await serviceClient().from('singers').select('id').eq('id', bystander.id)).data,
     ).toHaveLength(1);
-    expect(await rolesNamed('Reader')).toHaveLength(1);
+    expect(await roleIdNamed('Reader')).toBe(readerId);
   });
 
   it('cannot approve themselves', async () => {
     const singer = await signInNewSinger();
-    const readerId = (await rolesNamed('Reader'))[0]?.id ?? '';
+    const readerId = await roleIdNamed('Reader');
 
     const { error } = await singer.client.rpc('admin_set_singer_roles', {
       target: singer.id,

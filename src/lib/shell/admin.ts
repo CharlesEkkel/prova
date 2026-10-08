@@ -1,8 +1,8 @@
-// Shell: the admin portal's reads and writes. Every call is an RPC that checks the caller's
-// Permissions in the database; nothing here decides who may do what.
+// Shell: what the admin portal reads. The writes are in admin-commands.ts. Every call is an RPC
+// that checks the caller's Permissions in the database; nothing here decides who may do what.
 import { Effect, Schema } from 'effect';
 import { permissions } from '../core/permissions';
-import { callSupabase, callSupabaseAs, SupabaseCallFailed, type Supabase } from './supabase';
+import { callSupabaseAs, type Supabase, type SupabaseCallFailed } from './supabase';
 
 const Uuid = Schema.String.check(Schema.isUUID());
 export const RoleId = Uuid.pipe(Schema.brand('RoleId'));
@@ -10,26 +10,35 @@ export type RoleId = typeof RoleId.Type;
 export const AdminSingerId = Uuid.pipe(Schema.brand('AdminSingerId'));
 export type AdminSingerId = typeof AdminSingerId.Type;
 
-const PermissionName = Schema.Literals(permissions);
+export const RoleName = Schema.NonEmptyString.pipe(Schema.brand('RoleName'));
+const DisplayName = Schema.NonEmptyString.pipe(Schema.brand('DisplayName'));
+const Email = Schema.NonEmptyString.pipe(Schema.brand('Email'));
+const VoicePartName = Schema.NonEmptyString.pipe(Schema.brand('VoicePartName'));
+const SingerCount = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
+
+export const PermissionName = Schema.Literals(permissions);
+
+/** How a Singer signed up. Only direct sign-in exists until Invite Links (#25). */
+const SignedUpVia = Schema.Literals(['Direct']);
 
 const RoleRow = Schema.Struct({
   id: RoleId,
-  name: Schema.String,
+  name: RoleName,
   isBuiltin: Schema.Boolean,
   permissions: Schema.Array(PermissionName),
-  singerCount: Schema.Number,
+  singerCount: SingerCount,
 }).pipe(Schema.encodeKeys({ isBuiltin: 'is_builtin', singerCount: 'singer_count' }));
 export type RoleRow = typeof RoleRow.Type;
 
 const SingerRow = Schema.Struct({
   id: AdminSingerId,
-  displayName: Schema.String,
-  email: Schema.String,
-  voicePart: Schema.NullOr(Schema.String),
-  signedUpVia: Schema.String,
+  displayName: DisplayName,
+  email: Email,
+  voicePart: Schema.NullOr(VoicePartName),
+  signedUpVia: SignedUpVia,
   isOwner: Schema.Boolean,
   permissions: Schema.Array(PermissionName),
-  roles: Schema.Array(Schema.Struct({ id: RoleId, name: Schema.String })),
+  roles: Schema.Array(Schema.Struct({ id: RoleId, name: RoleName })),
 }).pipe(
   Schema.encodeKeys({
     displayName: 'display_name',
@@ -51,91 +60,3 @@ export const loadSingers = (
   supabase: Supabase,
 ): Effect.Effect<readonly SingerRow[], SupabaseCallFailed> =>
   callSupabaseAs(Schema.Array(SingerRow), () => supabase.rpc('admin_singers'));
-
-/** Why an admin change was not made, in the terms the screens explain. */
-export type AdminProblem = 'not-allowed' | 'name-taken' | 'invalid' | 'failed';
-
-const ErrorCode = Schema.Struct({ code: Schema.String });
-const isErrorCode = Schema.is(ErrorCode);
-
-const problemOf = (failure: SupabaseCallFailed): AdminProblem => {
-  const { cause } = failure;
-  if (!isErrorCode(cause)) return 'failed';
-  if (cause.code === '42501') return 'not-allowed';
-  if (cause.code === '23505') return 'name-taken';
-  return cause.code === '22023' || cause.code === 'P0002' ? 'invalid' : 'failed';
-};
-
-export const adminProblemMessages: Readonly<Record<AdminProblem, string>> = {
-  'not-allowed': 'You do not have permission to do that.',
-  'name-taken': 'A Role with that name already exists.',
-  invalid: 'That change is not valid. Check the details and try again.',
-  failed: 'That did not work. Try again in a moment.',
-};
-
-/** What the Role form sends: a name and the ticked Permissions. */
-const RoleForm = Schema.Struct({
-  name: Schema.String,
-  permissions: Schema.Array(PermissionName),
-});
-
-const RoleIdForm = Schema.Struct({ role: RoleId });
-const RoleEditForm = Schema.Struct({ ...RoleForm.fields, ...RoleIdForm.fields });
-const SingerRolesForm = Schema.Struct({ singer: AdminSingerId, roles: Schema.Array(RoleId) });
-const SingerIdForm = Schema.Struct({ singer: AdminSingerId });
-
-/** A form's fields, with repeated ones (`permission`, `role`) gathered into arrays. */
-const fieldsOf = (form: FormData): Readonly<Record<string, unknown>> => ({
-  ...Object.fromEntries(form),
-  name: form.get('name') ?? '',
-  permissions: form.getAll('permission'),
-  roles: form.getAll('role'),
-});
-
-const readForm = <A>(schema: Schema.Decoder<A>, request: Request): Effect.Effect<A, AdminProblem> =>
-  Effect.tryPromise(() => request.formData()).pipe(
-    Effect.flatMap((form) => Schema.decodeUnknownEffect(schema)(fieldsOf(form))),
-    Effect.mapError((): AdminProblem => 'invalid'),
-  );
-
-const run = (
-  call: () => PromiseLike<{ readonly data?: unknown; readonly error: unknown }>,
-): Effect.Effect<void, AdminProblem> =>
-  callSupabase(call).pipe(Effect.mapError(problemOf), Effect.asVoid);
-
-export const createRole = (supabase: Supabase, request: Request) =>
-  readForm(RoleForm, request).pipe(
-    Effect.flatMap(({ name, permissions: perms }) =>
-      run(() => supabase.rpc('admin_create_role', { role_name: name, perms: [...perms] })),
-    ),
-  );
-
-export const updateRole = (supabase: Supabase, request: Request) =>
-  readForm(RoleEditForm, request).pipe(
-    Effect.flatMap(({ name, permissions: perms, role }) =>
-      run(() =>
-        supabase.rpc('admin_update_role', { target: role, role_name: name, perms: [...perms] }),
-      ),
-    ),
-  );
-
-export const deleteRole = (supabase: Supabase, request: Request) =>
-  readForm(RoleIdForm, request).pipe(
-    Effect.flatMap(({ role }) => run(() => supabase.rpc('admin_delete_role', { target: role }))),
-  );
-
-/** Approving a Pending Singer, or editing Roles: makes the ticked Roles the Singer's Roles. */
-export const setSingerRoles = (supabase: Supabase, request: Request) =>
-  readForm(SingerRolesForm, request).pipe(
-    Effect.flatMap(({ singer, roles }) =>
-      run(() => supabase.rpc('admin_set_singer_roles', { target: singer, role_ids: [...roles] })),
-    ),
-  );
-
-/** Removing a Singer, or declining a Pending one. */
-export const removeSinger = (supabase: Supabase, request: Request) =>
-  readForm(SingerIdForm, request).pipe(
-    Effect.flatMap(({ singer }) =>
-      run(() => supabase.rpc('admin_remove_singer', { target: singer })),
-    ),
-  );

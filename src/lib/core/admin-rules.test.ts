@@ -4,6 +4,8 @@ import {
   canGrantRole,
   canOfferPermission,
   isPendingSinger,
+  permissionBlockedReason,
+  roleBlockedReason,
   canChangeSinger,
   hasNoRead,
   mayOpenAdmin,
@@ -109,5 +111,15 @@ describe('isPendingSinger', () => {
   it('is a Singer without read', () => {
     expect(isPendingSinger([])).toBe(true);
     expect(isPendingSinger(['read'])).toBe(false);
+  });
+});
+
+describe('blocked reasons', () => {
+  it('explain why only an Owner may touch manage-users, and say nothing when allowed', () => {
+    const admin = role({ permissions: ['read', 'manage-users'] });
+    expect(roleBlockedReason(['manage-users'], admin)).toMatch(/Owner/);
+    expect(roleBlockedReason(['manage-users', 'manage-admins'], admin)).toBeNull();
+    expect(permissionBlockedReason(['manage-users'], 'manage-users')).toMatch(/Owner/);
+    expect(permissionBlockedReason(['manage-users'], 'read')).toBeNull();
   });
 });

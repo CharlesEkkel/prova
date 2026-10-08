@@ -1,12 +1,12 @@
-import { error, fail } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
+import { loadRoles } from '../../../lib/shell/admin';
 import {
-  adminProblemMessages,
   createRole,
   deleteRole,
-  loadRoles,
+  runAdminAction,
   updateRole,
-} from '../../../lib/shell/admin';
-import { failureOrNull, valueOrNull } from '../../../lib/shell/run';
+} from '../../../lib/shell/admin-commands';
+import { valueOrNull } from '../../../lib/shell/run';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -16,16 +16,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-  create: async ({ locals, request }) => {
-    const problem = await failureOrNull(createRole(locals.supabase, request));
-    return problem === null ? { ok: true } : fail(400, { problem: adminProblemMessages[problem] });
-  },
-  update: async ({ locals, request }) => {
-    const problem = await failureOrNull(updateRole(locals.supabase, request));
-    return problem === null ? { ok: true } : fail(400, { problem: adminProblemMessages[problem] });
-  },
-  delete: async ({ locals, request }) => {
-    const problem = await failureOrNull(deleteRole(locals.supabase, request));
-    return problem === null ? { ok: true } : fail(400, { problem: adminProblemMessages[problem] });
-  },
+  create: ({ locals, request }) => runAdminAction(createRole, locals.supabase, request),
+  update: ({ locals, request }) => runAdminAction(updateRole, locals.supabase, request),
+  delete: ({ locals, request }) => runAdminAction(deleteRole, locals.supabase, request),
 };

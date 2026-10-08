@@ -1,12 +1,7 @@
-import { error, fail } from '@sveltejs/kit';
-import {
-  adminProblemMessages,
-  loadRoles,
-  loadSingers,
-  removeSinger,
-  setSingerRoles,
-} from '../../lib/shell/admin';
-import { failureOrNull, valueOrNull } from '../../lib/shell/run';
+import { error } from '@sveltejs/kit';
+import { loadRoles, loadSingers } from '../../lib/shell/admin';
+import { removeSinger, runAdminAction, setSingerRoles } from '../../lib/shell/admin-commands';
+import { valueOrNull } from '../../lib/shell/run';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -22,13 +17,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 export const actions: Actions = {
   // Approving a Pending Singer and editing a Singer's Roles are the same change.
-  setRoles: async ({ locals, request }) => {
-    const problem = await failureOrNull(setSingerRoles(locals.supabase, request));
-    return problem === null ? { ok: true } : fail(400, { problem: adminProblemMessages[problem] });
-  },
+  setRoles: ({ locals, request }) => runAdminAction(setSingerRoles, locals.supabase, request),
   // Declining a Pending Singer and removing a Singer are the same change; only the wording differs.
-  remove: async ({ locals, request }) => {
-    const problem = await failureOrNull(removeSinger(locals.supabase, request));
-    return problem === null ? { ok: true } : fail(400, { problem: adminProblemMessages[problem] });
-  },
+  remove: ({ locals, request }) => runAdminAction(removeSinger, locals.supabase, request),
 };
