@@ -23,6 +23,15 @@ Prova is written in a functional style, in strict TypeScript. The lint config en
 - **Shell:** the only code that touches the outside world, such as the storage module, Supabase calls and audio playback. Shell code is written with Effect, so effects and errors are explicit in the types and services can be swapped in tests.
 - **Core logic stays plain.** Do not wrap pure functions in Effect.
 
+## Paths and links
+
+- **A page address is written once, in `src/lib/core/paths.ts`.** Routes, components, the gate and the sign-in shell take paths from there and never write one out. Renaming or moving a page is then one edit, and nothing is left pointing at the old address.
+- **`paths.ts` also builds links.** It holds the public prefixes, the query parameters (`next`, `error`, `overview`), the form action names and the builders on top of them (`pathWithNext`, `signInErrorPath`, `overviewLink`, `actionPath`). A form's `action=` and the key it is registered under in `+page.server.ts` come from the same constant. Add a page, a parameter or a builder there before using it.
+- **`src/lib/core/navigation.ts` holds the navigation.** The sidebar's links and the admin tabs, with their labels, paths and the rule for when each is the current one, live there as data. Components loop over it and add only the icon.
+- **Match the current page with `isCurrentPage` and `isInSection`**, not by comparing or prefixing strings in a component. `isInSection` does not treat `/administrator` as inside `/admin`.
+- **A test enforces it.** `paths.test.ts` fails if any other source file writes one of those paths. Browser tests are the exception: they keep literal URLs on purpose, so they check the real addresses instead of reusing the constants.
+- **Cookie paths are not page paths.** `path: '/'` on a cookie says where the cookie applies and stays where it is set.
+
 ## Validation
 
 - Use Effect Schema at every boundary, with branded and refined types (for example `PieceId` or a size-limited upload). Do not add a second validation library.
