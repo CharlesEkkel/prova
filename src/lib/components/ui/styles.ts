@@ -4,3 +4,11 @@ export const input =
 export const fieldLabel = 'mb-1.5 block text-sm font-medium';
 export const hint = 'mt-1 text-xs text-zinc-500';
 export const errorText = 'mt-1.5 text-sm text-red-600 dark:text-red-400';
+
+/** A raised surface: a list item, a panel. */
+export const card = 'rounded-2xl border bg-white dark:bg-zinc-900';
+/** The floating panel of a menu. */
+export const menuPanel = 'rounded-xl border bg-white p-1 shadow-xl dark:bg-zinc-900';
+/** One entry of a menu. */
+export const menuEntry =
+  'flex min-h-11 items-center gap-2.5 rounded-lg px-3 text-sm outline-none data-disabled:opacity-40 data-highlighted:bg-zinc-100 dark:data-highlighted:bg-zinc-800';

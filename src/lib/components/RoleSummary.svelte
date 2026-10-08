@@ -2,14 +2,13 @@
   // One Role as the Roles tab lists it: name, how many Singers hold it, and its Permissions.
   import { Lock } from '@lucide/svelte';
   import { canChangeRole, hasNoRead } from '../core/admin-rules';
+  import { singerCountLabel } from '../core/admin-dialogs';
   import { permissionLabels, type Permission } from '../core/permissions';
   import type { RoleRow } from '../shell/admin';
 
   const { role, held }: { readonly role: RoleRow; readonly held: readonly Permission[] } = $props();
 
-  const singers = $derived(
-    role.singerCount === 1 ? '1 Singer' : `${role.singerCount.toString()} Singers`,
-  );
+  const singers = $derived(singerCountLabel(role.singerCount));
 </script>
 
 <div class="flex flex-wrap items-center gap-x-4 gap-y-2 p-4">

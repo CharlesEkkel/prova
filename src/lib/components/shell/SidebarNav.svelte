@@ -2,6 +2,7 @@
   import { page } from '$app/state';
   import { Collapsible } from 'bits-ui';
   import { Calendar, ChevronDown, House, ShieldCheck, Star } from '@lucide/svelte';
+  import { overviewLink } from '../../core/performances';
   import type { ShellData } from '../../core/shell';
   import Logo from '../ui/Logo.svelte';
   import DisplayModeToggle from './DisplayModeToggle.svelte';
@@ -58,7 +59,7 @@
           {#each shell.performances as performance (performance.id)}
             <li class={performance.archived ? 'opacity-60' : ''}>
               <!-- Opens the Performance Overview (#29), which reads this query parameter. -->
-              <a href="?overview={performance.id}" class={link(false)}>
+              <a href={overviewLink(performance.id)} class={link(false)}>
                 {#if performance.isMajor}
                   <Star
                     size={16}

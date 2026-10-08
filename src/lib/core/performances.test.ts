@@ -1,17 +1,36 @@
 import { describe, expect, it } from 'vitest';
-import { sidebarPerformances, type SidebarPerformance } from './performances';
+import {
+  overviewLink,
+  performanceIdOf,
+  sidebarPerformances,
+  type PerformanceId,
+  type SidebarPerformance,
+} from './performances';
 
 const at = (iso: string) => new Date(iso);
 const now = at('2026-10-10T12:00:00Z');
 
+// A valid id for a Performance, made from its position in the tests.
+const idFor = (name: string): PerformanceId => {
+  const hex = Array.from(name, (letter) => letter.charCodeAt(0).toString(16).padStart(2, '0'))
+    .join('')
+    .padEnd(32, '0')
+    .slice(0, 32);
+  const id = performanceIdOf(
+    `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`,
+  );
+  if (id === null) throw new Error(`no id for ${name}`);
+  return id;
+};
+
 const performance = (
-  id: string,
+  name: string,
   startsAt: string,
   endsAt: string,
   isMajor = false,
 ): SidebarPerformance => ({
-  id,
-  title: id,
+  id: idFor(name),
+  title: name,
   startsAt: at(startsAt),
   endsAt: at(endsAt),
   isMajor,
@@ -29,7 +48,7 @@ describe('sidebarPerformances', () => {
       now,
     );
 
-    expect(list.map(({ id }) => id)).toEqual(['soon', 'later', 'old', 'older']);
+    expect(list.map(({ title }) => title)).toEqual(['soon', 'later', 'old', 'older']);
   });
 
   it('marks only Performances that have ended as archived', () => {
@@ -41,7 +60,7 @@ describe('sidebarPerformances', () => {
       now,
     );
 
-    expect(list.map(({ id, archived }) => [id, archived])).toEqual([
+    expect(list.map(({ title, archived }) => [title, archived])).toEqual([
       ['under way', false],
       ['over', true],
     ]);
@@ -55,10 +74,25 @@ describe('sidebarPerformances', () => {
 
     const list = sidebarPerformances(input, now);
 
-    expect(list.map(({ id, isMajor }) => [id, isMajor])).toEqual([
+    expect(list.map(({ title, isMajor }) => [title, isMajor])).toEqual([
       ['a', false],
       ['b', true],
     ]);
-    expect(input.map(({ id }) => id)).toEqual(['b', 'a']);
+    expect(input.map(({ title }) => title)).toEqual(['b', 'a']);
+  });
+});
+
+describe('performance ids and the Overview link', () => {
+  it('accepts a UUID and nothing else', () => {
+    expect(performanceIdOf('5d34142f-5d7d-4ea8-9e80-2d9b7a5e4c11')).not.toBeNull();
+    expect(performanceIdOf('w1')).toBeNull();
+    expect(performanceIdOf('')).toBeNull();
+    expect(performanceIdOf('5d34142f-5d7d-4ea8-9e80-2d9b7a5e4c11&x=1')).toBeNull();
+  });
+
+  it('opens the Overview with a query parameter on the current page', () => {
+    const id = performanceIdOf('5d34142f-5d7d-4ea8-9e80-2d9b7a5e4c11');
+    if (id === null) throw new Error('the id is valid');
+    expect(overviewLink(id)).toBe('?overview=5d34142f-5d7d-4ea8-9e80-2d9b7a5e4c11');
   });
 });

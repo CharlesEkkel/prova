@@ -13,11 +13,21 @@
   const { data, children }: { readonly data: LayoutData; readonly children: Snippet } = $props();
 
   let drawerOpen = $state(false);
-  let width = $state(0);
+  let sidebar = $state<HTMLElement | null>(null);
 
-  // The drawer only exists below `lg`; growing past it must not leave a hidden overlay behind.
+  // The drawer only exists while the desktop sidebar is hidden. When the sidebar appears (the window
+  // grew past the `lg` breakpoint) the drawer must not linger behind it.
   $effect(() => {
-    if (width >= 1024) drawerOpen = false;
+    const watched = sidebar;
+    if (watched === null) return;
+    const watching = new ResizeObserver(() => {
+      // A hidden element has no offset parent.
+      if (watched.offsetParent !== null) drawerOpen = false;
+    });
+    watching.observe(watched);
+    return () => {
+      watching.disconnect();
+    };
   });
 
   // A followed link closes the drawer.
@@ -35,10 +45,11 @@
   });
 </script>
 
-<svelte:window bind:innerWidth={width} />
-
 <div class="flex h-dvh">
-  <aside class="hidden w-64 shrink-0 border-r bg-zinc-100/60 lg:block dark:bg-zinc-900/40">
+  <aside
+    bind:this={sidebar}
+    class="hidden w-64 shrink-0 border-r bg-zinc-100/60 lg:block dark:bg-zinc-900/40"
+  >
     <SidebarNav shell={data} />
   </aside>
 

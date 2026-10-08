@@ -1,7 +1,28 @@
 // How Performances are listed in the sidebar. See Performance in CONTEXT.md.
 
+declare const performanceIdBrand: unique symbol;
+
+/** The id of a Performance, from `performanceIdOf`. */
+export type PerformanceId = string & { readonly [performanceIdBrand]: true };
+
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** `raw` as a Performance id if it is a UUID, otherwise null. */
+export const performanceIdOf = (raw: string): PerformanceId | null =>
+  uuidPattern.test(raw) ? brand(raw) : null;
+
+// eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- validation boundary: only called on text performanceIdOf has checked
+const brand = (id: string): PerformanceId => id as PerformanceId;
+
+/** The query parameter that opens a Performance's Overview on whatever page it is added to. */
+export const overviewParam = 'overview';
+
+/** A link that opens this Performance's Overview on the current page. */
+export const overviewLink = (id: PerformanceId): string =>
+  `?${new URLSearchParams({ [overviewParam]: id }).toString()}`;
+
 export type SidebarPerformance = {
-  readonly id: string;
+  readonly id: PerformanceId;
   readonly title: string;
   readonly startsAt: Date;
   readonly endsAt: Date;

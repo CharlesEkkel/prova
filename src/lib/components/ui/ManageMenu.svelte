@@ -6,6 +6,7 @@
   import { Ellipsis } from '@lucide/svelte';
   import type { Snippet } from 'svelte';
   import ManageItems from './ManageItems.svelte';
+  import { menuPanel } from './styles';
   import type { ManageAction } from './manage-action';
 
   const {
@@ -17,15 +18,13 @@
     readonly label: string;
     readonly children: Snippet;
   } = $props();
-
-  const content = 'z-[70] min-w-52 rounded-xl border bg-white p-1 shadow-xl dark:bg-zinc-900';
 </script>
 
 <div class="flex items-center gap-1">
   <ContextMenu.Root>
     <ContextMenu.Trigger class="block min-w-0 flex-1">{@render children()}</ContextMenu.Trigger>
     <ContextMenu.Portal>
-      <ContextMenu.Content class={content}
+      <ContextMenu.Content class="z-[70] min-w-52 {menuPanel}"
         ><ManageItems {actions} kind="context" /></ContextMenu.Content
       >
     </ContextMenu.Portal>
@@ -38,7 +37,7 @@
       <Ellipsis class="size-5" />
     </DropdownMenu.Trigger>
     <DropdownMenu.Portal>
-      <DropdownMenu.Content align="end" sideOffset={4} class={content}>
+      <DropdownMenu.Content align="end" sideOffset={4} class="z-[70] min-w-52 {menuPanel}">
         <ManageItems {actions} kind="dropdown" />
       </DropdownMenu.Content>
     </DropdownMenu.Portal>

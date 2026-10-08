@@ -4,12 +4,13 @@
   import { Pencil, Plus, Trash } from '@lucide/svelte';
   import AlertMessage from '../../../../lib/components/AlertMessage.svelte';
   import RoleSummary from '../../../../lib/components/RoleSummary.svelte';
+  import { roleDialogCopy } from '../../../../lib/core/admin-dialogs';
   import { createDialogState } from '../../../../lib/components/dialog-state.svelte';
   import Btn from '../../../../lib/components/ui/Btn.svelte';
   import CheckRow from '../../../../lib/components/ui/CheckRow.svelte';
   import ManageMenu from '../../../../lib/components/ui/ManageMenu.svelte';
   import Modal from '../../../../lib/components/ui/Modal.svelte';
-  import { input, fieldLabel, hint } from '../../../../lib/components/ui/styles';
+  import { card, input, fieldLabel, hint } from '../../../../lib/components/ui/styles';
   import {
     canChangeRole,
     hasNoRead,
@@ -33,6 +34,15 @@
     { readonly kind: 'new' } | { readonly kind: 'edit' | 'delete'; readonly role: RoleRow };
   const dialog = createDialogState<Dialog>();
   const current = $derived(dialog.current);
+  const copy = $derived(
+    current === null
+      ? null
+      : roleDialogCopy(
+          current.kind,
+          current.kind === 'new' ? '' : current.role.name,
+          current.kind === 'new' ? 0 : current.role.singerCount,
+        ),
+  );
   const closeIfDone = closeOnSuccess(dialog.close);
 
   let selected = $state<readonly Permission[]>([]);
@@ -45,8 +55,6 @@
   const toggle = (permission: Permission, on: boolean) => {
     selected = on ? [...selected, permission] : selected.filter((p) => p !== permission);
   };
-
-  const singers = (count: number) => (count === 1 ? '1 Singer' : `${count.toString()} Singers`);
 
   const actionsOf = (role: RoleRow) => [
     {
@@ -69,8 +77,6 @@
       },
     },
   ];
-
-  const card = 'rounded-2xl border bg-white dark:bg-zinc-900';
 </script>
 
 {#if form?.problem !== undefined}
@@ -112,8 +118,8 @@
 <Modal
   open={current?.kind === 'new' || current?.kind === 'edit'}
   onClose={dialog.close}
-  title={current?.kind === 'edit' ? `Edit ${current.role.name}` : 'New Role'}
-  description="Pick the Permissions this Role grants."
+  title={copy?.title ?? ''}
+  description={copy?.description ?? ''}
 >
   {#if current?.kind === 'new' || current?.kind === 'edit'}
     <form
@@ -163,9 +169,7 @@
   {/if}
   {#snippet footer()}
     <Btn variant="ghost" onclick={dialog.close}>Cancel</Btn>
-    <Btn type="submit" form="role-form" disabled={selected.length === 0}>
-      {current?.kind === 'edit' ? 'Save Role' : 'Create Role'}
-    </Btn>
+    <Btn type="submit" form="role-form" disabled={selected.length === 0}>{copy?.submit ?? ''}</Btn>
   {/snippet}
 </Modal>
 
@@ -173,10 +177,8 @@
   alert
   open={current?.kind === 'delete'}
   onClose={dialog.close}
-  title={current?.kind === 'delete' ? `Delete the ${current.role.name} Role?` : ''}
-  description={current?.kind === 'delete'
-    ? `${singers(current.role.singerCount)} will lose this Role. Permissions from their other Roles are kept. This cannot be undone.`
-    : ''}
+  title={copy?.title ?? ''}
+  description={copy?.description ?? ''}
 >
   {#if current?.kind === 'delete'}
     <form id="delete-form" method="POST" action="?/delete" use:enhance={closeIfDone}>
@@ -189,6 +191,6 @@
         <Btn variant="ghost" {...props}>Cancel</Btn>
       {/snippet}
     </AlertDialog.Cancel>
-    <Btn variant="danger" type="submit" form="delete-form">Delete Role</Btn>
+    <Btn variant="danger" type="submit" form="delete-form">{copy?.submit ?? ''}</Btn>
   {/snippet}
 </Modal>

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
-  import { AlertDialog, Avatar } from 'bits-ui';
+  import { AlertDialog } from 'bits-ui';
   import { UserX, Users } from '@lucide/svelte';
   import AlertMessage from '../../../lib/components/AlertMessage.svelte';
   import { createDialogState } from '../../../lib/components/dialog-state.svelte';
@@ -9,7 +9,11 @@
   import Btn from '../../../lib/components/ui/Btn.svelte';
   import ManageMenu from '../../../lib/components/ui/ManageMenu.svelte';
   import Modal from '../../../lib/components/ui/Modal.svelte';
+  import PersonAvatar from '../../../lib/components/ui/PersonAvatar.svelte';
+  import { card } from '../../../lib/components/ui/styles';
+  import { singerDialogCopy } from '../../../lib/core/admin-dialogs';
   import { canChangeSinger, isPendingSinger } from '../../../lib/core/admin-rules';
+  import type { SingerDialogKind } from '../../../lib/core/admin-dialogs';
   import type { SingerRow } from '../../../lib/shell/admin';
   import { closeOnSuccess } from '../../../lib/shell/enhance';
   import type { ActionData, PageData } from './$types';
@@ -22,24 +26,20 @@
   const approved = $derived(data.singers.filter((singer) => !isPending(singer)));
 
   type Dialog = {
-    readonly kind: 'approve' | 'edit-roles' | 'remove' | 'decline';
+    readonly kind: SingerDialogKind;
     readonly singer: SingerRow;
   };
   const dialog = createDialogState<Dialog>();
   const current = $derived(dialog.current);
+  const copy = $derived(
+    current === null ? null : singerDialogCopy(current.kind, current.singer.displayName),
+  );
   const closeIfDone = closeOnSuccess(dialog.close);
 
   const builtinIds = $derived(new Set(data.roles.filter((r) => r.isBuiltin).map((r) => r.id)));
   const rolesOf = (singer: SingerRow) => singer.roles.map((role) => role.id);
   const badgesOf = (singer: SingerRow) =>
     singer.roles.map((role) => ({ name: role.name, builtin: builtinIds.has(role.id) }));
-  const initials = (name: string) =>
-    name
-      .split(' ')
-      .map((word) => word.slice(0, 1))
-      .join('')
-      .slice(0, 2)
-      .toUpperCase();
 
   const actionsOf = (singer: SingerRow) => [
     {
@@ -62,9 +62,6 @@
       },
     },
   ];
-
-  const avatar = 'size-10 shrink-0 overflow-hidden rounded-full bg-primary-200 text-primary-800';
-  const card = 'rounded-2xl border bg-white dark:bg-zinc-900';
 </script>
 
 {#if form?.problem !== undefined}
@@ -89,11 +86,7 @@
       {#each pending as singer (singer.id)}
         <li class="{card} flex flex-col gap-3 p-3" data-testid="pending-singer">
           <div class="flex items-center gap-3">
-            <Avatar.Root class={avatar}>
-              <Avatar.Fallback class="grid size-full place-items-center text-sm font-semibold">
-                {initials(singer.displayName)}
-              </Avatar.Fallback>
-            </Avatar.Root>
+            <PersonAvatar name={singer.displayName} />
             <div class="min-w-0 flex-1">
               <p class="truncate font-medium">{singer.displayName}</p>
               <p class="truncate text-sm text-zinc-500">
@@ -137,11 +130,7 @@
         <li class="pr-1" data-testid="singer">
           <ManageMenu actions={actionsOf(singer)} label="Actions for {singer.displayName}">
             <div class="flex min-h-16 items-center gap-3 py-2 pl-3">
-              <Avatar.Root class={avatar}>
-                <Avatar.Fallback class="grid size-full place-items-center text-sm font-semibold">
-                  {initials(singer.displayName)}
-                </Avatar.Fallback>
-              </Avatar.Root>
+              <PersonAvatar name={singer.displayName} />
               <div class="min-w-0 flex-1">
                 <p class="truncate font-medium">{singer.displayName}</p>
                 <p class="truncate text-sm text-zinc-500">
@@ -169,14 +158,8 @@
 <Modal
   open={current?.kind === 'edit-roles' || current?.kind === 'approve'}
   onClose={dialog.close}
-  title={current?.kind === 'approve'
-    ? `Approve ${current.singer.displayName}`
-    : current?.kind === 'edit-roles'
-      ? `Roles for ${current.singer.displayName}`
-      : ''}
-  description={current?.kind === 'approve'
-    ? 'Pick their Roles to let them in. A Singer holds every Permission from every Role they have.'
-    : 'A Singer holds every Permission from every Role they have.'}
+  title={copy?.title ?? ''}
+  description={copy?.description ?? ''}
 >
   {#if current?.kind === 'edit-roles' || current?.kind === 'approve'}
     <form
@@ -197,9 +180,7 @@
   {/if}
   {#snippet footer()}
     <Btn variant="ghost" onclick={dialog.close}>Cancel</Btn>
-    <Btn type="submit" form="edit-roles-form"
-      >{current?.kind === 'approve' ? 'Approve' : 'Save Roles'}</Btn
-    >
+    <Btn type="submit" form="edit-roles-form">{copy?.submit ?? ''}</Btn>
   {/snippet}
 </Modal>
 
@@ -207,16 +188,8 @@
   alert
   open={current?.kind === 'remove' || current?.kind === 'decline'}
   onClose={dialog.close}
-  title={current?.kind === 'decline'
-    ? 'Decline this sign-up?'
-    : current === null
-      ? ''
-      : `Remove ${current.singer.displayName}?`}
-  description={current?.kind === 'decline'
-    ? `${current.singer.displayName} loses their sign-in. If they sign in again they will be waiting for approval afresh.`
-    : current === null
-      ? ''
-      : 'They lose access straight away and their sign-in is deleted. If they sign in again they start as a Pending Singer.'}
+  title={copy?.title ?? ''}
+  description={copy?.description ?? ''}
 >
   {#if current?.kind === 'remove' || current?.kind === 'decline'}
     <form id="remove-form" method="POST" action="?/remove" use:enhance={closeIfDone}>
@@ -229,8 +202,6 @@
         <Btn variant="ghost" {...props}>Cancel</Btn>
       {/snippet}
     </AlertDialog.Cancel>
-    <Btn variant="danger" type="submit" form="remove-form">
-      {current?.kind === 'decline' ? 'Decline' : 'Remove'}
-    </Btn>
+    <Btn variant="danger" type="submit" form="remove-form">{copy?.submit ?? ''}</Btn>
   {/snippet}
 </Modal>
