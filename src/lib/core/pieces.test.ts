@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   composerMaxLength,
   notesMaxLength,
+  mayAddPiece,
   pieceActionsFor,
   pieceIdOf,
   pieceProblemOf,
@@ -84,6 +85,13 @@ describe('pieceActionsFor', () => {
     expect(pieceActionsFor(['read', 'update', 'delete'])).toEqual(['edit', 'delete']);
     expect(pieceActionsFor(['read', 'append'])).toEqual([]);
     expect(pieceActionsFor(['read', 'delete'])).toEqual(['delete']);
+  });
+});
+
+describe('mayAddPiece', () => {
+  it('needs append', () => {
+    expect(mayAddPiece(['read', 'append'])).toBe(true);
+    expect(mayAddPiece(['read', 'update', 'delete'])).toBe(false);
   });
 });
 

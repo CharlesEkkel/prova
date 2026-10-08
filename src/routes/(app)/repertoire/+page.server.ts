@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { formActions } from '../../../lib/core/paths';
-import { pieceActionsFor } from '../../../lib/core/pieces';
+import { mayAddPiece, pieceActionsFor } from '../../../lib/core/pieces';
 import { loadRepertoire } from '../../../lib/shell/pieces';
 import {
   runAddPiece,
@@ -17,7 +17,7 @@ export const load: PageServerLoad = async ({ locals }) => {
   const { visitor } = locals;
   const held = visitor.stage === 'ready' ? visitor.permissions : [];
   // The database enforces these; they only decide what to show.
-  return { pieces, mayAdd: held.includes('append'), rowActions: pieceActionsFor(held) };
+  return { pieces, mayAdd: mayAddPiece(held), rowActions: pieceActionsFor(held) };
 };
 
 export const actions: Actions = {

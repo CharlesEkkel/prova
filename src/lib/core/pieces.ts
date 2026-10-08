@@ -49,6 +49,9 @@ export const repertoireOrder = (entries: readonly RepertoireEntry[]): readonly R
 export const hasNoPracticeTrack = ({ practiceTracks }: RepertoireEntry): boolean =>
   practiceTracks === 0;
 
+/** Whether New Piece is shown: adding a Piece needs `append`. */
+export const mayAddPiece = (held: readonly Permission[]): boolean => held.includes('append');
+
 export type PieceAction = 'edit' | 'delete';
 
 /** The row actions a Singer holding these Permissions is shown: Edit needs `update`, Delete `delete`. */

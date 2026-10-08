@@ -27,8 +27,8 @@
     | { readonly kind: 'edit' | 'delete'; readonly piece: RepertoireEntry };
   const dialog = createDialogState<Dialog>();
   const current = $derived(dialog.current);
-  const subjectOf = (dialogue: Dialog): RepertoireEntry | null =>
-    dialogue.kind === 'new' ? null : dialogue.piece;
+  const subjectOf = (shown: Dialog): RepertoireEntry | null =>
+    shown.kind === 'new' ? null : shown.piece;
   const copy = $derived(
     current === null ? null : pieceDialogCopy(current.kind, subjectOf(current)),
   );
