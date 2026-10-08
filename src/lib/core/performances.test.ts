@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  overviewLink,
   performanceIdOf,
   sidebarPerformances,
   type PerformanceId,
@@ -82,17 +81,11 @@ describe('sidebarPerformances', () => {
   });
 });
 
-describe('performance ids and the Overview link', () => {
+describe('performance ids', () => {
   it('accepts a UUID and nothing else', () => {
     expect(performanceIdOf('5d34142f-5d7d-4ea8-9e80-2d9b7a5e4c11')).not.toBeNull();
     expect(performanceIdOf('w1')).toBeNull();
     expect(performanceIdOf('')).toBeNull();
     expect(performanceIdOf('5d34142f-5d7d-4ea8-9e80-2d9b7a5e4c11&x=1')).toBeNull();
-  });
-
-  it('opens the Overview with a query parameter on the current page', () => {
-    const id = performanceIdOf('5d34142f-5d7d-4ea8-9e80-2d9b7a5e4c11');
-    if (id === null) throw new Error('the id is valid');
-    expect(overviewLink(id)).toBe('?overview=5d34142f-5d7d-4ea8-9e80-2d9b7a5e4c11');
   });
 });

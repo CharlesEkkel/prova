@@ -1,7 +1,6 @@
 // Shell: signing in with Google and out again, through Supabase Auth.
 import { Effect, Schema } from 'effect';
-import { callbackPath, pathWithNext, signInPath } from '../core/gate';
-import type { SafePath } from '../core/safe-path';
+import { paths, signInErrorParam } from '../core/paths';
 import { callSupabase, callSupabaseAs, type Supabase, type SupabaseCallFailed } from './supabase';
 
 /** Why sign-in did not finish, as carried back to the sign-in screen in `?error=`. */
@@ -10,15 +9,9 @@ export type SignInProblem = typeof SignInProblem.Type;
 
 const isSignInProblem = Schema.is(SignInProblem);
 
-const problemParam = 'error';
-
-/** The sign-in screen showing this problem, still carrying where the person was headed. */
-export const signInProblemPath = (problem: SignInProblem, headedFor: SafePath): string =>
-  pathWithNext(`${signInPath}?${problemParam}=${problem}`, headedFor);
-
 /** Reads the sign-in screen's problem: none, a known one, or anything else counted as `failed`. */
 export const signInProblemFrom = (query: URLSearchParams): SignInProblem | null => {
-  const raw = query.get(problemParam);
+  const raw = query.get(signInErrorParam);
   if (raw === null) return null;
   return isSignInProblem(raw) ? raw : 'failed';
 };
@@ -33,7 +26,7 @@ export const startGoogleSignIn = (
   callSupabaseAs(OAuthStart, () =>
     supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${origin}${callbackPath}`, skipBrowserRedirect: true },
+      options: { redirectTo: `${origin}${paths.authCallback}`, skipBrowserRedirect: true },
     }),
   ).pipe(Effect.map(({ url }) => url));
 

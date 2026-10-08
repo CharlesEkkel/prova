@@ -1,7 +1,7 @@
 <script lang="ts">
   import { DropdownMenu } from 'bits-ui';
   import { ChevronDown } from '@lucide/svelte';
-  import { signOutPath } from '../../core/gate';
+  import { paths } from '../../core/paths';
   import PersonAvatar from '../ui/PersonAvatar.svelte';
   import { menuEntry, menuPanel } from '../ui/styles';
 
@@ -10,7 +10,7 @@
   let signOutForm = $state<HTMLFormElement | null>(null);
 </script>
 
-<form method="POST" action={signOutPath} bind:this={signOutForm} class="hidden"></form>
+<form method="POST" action={paths.signOut} bind:this={signOutForm} class="hidden"></form>
 
 <DropdownMenu.Root>
   <DropdownMenu.Trigger

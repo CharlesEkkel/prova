@@ -4,6 +4,7 @@
   import { Pencil, Plus, Trash } from '@lucide/svelte';
   import AlertMessage from '../../../../lib/components/AlertMessage.svelte';
   import RoleSummary from '../../../../lib/components/RoleSummary.svelte';
+  import { actionPath, formActions } from '../../../../lib/core/paths';
   import { roleDialogCopy } from '../../../../lib/core/admin-dialogs';
   import { createDialogState } from '../../../../lib/components/dialog-state.svelte';
   import Btn from '../../../../lib/components/ui/Btn.svelte';
@@ -125,7 +126,9 @@
     <form
       id="role-form"
       method="POST"
-      action={current.kind === 'new' ? '?/create' : '?/update'}
+      action={actionPath(
+        current.kind === 'new' ? formActions.roles.create : formActions.roles.update,
+      )}
       use:enhance={closeIfDone}
       class="flex flex-col gap-5"
     >
@@ -181,7 +184,12 @@
   description={copy?.description ?? ''}
 >
   {#if current?.kind === 'delete'}
-    <form id="delete-form" method="POST" action="?/delete" use:enhance={closeIfDone}>
+    <form
+      id="delete-form"
+      method="POST"
+      action={actionPath(formActions.roles.delete)}
+      use:enhance={closeIfDone}
+    >
       <input type="hidden" name="role" value={current.role.id} />
     </form>
   {/if}

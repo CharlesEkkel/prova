@@ -1,5 +1,7 @@
 // Same-site paths: where a `next` link or cookie may send a person on to, never another site.
 
+import { paths } from './paths';
+
 declare const safePathBrand: unique symbol;
 
 /** A path, query and hash on this site, from `sameSitePath`. */
@@ -8,7 +10,7 @@ export type SafePath = string & { readonly [safePathBrand]: true };
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- validation boundary: only called on '/' and on paths sameSitePath has checked
 const brand = (path: string): SafePath => path as SafePath;
 
-export const homePath: SafePath = brand('/');
+export const homePath: SafePath = brand(paths.home);
 
 const dummyOrigin = 'http://prova.invalid';
 

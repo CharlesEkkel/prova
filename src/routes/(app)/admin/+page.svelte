@@ -11,6 +11,7 @@
   import Modal from '../../../lib/components/ui/Modal.svelte';
   import PersonAvatar from '../../../lib/components/ui/PersonAvatar.svelte';
   import { card } from '../../../lib/components/ui/styles';
+  import { actionPath, formActions } from '../../../lib/core/paths';
   import { singerDialogCopy } from '../../../lib/core/admin-dialogs';
   import { canChangeSinger, isPendingSinger } from '../../../lib/core/admin-rules';
   import type { SingerDialogKind } from '../../../lib/core/admin-dialogs';
@@ -165,7 +166,7 @@
     <form
       id="edit-roles-form"
       method="POST"
-      action="?/setRoles"
+      action={actionPath(formActions.singers.setRoles)}
       use:enhance={closeIfDone}
       class="flex flex-col gap-3"
     >
@@ -192,7 +193,12 @@
   description={copy?.description ?? ''}
 >
   {#if current?.kind === 'remove' || current?.kind === 'decline'}
-    <form id="remove-form" method="POST" action="?/remove" use:enhance={closeIfDone}>
+    <form
+      id="remove-form"
+      method="POST"
+      action={actionPath(formActions.singers.remove)}
+      use:enhance={closeIfDone}
+    >
       <input type="hidden" name="singer" value={current.singer.id} />
     </form>
   {/if}

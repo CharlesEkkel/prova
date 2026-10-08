@@ -1,3 +1,4 @@
+import { formActions } from '../../../../lib/core/paths';
 import {
   createRole,
   deleteRole,
@@ -7,7 +8,10 @@ import {
 import type { Actions } from './$types';
 
 export const actions: Actions = {
-  create: ({ locals, request }) => runAdminAction(createRole, locals.supabase, request),
-  update: ({ locals, request }) => runAdminAction(updateRole, locals.supabase, request),
-  delete: ({ locals, request }) => runAdminAction(deleteRole, locals.supabase, request),
+  [formActions.roles.create]: ({ locals, request }) =>
+    runAdminAction(createRole, locals.supabase, request),
+  [formActions.roles.update]: ({ locals, request }) =>
+    runAdminAction(updateRole, locals.supabase, request),
+  [formActions.roles.delete]: ({ locals, request }) =>
+    runAdminAction(deleteRole, locals.supabase, request),
 };

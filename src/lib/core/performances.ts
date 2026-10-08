@@ -14,13 +14,6 @@ export const performanceIdOf = (raw: string): PerformanceId | null =>
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- validation boundary: only called on text performanceIdOf has checked
 const brand = (id: string): PerformanceId => id as PerformanceId;
 
-/** The query parameter that opens a Performance's Overview on whatever page it is added to. */
-export const overviewParam = 'overview';
-
-/** A link that opens this Performance's Overview on the current page. */
-export const overviewLink = (id: PerformanceId): string =>
-  `?${new URLSearchParams({ [overviewParam]: id }).toString()}`;
-
 export type SidebarPerformance = {
   readonly id: PerformanceId;
   readonly title: string;

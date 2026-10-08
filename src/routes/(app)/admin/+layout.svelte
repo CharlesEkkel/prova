@@ -2,6 +2,7 @@
   import type { Snippet } from 'svelte';
   import { page } from '$app/state';
   import { isPendingSinger } from '../../../lib/core/admin-rules';
+  import { adminTabs, isActive } from '../../../lib/core/navigation';
   import type { LayoutData } from './$types';
 
   const { data, children }: { readonly data: LayoutData; readonly children: Snippet } = $props();
@@ -21,22 +22,23 @@
   <p class="text-zinc-500">Singers and Roles.</p>
 
   <nav class="mt-6 flex overflow-x-auto border-b" aria-label="Admin sections">
-    <a href="/admin" class={tab} aria-current={page.url.pathname === '/admin' ? 'page' : undefined}>
-      Singers
-      {#if pendingCount > 0}
-        <span
-          class="rounded-full bg-amber-100 px-1.5 text-xs font-semibold text-amber-800"
-          aria-label="{pendingCount.toString()} pending">{pendingCount} pending</span
-        >
-      {/if}
-    </a>
-    <a
-      href="/admin/roles"
-      class={tab}
-      aria-current={page.url.pathname === '/admin/roles' ? 'page' : undefined}
-    >
-      Roles <span class={count}>{data.roles.length}</span>
-    </a>
+    {#each adminTabs as item (item.key)}
+      <a
+        href={item.path}
+        class={tab}
+        aria-current={isActive(item, page.url.pathname) ? 'page' : undefined}
+      >
+        {item.label}
+        {#if item.key === 'admin-singers' && pendingCount > 0}
+          <span
+            class="rounded-full bg-amber-100 px-1.5 text-xs font-semibold text-amber-800"
+            aria-label="{pendingCount.toString()} pending">{pendingCount} pending</span
+          >
+        {:else if item.key === 'admin-roles'}
+          <span class={count}>{data.roles.length}</span>
+        {/if}
+      </a>
+    {/each}
   </nav>
 
   <div class="pt-6">{@render children()}</div>

@@ -3,7 +3,7 @@
   import { refreshAll } from '$app/navigation';
   import GateScreen from '../../lib/components/GateScreen.svelte';
   import PrimaryButton from '../../lib/components/PrimaryButton.svelte';
-  import { signOutPath } from '../../lib/core/gate';
+  import { paths } from '../../lib/core/paths';
   import type { PageData } from './$types';
 
   const { data }: { readonly data: PageData } = $props();
@@ -56,7 +56,7 @@
 
   <PrimaryButton disabled={checking} onclick={checkAgain}>Check again</PrimaryButton>
 
-  <form method="POST" action={signOutPath}>
+  <form method="POST" action={paths.signOut}>
     <button class="min-h-11 w-full rounded border px-4 py-2 font-medium">Sign out</button>
   </form>
 </GateScreen>

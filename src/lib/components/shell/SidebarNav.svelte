@@ -2,7 +2,8 @@
   import { page } from '$app/state';
   import { Collapsible } from 'bits-ui';
   import { Calendar, ChevronDown, House, ShieldCheck, Star } from '@lucide/svelte';
-  import { overviewLink } from '../../core/performances';
+  import { isActive, mainNavigation } from '../../core/navigation';
+  import { overviewLink } from '../../core/paths';
   import type { ShellData } from '../../core/shell';
   import Logo from '../ui/Logo.svelte';
   import DisplayModeToggle from './DisplayModeToggle.svelte';
@@ -27,18 +28,17 @@
   </div>
 
   <nav class="mt-2 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto" aria-label="Main">
-    <a href="/" class={link(path === '/')} aria-current={path === '/' ? 'page' : undefined}>
-      <House size={16} aria-hidden="true" /> Home
-    </a>
-    {#if shell.showAdminLink}
+    {#each mainNavigation(shell.showAdminLink) as item (item.key)}
+      {@const Icon = item.key === 'admin' ? ShieldCheck : House}
       <a
-        href="/admin"
-        class={link(path.startsWith('/admin'))}
-        aria-current={path.startsWith('/admin') ? 'page' : undefined}
+        href={item.path}
+        class={link(isActive(item, path))}
+        aria-current={isActive(item, path) ? 'page' : undefined}
       >
-        <ShieldCheck size={16} aria-hidden="true" /> Admin
+        <Icon size={16} aria-hidden="true" />
+        {item.label}
       </a>
-    {/if}
+    {/each}
 
     <Collapsible.Root open class="mt-3">
       <Collapsible.Trigger
