@@ -41,8 +41,12 @@ Playing a Performance's Pieces in order, from the first Piece. Two options, both
 _Avoid_: Playlist, queue, autoplay
 
 **Singer**:
-A signed-in choir member who listens to Practice Tracks and has a default Voice Part.
+A person who has signed in with Google, recorded on first sign-in. Once approved, a choir member who listens to Practice Tracks and has a default Voice Part.
 _Avoid_: Member, user
+
+**Pending Singer**:
+A Singer without the `read` Permission, who sees only the waiting-for-approval screen until an Admin approves them.
+_Avoid_: Pending user, unapproved user, guest
 
 **Part Override**:
 A Singer's saved, per-Piece choice of a different Voice Part from their default, e.g. for a divisi split or a Bass covering a Tenor line. It is made from the indicator showing which part is playing, since overriding is rare. Choosing to play the Combined Track once is not a Part Override and is not saved.

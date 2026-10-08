@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { Dialog } from 'bits-ui';
   import { Moon, Sun } from '@lucide/svelte';
+  import { signOutPath } from '../lib/core/gate';
   import { getDisplayMode, setDisplayMode } from '../lib/shell/display-mode-adapter';
   import type { DisplayMode } from '../lib/shell/display-mode';
 
@@ -57,4 +58,9 @@
       </Dialog.Content>
     </Dialog.Portal>
   </Dialog.Root>
+
+  <!-- Until the app shell (#30) puts Sign out in the user menu. -->
+  <form method="POST" action={signOutPath}>
+    <button class="w-fit rounded border px-3 py-1">Sign out</button>
+  </form>
 </main>
