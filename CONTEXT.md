@@ -36,6 +36,14 @@ _Avoid_: Featured, pinned, headline
 The view opened by tapping any Performance. It lists the Performance's Pieces, holds the Play-through options, and is the only place a Play-through is started. Tapping a Piece in it opens that Piece on its own, exactly as if opened from the repertoire.
 _Avoid_: Details page, preview
 
+**Home**:
+The first screen after signing in: a timeline of Performances showing what is coming and when, upcoming by default with past ones collapsed above a Today marker.
+_Avoid_: Dashboard, landing page
+
+**Repertoire**:
+The list of every Piece the choir has, including those in no Performance and those with no Practice Tracks yet. Has its own page.
+_Avoid_: Library, catalogue, song list
+
 **Play-through**:
 Playing a Performance's Pieces in order, from the first Piece. Two options, both off by default: skip Pieces with no usable Practice Track (otherwise it pauses at an empty Piece), and prefer Combined Tracks (off: it plays the Singer's part track and falls back to the Combined Track; on: the reverse, the Combined Track falling back to the Singer's part track). Started from the Performance Overview.
 _Avoid_: Playlist, queue, autoplay
@@ -69,6 +77,10 @@ _Avoid_: Superuser
 **Owner**:
 A Singer whose verified Google email is one of the owner emails in the deployment's configuration. Owner is not granted in the app: it follows that list live, so a Singer is an Owner exactly while their email is on it, and holds every Permission including `manage-admins`. Removing an email demotes that Owner to an Admin. An Owner cannot be removed or have their Roles changed in the app.
 _Avoid_: Admin email, superuser
+
+**Admin portal**:
+The screens a Singer with `manage-users` uses to run the choir: approving Pending Singers, Roles, Singers, Invite Links and the Colour Theme. Reached from the "Admin" item in the navigation. Not the same thing as the **Admin** Role, which is a set of Permissions.
+_Avoid_: Dashboard, back office
 
 **Invite Link**:
 A shareable link that grants a fixed set of Roles to anyone who signs up through it. Revocable, with an optional expiry and use cap, and never able to grant `delete`, `manage-users` or `manage-admins`.

@@ -7,7 +7,7 @@ import {
   serviceClient,
   signInNewSinger,
 } from '../contract/support';
-import { signInAsApprovedSinger, signInAsSingerWith } from './support';
+import { openNavigation, signInAsApprovedSinger, signInAsSingerWith } from './support';
 
 test.describe('without manage-users', () => {
   test('a Singer sees no Admin link and the admin routes refuse them', async ({
@@ -17,7 +17,9 @@ test.describe('without manage-users', () => {
     await signInAsSingerWith(context, ['append', 'update', 'delete']);
 
     await page.goto('/');
-    await expect(page.getByRole('link', { name: 'Admin' })).toHaveCount(0);
+    const nav = await openNavigation(page);
+    await expect(nav.getByRole('link', { name: 'Home' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Admin' })).toHaveCount(0);
 
     for (const path of ['/admin', '/admin/roles']) {
       const response = await page.goto(path);
@@ -31,7 +33,9 @@ test.describe('with manage-users', () => {
     await signInAsSingerWith(context, ['manage-users']);
 
     await page.goto('/');
-    await page.getByRole('link', { name: 'Admin' }).click();
+    await page.waitForLoadState('networkidle');
+    const nav = await openNavigation(page);
+    await nav.getByRole('link', { name: 'Admin' }).click();
 
     await expect(page).toHaveURL('/admin');
     // The Singers list can be long; clicking mid-hydration loses the click.

@@ -1,18 +1,22 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
-  import AlertMessage from '../../../lib/components/AlertMessage.svelte';
-  import { createDialogState } from '../../../lib/components/dialog-state.svelte';
-  import DialogActions from '../../../lib/components/DialogActions.svelte';
-  import Modal from '../../../lib/components/Modal.svelte';
-  import NoReadWarning from '../../../lib/components/NoReadWarning.svelte';
-  import { canChangeRole, hasNoRead, permissionBlockedReason } from '../../../lib/core/admin-rules';
+  import AlertMessage from '../../../../lib/components/AlertMessage.svelte';
+  import { createDialogState } from '../../../../lib/components/dialog-state.svelte';
+  import DialogActions from '../../../../lib/components/DialogActions.svelte';
+  import Modal from '../../../../lib/components/Modal.svelte';
+  import NoReadWarning from '../../../../lib/components/NoReadWarning.svelte';
+  import {
+    canChangeRole,
+    hasNoRead,
+    permissionBlockedReason,
+  } from '../../../../lib/core/admin-rules';
   import {
     permissionDescriptions,
     rolePermissions,
     type Permission,
-  } from '../../../lib/core/permissions';
-  import type { RoleRow } from '../../../lib/shell/admin';
-  import { closeOnSuccess } from '../../../lib/shell/enhance';
+  } from '../../../../lib/core/permissions';
+  import type { RoleRow } from '../../../../lib/shell/admin';
+  import { closeOnSuccess } from '../../../../lib/shell/enhance';
   import type { ActionData, PageData } from './$types';
 
   const { data, form }: { readonly data: PageData; readonly form: ActionData } = $props();
@@ -53,7 +57,7 @@
 <div class="flex items-center justify-between">
   <h2 class="text-lg font-semibold">Roles</h2>
   <button
-    class="min-h-11 rounded bg-emerald-700 px-4 font-medium text-white"
+    class="min-h-11 rounded bg-primary-600 px-4 font-medium text-white"
     onclick={() => {
       openDialog({ kind: 'new' });
     }}>New Role</button

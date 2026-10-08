@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { mayOpenAdmin } from '../../lib/core/admin-rules';
+import { mayOpenAdmin } from '../../../lib/core/admin-rules';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = ({ locals: { visitor } }) => {

@@ -1,12 +1,12 @@
 import { error } from '@sveltejs/kit';
-import { loadRoles } from '../../../lib/shell/admin';
+import { loadRoles } from '../../../../lib/shell/admin';
 import {
   createRole,
   deleteRole,
   runAdminAction,
   updateRole,
-} from '../../../lib/shell/admin-commands';
-import { valueOrNull } from '../../../lib/shell/run';
+} from '../../../../lib/shell/admin-commands';
+import { valueOrNull } from '../../../../lib/shell/run';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {

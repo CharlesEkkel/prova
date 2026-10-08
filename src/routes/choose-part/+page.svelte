@@ -16,7 +16,7 @@
       {#each data.voiceParts as part (part.id)}
         <RadioGroup.Item
           value={part.id}
-          class="flex min-h-11 items-center gap-3 rounded border px-3 py-2 text-left data-[state=checked]:border-emerald-700 data-[state=checked]:bg-emerald-50 dark:data-[state=checked]:bg-emerald-950"
+          class="flex min-h-11 items-center gap-3 rounded border px-3 py-2 text-left data-[state=checked]:border-primary-600 data-[state=checked]:bg-primary-50 dark:data-[state=checked]:bg-primary-950"
         >
           <span class="w-6 font-semibold">{part.shortLabel}</span>
           <span>{part.name}</span>

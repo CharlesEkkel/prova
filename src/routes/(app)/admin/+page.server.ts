@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
-import { loadRoles, loadSingers } from '../../lib/shell/admin';
-import { removeSinger, runAdminAction, setSingerRoles } from '../../lib/shell/admin-commands';
-import { valueOrNull } from '../../lib/shell/run';
+import { loadRoles, loadSingers } from '../../../lib/shell/admin';
+import { removeSinger, runAdminAction, setSingerRoles } from '../../../lib/shell/admin-commands';
+import { valueOrNull } from '../../../lib/shell/run';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {

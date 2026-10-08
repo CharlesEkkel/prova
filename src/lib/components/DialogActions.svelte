@@ -16,6 +16,6 @@
   {disabled}
   class="min-h-11 rounded px-4 font-medium text-white disabled:opacity-60 {tone === 'danger'
     ? 'bg-red-700'
-    : 'bg-emerald-700'}">{label}</button
+    : 'bg-primary-600'}">{label}</button
 >
 <button type="button" class="min-h-11 rounded border px-4" onclick={onCancel}>Cancel</button>

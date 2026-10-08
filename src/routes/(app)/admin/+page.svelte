@@ -1,14 +1,14 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
-  import AlertMessage from '../../lib/components/AlertMessage.svelte';
-  import { createDialogState } from '../../lib/components/dialog-state.svelte';
-  import DialogActions from '../../lib/components/DialogActions.svelte';
-  import Modal from '../../lib/components/Modal.svelte';
-  import RoleBadges from '../../lib/components/RoleBadges.svelte';
-  import RoleCheckboxes from '../../lib/components/RoleCheckboxes.svelte';
-  import { canChangeSinger, isPendingSinger } from '../../lib/core/admin-rules';
-  import type { SingerRow } from '../../lib/shell/admin';
-  import { closeOnSuccess } from '../../lib/shell/enhance';
+  import AlertMessage from '../../../lib/components/AlertMessage.svelte';
+  import { createDialogState } from '../../../lib/components/dialog-state.svelte';
+  import DialogActions from '../../../lib/components/DialogActions.svelte';
+  import Modal from '../../../lib/components/Modal.svelte';
+  import RoleBadges from '../../../lib/components/RoleBadges.svelte';
+  import RoleCheckboxes from '../../../lib/components/RoleCheckboxes.svelte';
+  import { canChangeSinger, isPendingSinger } from '../../../lib/core/admin-rules';
+  import type { SingerRow } from '../../../lib/shell/admin';
+  import { closeOnSuccess } from '../../../lib/shell/enhance';
   import type { ActionData, PageData } from './$types';
 
   const { data, form }: { readonly data: PageData; readonly form: ActionData } = $props();
@@ -63,7 +63,7 @@
           <RoleCheckboxes roles={data.roles} {held} selected={rolesOf(singer)} />
           <div class="flex gap-2">
             <button
-              class="min-h-11 rounded bg-emerald-700 px-4 font-medium text-white disabled:opacity-60"
+              class="min-h-11 rounded bg-primary-600 px-4 font-medium text-white disabled:opacity-60"
               disabled={!canChangeSinger(held, singer)}>Approve</button
             >
             <button
