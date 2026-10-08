@@ -27,7 +27,7 @@ pnpm dev                     # http://localhost:5173
 Google is the only way in: email sign-up and anonymous sign-ins are switched off. A person who signs in is recorded as a Singer, chooses their default Voice Part, and then waits on a waiting-for-approval screen until an Admin gives them a Role with `read`. The tests never talk to Google (they create people through Supabase's admin API), so the Google hand-off is the one thing to check by hand.
 
 1. In the Google Cloud console, create an OAuth client (type: web application). Add the redirect URI Supabase shows for its Google provider: `http://127.0.0.1:54321/auth/v1/callback` locally, `https://<project-ref>.supabase.co/auth/v1/callback` on Supabase cloud.
-2. Locally, copy `supabase/.env.example` to `supabase/.env` (git-ignored), put the client's ID and secret in it and restart the stack:
+2. Locally, put the client's ID and secret in `supabase/.env` (git-ignored; `just env` creates it from `supabase/.env.example`, or copy that by hand) and restart the stack:
 
    ```sh
    SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID=...

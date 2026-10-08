@@ -56,7 +56,8 @@ make-admin email:
     fi
     echo "{{ email }} is now an Admin"
 
-# Write .env from the running Supabase stack (replaces any existing .env).
+# Write .env from the running Supabase stack (replaces any existing .env), and create
+# supabase/.env from its example if it is missing (never overwritten: it holds the Google secret).
 env:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -66,6 +67,10 @@ env:
       "PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY" \
       "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" > .env
     echo "wrote .env"
+    if [ ! -f supabase/.env ]; then
+      cp supabase/.env.example supabase/.env
+      echo "wrote supabase/.env: add your Google OAuth client to it (see the README)"
+    fi
 
 # Lint, Prettier check and type checks (no tests).
 check:
