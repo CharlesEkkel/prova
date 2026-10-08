@@ -55,19 +55,23 @@ _Avoid_: Exception, custom part
 ## Access
 
 **Permission**:
-A single capability: `read`, `append` (add new Pieces, Practice Tracks, Scores and Performances, including tagging them as they are first added, never alter existing ones), `update` (edit names, labels and Performance tags, and reorder a Performance's Pieces, only; this includes marking a Performance major), `delete`, or `manage-users` (run the admin portal: Roles, Invite Links, removing Singers and the Colour Theme). A Singer is only shown the actions their Permissions allow.
+A single capability: `read`, `append` (add new Pieces, Practice Tracks, Scores and Performances, including tagging them as they are first added, never alter existing ones), `update` (edit names, labels and Performance tags, and reorder a Performance's Pieces, only; this includes marking a Performance major), `delete`, `manage-users` (run the admin portal: approving Singers, Roles, Invite Links, removing Singers and the Colour Theme), or `manage-admins` (grant or revoke `manage-users`, directly or through a Role, and remove or change the Roles of a Singer who holds it; held only by an Owner). A Singer is only shown the actions their Permissions allow.
 _Avoid_: Right, privilege
 
 **Role**:
-A named, composable bundle of Permissions granted to a Singer by an Admin or by an Invite Link.
+A named, composable bundle of Permissions granted to a Singer by an Admin or Owner, or by an Invite Link. A Role holding `manage-users` can only be created, changed or granted by an Owner; no Role can hold `manage-admins`.
 _Avoid_: Tier, level, group
 
 **Admin**:
-A Singer holding every Permission. The first sign-in whose verified email matches the configured admin email is granted it; the grant persists even if that setting later changes.
-_Avoid_: Owner, superuser
+A built-in, locked Role holding every Permission except `manage-admins`. Only an Owner can grant or remove it. An Owner is given Admin when they become one, so if they stop being an Owner they stay an Admin.
+_Avoid_: Superuser
+
+**Owner**:
+A Singer whose verified Google email is one of the owner emails in the deployment's configuration. Owner is not granted in the app: it follows that list live, so a Singer is an Owner exactly while their email is on it, and holds every Permission including `manage-admins`. Removing an email demotes that Owner to an Admin. An Owner cannot be removed or have their Roles changed in the app.
+_Avoid_: Admin email, superuser
 
 **Invite Link**:
-A shareable link that grants a fixed set of Roles to anyone who signs up through it. Revocable, with an optional expiry and use cap, and never able to grant `delete` or `manage-users`.
+A shareable link that grants a fixed set of Roles to anyone who signs up through it. Revocable, with an optional expiry and use cap, and never able to grant `delete`, `manage-users` or `manage-admins`.
 _Avoid_: Invitation code, signup link
 
 ## Appearance
