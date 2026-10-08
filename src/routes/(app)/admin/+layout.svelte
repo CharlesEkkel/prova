@@ -1,27 +1,43 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import { page } from '$app/state';
+  import { isPendingSinger } from '../../../lib/core/admin-rules';
+  import type { LayoutData } from './$types';
 
-  const { children }: { readonly children: Snippet } = $props();
+  const { data, children }: { readonly data: LayoutData; readonly children: Snippet } = $props();
 
-  const tabs = [
-    { href: '/admin', label: 'Singers' },
-    { href: '/admin/roles', label: 'Roles' },
-  ] as const;
+  const pendingCount = $derived(
+    data.singers.filter((singer) => isPendingSinger(singer.permissions)).length,
+  );
+
+  const tab =
+    'inline-flex min-h-11 shrink-0 items-center gap-2 border-b-2 border-transparent px-4 text-sm font-medium whitespace-nowrap text-zinc-500 aria-[current=page]:border-primary-600 aria-[current=page]:text-primary-700 dark:aria-[current=page]:text-primary-300';
+  const count =
+    'rounded-full bg-zinc-200 px-1.5 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300';
 </script>
 
-<div class="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-6">
-  <h1 class="text-2xl font-semibold">Admin</h1>
+<div class="mx-auto w-full max-w-4xl px-4 py-6 lg:px-10 lg:py-10">
+  <h1 class="text-2xl font-semibold tracking-tight lg:text-3xl">Admin</h1>
+  <p class="text-zinc-500">Singers and Roles.</p>
 
-  <nav class="flex gap-2 border-b" aria-label="Admin sections">
-    {#each tabs as tab (tab.href)}
-      <a
-        href={tab.href}
-        class="min-h-11 px-4 py-2 font-medium aria-[current=page]:border-b-2 aria-[current=page]:border-primary-600"
-        aria-current={page.url.pathname === tab.href ? 'page' : undefined}>{tab.label}</a
-      >
-    {/each}
+  <nav class="mt-6 flex overflow-x-auto border-b" aria-label="Admin sections">
+    <a href="/admin" class={tab} aria-current={page.url.pathname === '/admin' ? 'page' : undefined}>
+      Singers
+      {#if pendingCount > 0}
+        <span
+          class="rounded-full bg-amber-100 px-1.5 text-xs font-semibold text-amber-800"
+          aria-label="{pendingCount.toString()} pending">{pendingCount} pending</span
+        >
+      {/if}
+    </a>
+    <a
+      href="/admin/roles"
+      class={tab}
+      aria-current={page.url.pathname === '/admin/roles' ? 'page' : undefined}
+    >
+      Roles <span class={count}>{data.roles.length}</span>
+    </a>
   </nav>
 
-  {@render children()}
+  <div class="pt-6">{@render children()}</div>
 </div>

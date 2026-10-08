@@ -48,7 +48,7 @@ export const isGrantableRole = (role: RoleSummary): boolean =>
 export const canOfferPermission = (held: readonly Permission[], permission: Permission): boolean =>
   permission !== 'manage-admins' && mayTouch(held, [permission]);
 
-const ownersOnly = 'Only an Owner can grant or change anything that includes manage-users.';
+const ownersOnly = 'Only an Owner can grant or change anything that includes Manage users.';
 
 /** Why a Role cannot be handed to a Singer by this person, or null when they can. */
 export const roleBlockedReason = (held: readonly Permission[], role: RoleSummary): string | null =>

@@ -1,28 +1,19 @@
 <script lang="ts">
   import { page } from '$app/state';
   import { Collapsible } from 'bits-ui';
-  import { Calendar, ChevronDown, House, Music, ShieldCheck, Star } from '@lucide/svelte';
-  import type { SidebarEntry } from '../../core/performances';
+  import { Calendar, ChevronDown, House, ShieldCheck, Star } from '@lucide/svelte';
+  import type { ShellData } from '../../core/shell';
+  import Logo from '../ui/Logo.svelte';
   import DisplayModeToggle from './DisplayModeToggle.svelte';
   import UserMenu from './UserMenu.svelte';
 
-  const {
-    singerName,
-    voicePartName,
-    showAdminLink,
-    performances,
-  }: {
-    readonly singerName: string;
-    readonly voicePartName: string;
-    readonly showAdminLink: boolean;
-    readonly performances: readonly SidebarEntry[];
-  } = $props();
+  const { shell }: { readonly shell: ShellData } = $props();
 
   const link = (active: boolean) =>
     `flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm ${
       active
         ? 'bg-primary-100 font-semibold text-primary-800 dark:bg-primary-500/15 dark:text-primary-200'
-        : 'text-slate-600 hover:bg-slate-200/60 dark:text-slate-400 dark:hover:bg-slate-800/70'
+        : 'text-zinc-600 hover:bg-zinc-200/60 dark:text-zinc-400 dark:hover:bg-zinc-800/70'
     }`;
 
   const path = $derived(page.url.pathname);
@@ -30,9 +21,7 @@
 
 <div class="flex h-full flex-col gap-2 p-4">
   <div class="flex items-center gap-2 px-2 py-2">
-    <div class="grid size-8 place-items-center rounded-xl bg-primary-600 text-white">
-      <Music size={16} aria-hidden="true" />
-    </div>
+    <Logo />
     <span class="text-lg font-semibold tracking-tight">Prova</span>
   </div>
 
@@ -40,7 +29,7 @@
     <a href="/" class={link(path === '/')} aria-current={path === '/' ? 'page' : undefined}>
       <House size={16} aria-hidden="true" /> Home
     </a>
-    {#if showAdminLink}
+    {#if shell.showAdminLink}
       <a
         href="/admin"
         class={link(path.startsWith('/admin'))}
@@ -62,11 +51,11 @@
         />
       </Collapsible.Trigger>
       <Collapsible.Content class="flex flex-col gap-0.5">
-        {#if performances.length === 0}
+        {#if shell.performances.length === 0}
           <p class="px-3 text-sm opacity-70">No Performances yet.</p>
         {/if}
         <ul class="flex flex-col gap-0.5">
-          {#each performances as performance (performance.id)}
+          {#each shell.performances as performance (performance.id)}
             <li class={performance.archived ? 'opacity-60' : ''}>
               <!-- Opens the Performance Overview (#29), which reads this query parameter. -->
               <a href="?overview={performance.id}" class={link(false)}>
@@ -92,5 +81,5 @@
 
   <DisplayModeToggle />
   <hr class="my-2" />
-  <UserMenu name={singerName} voicePart={voicePartName} />
+  <UserMenu name={shell.singerName} voicePart={shell.voicePartName} />
 </div>

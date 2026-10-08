@@ -1,10 +1,15 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
+  import { AlertDialog } from 'bits-ui';
+  import { Pencil, Plus, Trash } from '@lucide/svelte';
   import AlertMessage from '../../../../lib/components/AlertMessage.svelte';
+  import RoleSummary from '../../../../lib/components/RoleSummary.svelte';
   import { createDialogState } from '../../../../lib/components/dialog-state.svelte';
-  import DialogActions from '../../../../lib/components/DialogActions.svelte';
-  import Modal from '../../../../lib/components/Modal.svelte';
-  import NoReadWarning from '../../../../lib/components/NoReadWarning.svelte';
+  import Btn from '../../../../lib/components/ui/Btn.svelte';
+  import CheckRow from '../../../../lib/components/ui/CheckRow.svelte';
+  import ManageMenu from '../../../../lib/components/ui/ManageMenu.svelte';
+  import Modal from '../../../../lib/components/ui/Modal.svelte';
+  import { input, fieldLabel, hint } from '../../../../lib/components/ui/styles';
   import {
     canChangeRole,
     hasNoRead,
@@ -12,6 +17,7 @@
   } from '../../../../lib/core/admin-rules';
   import {
     permissionDescriptions,
+    permissionLabels,
     rolePermissions,
     type Permission,
   } from '../../../../lib/core/permissions';
@@ -42,133 +48,147 @@
 
   const singers = (count: number) => (count === 1 ? '1 Singer' : `${count.toString()} Singers`);
 
-  const titleOf = (dialogNow: Dialog) =>
-    dialogNow.kind === 'new'
-      ? 'New Role'
-      : dialogNow.kind === 'edit'
-        ? `Edit ${dialogNow.role.name}`
-        : `Delete ${dialogNow.role.name}?`;
+  const actionsOf = (role: RoleRow) => [
+    {
+      key: 'edit',
+      label: 'Edit Role…',
+      icon: Pencil,
+      disabled: !canChangeRole(held, role),
+      run: () => {
+        openDialog({ kind: 'edit', role });
+      },
+    },
+    {
+      key: 'delete',
+      label: 'Delete Role…',
+      icon: Trash,
+      danger: true,
+      disabled: !canChangeRole(held, role),
+      run: () => {
+        openDialog({ kind: 'delete', role });
+      },
+    },
+  ];
+
+  const card = 'rounded-2xl border bg-white dark:bg-zinc-900';
 </script>
 
 {#if form?.problem !== undefined}
-  <AlertMessage>{form.problem}</AlertMessage>
+  <div class="mb-4"><AlertMessage>{form.problem}</AlertMessage></div>
 {/if}
 
-<div class="flex items-center justify-between">
-  <h2 class="text-lg font-semibold">Roles</h2>
-  <button
-    class="min-h-11 rounded bg-primary-600 px-4 font-medium text-white"
-    onclick={() => {
-      openDialog({ kind: 'new' });
-    }}>New Role</button
-  >
+<div class="flex flex-col gap-4">
+  <div class="flex items-start justify-between gap-3">
+    <p class="max-w-prose text-sm text-zinc-500">
+      A Role is a named bundle of Permissions. Give a Singer several to combine them. Admin and
+      Owner are built in and locked.
+    </p>
+    <Btn
+      size="sm"
+      variant="soft"
+      onclick={() => {
+        openDialog({ kind: 'new' });
+      }}><Plus class="size-4" /> New Role</Btn
+    >
+  </div>
+
+  <ul class="flex flex-col gap-2">
+    {#each data.roles as role (role.id)}
+      <li data-testid="role">
+        {#if role.isBuiltin}
+          <div class={card}><RoleSummary {role} {held} /></div>
+        {:else}
+          <div class="{card} pr-1">
+            <ManageMenu actions={actionsOf(role)} label="Actions for {role.name} Role">
+              <RoleSummary {role} {held} />
+            </ManageMenu>
+          </div>
+        {/if}
+      </li>
+    {/each}
+  </ul>
 </div>
 
-<ul class="flex flex-col gap-3">
-  {#each data.roles as role (role.id)}
-    <li class="flex flex-col gap-3 rounded border p-3" data-testid="role">
-      <div class="flex items-center justify-between gap-2">
-        <p class="font-medium">
-          {role.name}
-          {#if role.isBuiltin}<span class="text-sm opacity-70">(built in, locked)</span>{/if}
-        </p>
-        <p class="text-sm opacity-70">{singers(role.singerCount)}</p>
-      </div>
-      <ul class="flex flex-wrap gap-1" aria-label="Permissions">
-        {#each role.permissions as permission (permission)}
-          <li class="rounded-full bg-slate-200 px-2 py-0.5 text-xs text-slate-900">{permission}</li>
-        {/each}
-      </ul>
-      {#if hasNoRead(role.permissions)}
-        <NoReadWarning />
-      {/if}
-      {#if !role.isBuiltin}
-        <div class="flex gap-2">
-          <button
-            class="min-h-11 rounded border px-4 disabled:opacity-60"
-            disabled={!canChangeRole(held, role)}
-            onclick={() => {
-              openDialog({ kind: 'edit', role });
-            }}>Edit</button
-          >
-          <button
-            class="min-h-11 rounded border px-4 disabled:opacity-60"
-            disabled={!canChangeRole(held, role)}
-            onclick={() => {
-              openDialog({ kind: 'delete', role });
-            }}>Delete</button
-          >
-        </div>
-        {#if !canChangeRole(held, role)}
-          <p class="text-sm opacity-70">
-            Only an Owner can change a Role that includes manage-users.
-          </p>
-        {/if}
-      {/if}
-    </li>
-  {/each}
-</ul>
-
 <Modal
-  open={current !== null}
+  open={current?.kind === 'new' || current?.kind === 'edit'}
   onClose={dialog.close}
-  title={current === null ? '' : titleOf(current)}
-  description={current?.kind === 'delete'
-    ? `${singers(current.role.singerCount)} will lose this Role. This cannot be undone.`
-    : undefined}
+  title={current?.kind === 'edit' ? `Edit ${current.role.name}` : 'New Role'}
+  description="Pick the Permissions this Role grants."
 >
-  {#if current?.kind === 'delete'}
-    <form method="POST" action="?/delete" use:enhance={closeIfDone} class="flex flex-col gap-3">
-      <input type="hidden" name="role" value={current.role.id} />
-      <DialogActions label="Delete Role" tone="danger" onCancel={dialog.close} />
-    </form>
-  {:else if current !== null}
+  {#if current?.kind === 'new' || current?.kind === 'edit'}
     <form
+      id="role-form"
       method="POST"
       action={current.kind === 'new' ? '?/create' : '?/update'}
       use:enhance={closeIfDone}
-      class="flex flex-col gap-3"
+      class="flex flex-col gap-5"
     >
       {#if current.kind === 'edit'}
         <input type="hidden" name="role" value={current.role.id} />
       {/if}
-      <label class="flex flex-col gap-1 text-sm">
-        Name
+      <div>
+        <label for="role-name" class={fieldLabel}>Name</label>
         <input
+          id="role-name"
           name="name"
           required
+          class={input}
           value={current.kind === 'edit' ? current.role.name : ''}
-          class="min-h-11 rounded border bg-transparent px-2"
         />
-      </label>
-      <fieldset class="flex flex-col gap-2">
-        <legend class="text-sm">Permissions (at least one)</legend>
-        {#each rolePermissions as permission (permission)}
-          {@const reason = permissionBlockedReason(held, permission)}
-          <label class="flex items-start gap-2">
-            <input
-              type="checkbox"
+      </div>
+      <fieldset>
+        <legend class={fieldLabel}>Permissions (at least one)</legend>
+        <div class="flex flex-col gap-1">
+          {#each rolePermissions as permission (permission)}
+            {@const reason = permissionBlockedReason(held, permission)}
+            <CheckRow
+              id="permission-{permission}"
               name="permission"
               value={permission}
-              class="mt-1"
               checked={selected.includes(permission)}
               disabled={reason !== null}
-              onchange={(event) => {
-                toggle(permission, event.currentTarget.checked);
+              onChange={(on: boolean) => {
+                toggle(permission, on);
               }}
+              title={permissionLabels[permission]}
+              detail={reason ?? permissionDescriptions[permission]}
             />
-            <span>
-              {permission}
-              <span class="block text-xs opacity-70">{permissionDescriptions[permission]}</span>
-              {#if reason !== null}<span class="block text-xs opacity-70">{reason}</span>{/if}
-            </span>
-          </label>
-        {/each}
+          {/each}
+        </div>
+        {#if selected.length > 0 && hasNoRead(selected)}
+          <p class={hint}>Without Read, Singers with only this Role stay Pending.</p>
+        {/if}
       </fieldset>
-      {#if hasNoRead(selected)}
-        <NoReadWarning />
-      {/if}
-      <DialogActions label="Save Role" disabled={selected.length === 0} onCancel={dialog.close} />
     </form>
   {/if}
+  {#snippet footer()}
+    <Btn variant="ghost" onclick={dialog.close}>Cancel</Btn>
+    <Btn type="submit" form="role-form" disabled={selected.length === 0}>
+      {current?.kind === 'edit' ? 'Save Role' : 'Create Role'}
+    </Btn>
+  {/snippet}
+</Modal>
+
+<Modal
+  alert
+  open={current?.kind === 'delete'}
+  onClose={dialog.close}
+  title={current?.kind === 'delete' ? `Delete the ${current.role.name} Role?` : ''}
+  description={current?.kind === 'delete'
+    ? `${singers(current.role.singerCount)} will lose this Role. Permissions from their other Roles are kept. This cannot be undone.`
+    : ''}
+>
+  {#if current?.kind === 'delete'}
+    <form id="delete-form" method="POST" action="?/delete" use:enhance={closeIfDone}>
+      <input type="hidden" name="role" value={current.role.id} />
+    </form>
+  {/if}
+  {#snippet footer()}
+    <AlertDialog.Cancel>
+      {#snippet child({ props })}
+        <Btn variant="ghost" {...props}>Cancel</Btn>
+      {/snippet}
+    </AlertDialog.Cancel>
+    <Btn variant="danger" type="submit" form="delete-form">Delete Role</Btn>
+  {/snippet}
 </Modal>

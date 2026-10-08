@@ -23,14 +23,48 @@
   --color-primary-950: var(--color-green-950);
 }
 
-/* Native controls (scrollbars, inputs) follow the Display Mode class, not just the device setting. */
-html.dark {
-  color-scheme: dark;
-}
-html:not(.dark) {
-  color-scheme: light;
+@layer base {
+  /* Tailwind 4 draws borders in the text colour unless told otherwise, which looks like a black outline. */
+  *,
+  ::after,
+  ::before,
+  ::backdrop {
+    border-color: var(--color-zinc-200);
+  }
+  .dark *,
+  .dark ::after,
+  .dark ::before,
+  .dark ::backdrop {
+    border-color: var(--color-zinc-800);
+  }
+
+  /* Tailwind 4 leaves buttons with the default arrow; anything you can press shows a pointer. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='menuitem']:not([data-disabled]),
+  [role='radio'],
+  [role='checkbox'],
+  [role='tab'],
+  select:not(:disabled),
+  summary,
+  a {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+  }
+
+  /* Native controls (scrollbars, inputs) follow the Display Mode class, not just the device setting. */
+  html.dark {
+    color-scheme: dark;
+  }
+  html:not(.dark) {
+    color-scheme: light;
+  }
 }
 
 body {
-  @apply bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100;
+  @apply bg-zinc-50 text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100;
 }

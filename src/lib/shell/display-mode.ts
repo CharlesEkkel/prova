@@ -4,6 +4,8 @@ import { Effect, Schema } from 'effect';
 export const DisplayMode = Schema.Literals(['system', 'light', 'dark']);
 export type DisplayMode = typeof DisplayMode.Type;
 
+export const isDisplayMode = Schema.is(DisplayMode);
+
 export const displayModeStorageKey = 'prova-display-mode';
 
 export const resolveDark = (mode: DisplayMode, systemPrefersDark: boolean): boolean =>

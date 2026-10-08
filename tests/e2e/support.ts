@@ -61,7 +61,11 @@ export const isDesktopLayout = (page: Page): boolean => (page.viewportSize()?.wi
  * The main navigation, opening the drawer first on a phone. On desktop the sidebar is always there.
  */
 export const openNavigation = async (page: Page): Promise<Locator> => {
-  if (!isDesktopLayout(page)) await page.getByRole('button', { name: 'Open menu' }).click();
+  if (!isDesktopLayout(page)) {
+    // A click before the page has hydrated is lost, so let it settle first.
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: 'Open menu' }).click();
+  }
   return page.getByRole('navigation', { name: 'Main' });
 };
 

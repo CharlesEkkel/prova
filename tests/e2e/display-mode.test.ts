@@ -12,12 +12,9 @@ test.describe('Display Mode', () => {
     await openNavigation(page);
     const group = page.getByRole('group', { name: 'Display Mode' });
 
-    await group.getByRole('button', { name: 'Dark' }).click();
+    await group.getByRole('radio', { name: 'Dark' }).click();
     await expect(page.locator('html')).toHaveClass(/dark/);
-    await expect(group.getByRole('button', { name: 'Dark' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    await expect(group.getByRole('radio', { name: 'Dark' })).toBeChecked();
 
     await page.reload();
     await expect(page.locator('html')).toHaveClass(/dark/);
@@ -28,7 +25,7 @@ test.describe('Display Mode', () => {
     await openNavigation(page);
     await page
       .getByRole('group', { name: 'Display Mode' })
-      .getByRole('button', { name: 'Light' })
+      .getByRole('radio', { name: 'Light' })
       .click();
     await expect(page.locator('html')).not.toHaveClass(/dark/);
   });
@@ -55,7 +52,7 @@ test.describe('Display Mode', () => {
     await openNavigation(page);
     await page
       .getByRole('group', { name: 'Display Mode' })
-      .getByRole('button', { name: 'Light' })
+      .getByRole('radio', { name: 'Light' })
       .click();
 
     await page.emulateMedia({ colorScheme: 'dark' });
@@ -91,7 +88,7 @@ test.describe('Display Mode', () => {
 
     await page
       .getByRole('group', { name: 'Display Mode' })
-      .getByRole('button', { name: 'Dark' })
+      .getByRole('radio', { name: 'Dark' })
       .click();
 
     expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe(
@@ -115,7 +112,7 @@ test.describe('Display Mode', () => {
 
     await page
       .getByRole('group', { name: 'Display Mode' })
-      .getByRole('button', { name: 'Dark' })
+      .getByRole('radio', { name: 'Dark' })
       .click();
 
     await expect(page.locator('html')).toHaveClass(/dark/);

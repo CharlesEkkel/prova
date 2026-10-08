@@ -1,11 +1,14 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
+  import { AlertDialog, Avatar } from 'bits-ui';
+  import { UserX, Users } from '@lucide/svelte';
   import AlertMessage from '../../../lib/components/AlertMessage.svelte';
   import { createDialogState } from '../../../lib/components/dialog-state.svelte';
-  import DialogActions from '../../../lib/components/DialogActions.svelte';
-  import Modal from '../../../lib/components/Modal.svelte';
   import RoleBadges from '../../../lib/components/RoleBadges.svelte';
-  import RoleCheckboxes from '../../../lib/components/RoleCheckboxes.svelte';
+  import RolePicker from '../../../lib/components/RolePicker.svelte';
+  import Btn from '../../../lib/components/ui/Btn.svelte';
+  import ManageMenu from '../../../lib/components/ui/ManageMenu.svelte';
+  import Modal from '../../../lib/components/ui/Modal.svelte';
   import { canChangeSinger, isPendingSinger } from '../../../lib/core/admin-rules';
   import type { SingerRow } from '../../../lib/shell/admin';
   import { closeOnSuccess } from '../../../lib/shell/enhance';
@@ -18,131 +21,216 @@
   const pending = $derived(data.singers.filter(isPending));
   const approved = $derived(data.singers.filter((singer) => !isPending(singer)));
 
-  type Dialog = { readonly kind: 'edit-roles' | 'remove' | 'decline'; readonly singer: SingerRow };
+  type Dialog = {
+    readonly kind: 'approve' | 'edit-roles' | 'remove' | 'decline';
+    readonly singer: SingerRow;
+  };
   const dialog = createDialogState<Dialog>();
   const current = $derived(dialog.current);
   const closeIfDone = closeOnSuccess(dialog.close);
 
+  const builtinIds = $derived(new Set(data.roles.filter((r) => r.isBuiltin).map((r) => r.id)));
   const rolesOf = (singer: SingerRow) => singer.roles.map((role) => role.id);
-  const namesOf = (singer: SingerRow) => singer.roles.map((role) => role.name);
+  const badgesOf = (singer: SingerRow) =>
+    singer.roles.map((role) => ({ name: role.name, builtin: builtinIds.has(role.id) }));
+  const initials = (name: string) =>
+    name
+      .split(' ')
+      .map((word) => word.slice(0, 1))
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
 
-  const titles = {
-    'edit-roles': 'Edit Roles',
-    decline: 'Decline this sign-up?',
-    remove: 'Remove this Singer?',
-  } as const;
-  const warnings = {
-    decline: 'loses their sign-in. If they sign in again they will be waiting for approval afresh.',
-    remove:
-      'loses access and their sign-in is deleted. If they sign in again they start as a Pending Singer.',
-  } as const;
+  const actionsOf = (singer: SingerRow) => [
+    {
+      key: 'roles',
+      label: 'Edit Roles…',
+      icon: Users,
+      disabled: !canChangeSinger(held, singer),
+      run: () => {
+        dialog.open({ kind: 'edit-roles', singer });
+      },
+    },
+    {
+      key: 'remove',
+      label: 'Remove from the choir…',
+      icon: UserX,
+      danger: true,
+      disabled: !canChangeSinger(held, singer),
+      run: () => {
+        dialog.open({ kind: 'remove', singer });
+      },
+    },
+  ];
+
+  const avatar = 'size-10 shrink-0 overflow-hidden rounded-full bg-primary-200 text-primary-800';
+  const card = 'rounded-2xl border bg-white dark:bg-zinc-900';
 </script>
 
 {#if form?.problem !== undefined}
-  <AlertMessage>{form.problem}</AlertMessage>
+  <div class="mb-4"><AlertMessage>{form.problem}</AlertMessage></div>
 {/if}
 
-<section aria-labelledby="pending-heading" class="flex flex-col gap-3">
-  <h2 id="pending-heading" class="text-lg font-semibold">Pending Singers ({pending.length})</h2>
-  {#if pending.length === 0}
-    <p class="opacity-70">Nobody is waiting for approval.</p>
-  {/if}
-  <ul class="flex flex-col gap-3">
-    {#each pending as singer (singer.id)}
-      <li class="flex flex-col gap-3 rounded border p-3" data-testid="pending-singer">
-        <div>
-          <p class="font-medium">{singer.displayName}</p>
-          <p class="text-sm opacity-70">{singer.email}</p>
-          <p class="text-sm opacity-70">
-            {singer.voicePart ?? 'No Voice Part yet'} · Signed up: {singer.signedUpVia}
-          </p>
-        </div>
-        <RoleBadges names={namesOf(singer)} />
-        <form method="POST" action="?/setRoles" use:enhance class="flex flex-col gap-2">
-          <input type="hidden" name="singer" value={singer.id} />
-          <RoleCheckboxes roles={data.roles} {held} selected={rolesOf(singer)} />
+<div class="flex flex-col gap-8">
+  <section aria-labelledby="pending-heading">
+    <h2 id="pending-heading" class="mb-1 text-lg font-semibold">
+      Pending Singers
+      {#if pending.length > 0}
+        <span
+          class="ml-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800"
+          >{pending.length}</span
+        >
+      {/if}
+    </h2>
+    <p class="mb-3 text-sm text-zinc-500">
+      People who have signed in and are waiting. Approve them with the Roles they should have.
+    </p>
+    <ul class="flex flex-col gap-2">
+      {#each pending as singer (singer.id)}
+        <li class="{card} flex flex-col gap-3 p-3" data-testid="pending-singer">
+          <div class="flex items-center gap-3">
+            <Avatar.Root class={avatar}>
+              <Avatar.Fallback class="grid size-full place-items-center text-sm font-semibold">
+                {initials(singer.displayName)}
+              </Avatar.Fallback>
+            </Avatar.Root>
+            <div class="min-w-0 flex-1">
+              <p class="truncate font-medium">{singer.displayName}</p>
+              <p class="truncate text-sm text-zinc-500">
+                {singer.email} · {singer.voicePart ?? 'No Voice Part yet'} · {singer.signedUpVia}
+              </p>
+            </div>
+          </div>
+          {#if singer.roles.length > 0}<RoleBadges badges={badgesOf(singer)} />{/if}
           <div class="flex gap-2">
-            <button
-              class="min-h-11 rounded bg-primary-600 px-4 font-medium text-white disabled:opacity-60"
-              disabled={!canChangeSinger(held, singer)}>Approve</button
+            <Btn
+              size="sm"
+              disabled={!canChangeSinger(held, singer)}
+              onclick={() => {
+                dialog.open({ kind: 'approve', singer });
+              }}>Approve</Btn
             >
-            <button
-              type="button"
-              class="min-h-11 rounded border px-4 disabled:opacity-60"
+            <Btn
+              size="sm"
+              variant="ghost"
               disabled={!canChangeSinger(held, singer)}
               onclick={() => {
                 dialog.open({ kind: 'decline', singer });
-              }}>Decline</button
+              }}>Decline</Btn
             >
           </div>
-        </form>
-      </li>
-    {/each}
-  </ul>
-</section>
+        </li>
+      {:else}
+        <li
+          class="rounded-2xl border border-dashed border-zinc-300 p-5 text-center text-sm text-zinc-500 dark:border-zinc-700"
+        >
+          Nobody is waiting for approval.
+        </li>
+      {/each}
+    </ul>
+  </section>
 
-<section aria-labelledby="singers-heading" class="flex flex-col gap-3">
-  <h2 id="singers-heading" class="text-lg font-semibold">Singers ({approved.length})</h2>
-  <ul class="flex flex-col gap-3">
-    {#each approved as singer (singer.id)}
-      <li class="flex flex-col gap-3 rounded border p-3" data-testid="singer">
-        <div>
-          <p class="font-medium">{singer.displayName}</p>
-          <p class="text-sm opacity-70">{singer.email}</p>
-        </div>
-        <RoleBadges names={namesOf(singer)} owner={singer.isOwner} />
-        {#if singer.isOwner}
-          <p class="text-sm opacity-70">An Owner is managed in the deployment, not here.</p>
-        {:else if !canChangeSinger(held, singer)}
-          <p class="text-sm opacity-70">Only an Owner can change a Singer who manages users.</p>
-        {/if}
-        <div class="flex gap-2">
-          <button
-            class="min-h-11 rounded border px-4 disabled:opacity-60"
-            disabled={!canChangeSinger(held, singer)}
-            onclick={() => {
-              dialog.open({ kind: 'edit-roles', singer });
-            }}>Edit Roles</button
-          >
-          <button
-            class="min-h-11 rounded border px-4 disabled:opacity-60"
-            disabled={!canChangeSinger(held, singer)}
-            onclick={() => {
-              dialog.open({ kind: 'remove', singer });
-            }}>Remove</button
-          >
-        </div>
-      </li>
-    {/each}
-  </ul>
-</section>
+  <section aria-labelledby="singers-heading">
+    <h2 id="singers-heading" class="mb-3 text-lg font-semibold">Singers · {approved.length}</h2>
+    <ul class="{card} divide-y overflow-hidden">
+      {#each approved as singer (singer.id)}
+        <li class="pr-1" data-testid="singer">
+          <ManageMenu actions={actionsOf(singer)} label="Actions for {singer.displayName}">
+            <div class="flex min-h-16 items-center gap-3 py-2 pl-3">
+              <Avatar.Root class={avatar}>
+                <Avatar.Fallback class="grid size-full place-items-center text-sm font-semibold">
+                  {initials(singer.displayName)}
+                </Avatar.Fallback>
+              </Avatar.Root>
+              <div class="min-w-0 flex-1">
+                <p class="truncate font-medium">{singer.displayName}</p>
+                <p class="truncate text-sm text-zinc-500">
+                  {singer.email} · {singer.voicePart ?? 'No Voice Part yet'}
+                </p>
+                {#if singer.isOwner}
+                  <p class="text-xs text-zinc-500">
+                    An Owner is managed in the deployment, not here.
+                  </p>
+                {:else if !canChangeSinger(held, singer)}
+                  <p class="text-xs text-zinc-500">
+                    Only an Owner can change a Singer who manages users.
+                  </p>
+                {/if}
+              </div>
+              <RoleBadges badges={badgesOf(singer)} owner={singer.isOwner} />
+            </div>
+          </ManageMenu>
+        </li>
+      {/each}
+    </ul>
+  </section>
+</div>
 
 <Modal
-  open={current !== null}
+  open={current?.kind === 'edit-roles' || current?.kind === 'approve'}
   onClose={dialog.close}
-  title={current === null
-    ? ''
-    : current.kind === 'edit-roles'
-      ? `${titles[current.kind]} for ${current.singer.displayName}`
-      : titles[current.kind]}
-  description={current === null || current.kind === 'edit-roles'
-    ? undefined
-    : `${current.singer.displayName} ${warnings[current.kind]}`}
+  title={current?.kind === 'approve'
+    ? `Approve ${current.singer.displayName}`
+    : current?.kind === 'edit-roles'
+      ? `Roles for ${current.singer.displayName}`
+      : ''}
+  description={current?.kind === 'approve'
+    ? 'Pick their Roles to let them in. A Singer holds every Permission from every Role they have.'
+    : 'A Singer holds every Permission from every Role they have.'}
 >
-  {#if current?.kind === 'edit-roles'}
-    <form method="POST" action="?/setRoles" use:enhance={closeIfDone} class="flex flex-col gap-3">
+  {#if current?.kind === 'edit-roles' || current?.kind === 'approve'}
+    <form
+      id="edit-roles-form"
+      method="POST"
+      action="?/setRoles"
+      use:enhance={closeIfDone}
+      class="flex flex-col gap-3"
+    >
       <input type="hidden" name="singer" value={current.singer.id} />
-      <RoleCheckboxes roles={data.roles} {held} selected={rolesOf(current.singer)} />
-      <DialogActions label="Save Roles" onCancel={dialog.close} />
-    </form>
-  {:else if current !== null}
-    <form method="POST" action="?/remove" use:enhance={closeIfDone} class="flex flex-col gap-3">
-      <input type="hidden" name="singer" value={current.singer.id} />
-      <DialogActions
-        label={current.kind === 'decline' ? 'Decline' : 'Remove'}
-        tone="danger"
-        onCancel={dialog.close}
+      <RolePicker
+        roles={data.roles}
+        {held}
+        selected={rolesOf(current.singer)}
+        idPrefix="edit-{current.singer.id}"
       />
     </form>
   {/if}
+  {#snippet footer()}
+    <Btn variant="ghost" onclick={dialog.close}>Cancel</Btn>
+    <Btn type="submit" form="edit-roles-form"
+      >{current?.kind === 'approve' ? 'Approve' : 'Save Roles'}</Btn
+    >
+  {/snippet}
+</Modal>
+
+<Modal
+  alert
+  open={current?.kind === 'remove' || current?.kind === 'decline'}
+  onClose={dialog.close}
+  title={current?.kind === 'decline'
+    ? 'Decline this sign-up?'
+    : current === null
+      ? ''
+      : `Remove ${current.singer.displayName}?`}
+  description={current?.kind === 'decline'
+    ? `${current.singer.displayName} loses their sign-in. If they sign in again they will be waiting for approval afresh.`
+    : current === null
+      ? ''
+      : 'They lose access straight away and their sign-in is deleted. If they sign in again they start as a Pending Singer.'}
+>
+  {#if current?.kind === 'remove' || current?.kind === 'decline'}
+    <form id="remove-form" method="POST" action="?/remove" use:enhance={closeIfDone}>
+      <input type="hidden" name="singer" value={current.singer.id} />
+    </form>
+  {/if}
+  {#snippet footer()}
+    <AlertDialog.Cancel>
+      {#snippet child({ props })}
+        <Btn variant="ghost" {...props}>Cancel</Btn>
+      {/snippet}
+    </AlertDialog.Cancel>
+    <Btn variant="danger" type="submit" form="remove-form">
+      {current?.kind === 'decline' ? 'Decline' : 'Remove'}
+    </Btn>
+  {/snippet}
 </Modal>
