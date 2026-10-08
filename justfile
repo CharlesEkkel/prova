@@ -96,9 +96,11 @@ test-e2e: db-up env
 # All three test seams.
 test: test-resolver test-contract test-e2e
 
-# Same checks CI runs, in the same spirit: run this before pushing.
-preflight: check test
+audit:
     pnpm audit --prod --audit-level=high
+
+# Same checks CI runs, in the same spirit: run this before pushing.
+preflight: check test audit
     @echo "preflight passed"
 
 # Report the built client bundle size.
