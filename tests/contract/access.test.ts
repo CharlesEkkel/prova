@@ -38,7 +38,18 @@ const readableBeforeApproval: ReadonlyMap<string, CarveOut> = new Map([
  * Functions a Pending Singer may call, each with the reason. Anything else the API lets them call
  * is a way around "reads nothing".
  */
+const refusesWithoutManageUsers = 'refuses anyone without manage-users (roles.test.ts proves it)';
+
 const callableBeforeApproval: ReadonlyMap<string, string> = new Map([
+  ...[
+    'admin_singers',
+    'admin_roles',
+    'admin_create_role',
+    'admin_update_role',
+    'admin_delete_role',
+    'admin_set_singer_roles',
+    'admin_remove_singer',
+  ].map((name): readonly [string, string] => [name, refusesWithoutManageUsers]),
   ['my_permissions', 'the one way to learn their access: an empty list'],
   [
     'has_permission',

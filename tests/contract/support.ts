@@ -99,3 +99,70 @@ export const revokeRole = async (singer: Pick<TestSinger, 'id'>, roleId: string)
     .eq('role_id', roleId);
   if (error) throw error;
 };
+
+export type RoleId = string;
+
+const builtinRoleId = async (builtin: 'admin' | 'owner'): Promise<RoleId> => {
+  const { data, error } = await serviceClient()
+    .from('roles')
+    .select('id')
+    .eq('builtin', builtin)
+    .single();
+  if (error) throw error;
+  return data.id;
+};
+
+/** Gives a Singer the built-in Admin Role: every Permission except manage-admins. */
+export const makeAdmin = async (singer: Pick<TestSinger, 'id'>): Promise<void> => {
+  const { error } = await serviceClient()
+    .from('singer_roles')
+    .insert({ singer_id: singer.id, role_id: await builtinRoleId('admin') });
+  if (error) throw error;
+};
+
+export const adminRoleId = (): Promise<RoleId> => builtinRoleId('admin');
+export const ownerRoleId = (): Promise<RoleId> => builtinRoleId('owner');
+
+/**
+ * Adds an owner email without touching the others, because contract test files run side by side
+ * and `set_owner_emails` replaces the whole list. Returns how to take it off again.
+ */
+export const addOwnerEmail = async (email: string): Promise<() => Promise<void>> => {
+  const { error } = await serviceClient()
+    .from('owner_emails')
+    .insert({ email: email.toLowerCase() });
+  if (error) throw error;
+  return removeOwnerEmail(email);
+};
+
+export const removeOwnerEmail = (email: string) => async (): Promise<void> => {
+  const { error } = await serviceClient()
+    .from('owner_emails')
+    .delete()
+    .eq('email', email.toLowerCase());
+  if (error) throw error;
+};
+
+/** A Singer whose verified email is an owner email. */
+export const signInNewOwner = async (): Promise<TestSinger> => {
+  const owner = await signInNewSinger();
+  await addOwnerEmail(owner.email);
+  return owner;
+};
+
+/** A Singer with the built-in Admin Role, who is not an Owner. */
+export const signInNewAdmin = async (): Promise<TestSinger> => {
+  const admin = await signInNewSinger();
+  await makeAdmin(admin);
+  return admin;
+};
+
+/** The ids of the Roles a Singer holds, read with the service role. */
+export const rolesHeldBy = async (singer: Pick<TestSinger, 'id'>): Promise<readonly RoleId[]> => {
+  const { data, error } = await serviceClient()
+    .from('singer_roles')
+    .select('role_id')
+    .eq('singer_id', singer.id);
+  if (error) throw error;
+  return data.map(({ role_id }) => role_id);
+};
