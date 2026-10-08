@@ -46,7 +46,17 @@ const readableBeforeApproval: ReadonlyMap<string, CarveOut> = new Map([
  */
 const refusesWithoutManageUsers = 'refuses anyone without manage-users (roles.test.ts proves it)';
 
+const voicePartsRefuseWithoutManageUsers =
+  'refuses anyone without manage-users (voice-part-admin.test.ts proves it)';
+
 const callableBeforeApproval: ReadonlyMap<string, string> = new Map([
+  ...[
+    'admin_voice_parts',
+    'admin_add_voice_part',
+    'admin_update_voice_part',
+    'admin_move_voice_part',
+    'admin_remove_voice_part',
+  ].map((name): readonly [string, string] => [name, voicePartsRefuseWithoutManageUsers]),
   ...[
     'admin_singers',
     'admin_roles',

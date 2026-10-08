@@ -200,12 +200,15 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      admin_add_voice_part: { Args: { part_label: string; part_name: string }; Returns: string };
       admin_create_role: {
         Args: { perms: Database['public']['Enums']['permission'][]; role_name: string };
         Returns: string;
       };
       admin_delete_role: { Args: { target: string }; Returns: undefined };
+      admin_move_voice_part: { Args: { direction: string; target: string }; Returns: undefined };
       admin_remove_singer: { Args: { target: string }; Returns: undefined };
+      admin_remove_voice_part: { Args: { target: string }; Returns: undefined };
       admin_roles: { Args: Record<PropertyKey, never>; Returns: Json };
       admin_set_singer_roles: { Args: { role_ids: string[]; target: string }; Returns: undefined };
       admin_singers: { Args: Record<PropertyKey, never>; Returns: Json };
@@ -217,12 +220,29 @@ export type Database = {
         };
         Returns: undefined;
       };
+      admin_update_voice_part: {
+        Args: { part_label: string; part_name: string; target: string };
+        Returns: undefined;
+      };
+      admin_voice_parts: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          id: string;
+          name: string;
+          short_label: string;
+          singer_count: number;
+        }[];
+      };
       check_role_definition: {
         Args: {
           except_role: string;
           perms: Database['public']['Enums']['permission'][];
           role_name: string;
         };
+        Returns: undefined;
+      };
+      check_voice_part: {
+        Args: { except_part: string; part_label: string; part_name: string };
         Returns: undefined;
       };
       grant_admin_to_owners: { Args: Record<PropertyKey, never>; Returns: undefined };

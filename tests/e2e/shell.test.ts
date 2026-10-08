@@ -150,7 +150,7 @@ test.describe('the app shell', () => {
     await expect(page.getByRole('button', { name: /search/i })).toHaveCount(0);
     await expect(nav.getByRole('link', { name: 'Repertoire' })).toHaveCount(0);
     await page.getByRole('button', { name: /^User menu for/ }).click();
-    await expect(page.getByRole('menuitem')).toHaveText(['Sign out']);
+    await expect(page.getByRole('menuitem')).toHaveText(['Change default Voice Part', 'Sign out']);
   });
 
   test('is not shown on the waiting-for-approval screen', async ({ page, context }) => {

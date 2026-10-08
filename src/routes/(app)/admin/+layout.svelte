@@ -19,7 +19,7 @@
 
 <div class="mx-auto w-full max-w-4xl px-4 py-6 lg:px-10 lg:py-10">
   <h1 class="text-2xl font-semibold tracking-tight lg:text-3xl">Admin</h1>
-  <p class="text-zinc-500">Singers, Roles and the Colour Theme.</p>
+  <p class="text-zinc-500">Singers, Roles, Voice Parts and the Colour Theme.</p>
 
   <nav class="mt-6 flex overflow-x-auto border-b" aria-label="Admin sections">
     {#each adminTabs as item (item.key)}

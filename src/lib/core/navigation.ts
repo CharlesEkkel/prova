@@ -3,7 +3,8 @@
 import { isCurrentPage, isInSection, paths } from './paths';
 
 export type NavItem = {
-  readonly key: 'home' | 'admin' | 'admin-singers' | 'admin-roles' | 'admin-appearance';
+  readonly key:
+    'home' | 'admin' | 'admin-singers' | 'admin-roles' | 'admin-voice-parts' | 'admin-appearance';
   readonly label: string;
   readonly path: string;
   /** `section` stays lit for every page below its path, `page` only for the page itself. */
@@ -21,6 +22,7 @@ export const mainNavigation = (showAdmin: boolean): readonly NavItem[] =>
 export const adminTabs: readonly NavItem[] = [
   { key: 'admin-singers', label: 'Singers', path: paths.admin, match: 'page' },
   { key: 'admin-roles', label: 'Roles', path: paths.adminRoles, match: 'page' },
+  { key: 'admin-voice-parts', label: 'Voice Parts', path: paths.adminVoiceParts, match: 'page' },
   { key: 'admin-appearance', label: 'Appearance', path: paths.adminAppearance, match: 'page' },
 ];
 

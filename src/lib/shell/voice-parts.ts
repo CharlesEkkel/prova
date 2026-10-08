@@ -13,8 +13,23 @@ export const VoicePart = Schema.Struct({
 }).pipe(Schema.encodeKeys({ shortLabel: 'short_label' }));
 export type VoicePart = typeof VoicePart.Type;
 
+/** A Voice Part as the admin portal lists it, with how many Singers have it as their default. */
+export const AdminVoicePart = Schema.Struct({
+  id: VoicePartId,
+  name: Schema.String,
+  shortLabel: Schema.String,
+  singerCount: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+}).pipe(Schema.encodeKeys({ shortLabel: 'short_label', singerCount: 'singer_count' }));
+export type AdminVoicePart = typeof AdminVoicePart.Type;
+
 /** Why a Voice Part choice was not saved. */
 export type VoicePartProblem = 'none-chosen' | 'unavailable';
+
+/** What a screen says when a Singer's Voice Part choice was not saved. */
+export const voicePartChoiceMessages: Readonly<Record<VoicePartProblem, string>> = {
+  'none-chosen': 'Choose your Voice Part to continue.',
+  unavailable: 'That Voice Part is not available. Choose another.',
+};
 
 const VoicePartChoice = Schema.Struct({ voice_part: VoicePartId });
 const decodeVoicePartChoice = Schema.decodeUnknownEffect(VoicePartChoice);
@@ -48,3 +63,9 @@ export const saveVoicePartChoice = (
     Effect.mapError((problem) => (problem === 'none-chosen' ? problem : 'unavailable')),
     Effect.asVoid,
   );
+
+/** The Voice Parts for the admin portal, in order, each with the Singers who would choose again. */
+export const loadAdminVoiceParts = (
+  supabase: Supabase,
+): Effect.Effect<readonly AdminVoicePart[], SupabaseCallFailed> =>
+  callSupabaseAs(Schema.Array(AdminVoicePart), () => supabase.rpc('admin_voice_parts'));
