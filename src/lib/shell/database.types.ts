@@ -162,6 +162,18 @@ export type Database = {
           },
         ];
       };
+      site_settings: {
+        Row: {
+          colour_theme: string;
+        };
+        Insert: {
+          colour_theme?: string;
+        };
+        Update: {
+          colour_theme?: string;
+        };
+        Relationships: [];
+      };
       voice_parts: {
         Row: {
           id: string;

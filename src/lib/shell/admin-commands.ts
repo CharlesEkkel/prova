@@ -10,7 +10,7 @@ import { callSupabase, SupabaseCallFailed, type Supabase } from './supabase';
 const ErrorCode = Schema.Struct({ code: Schema.String });
 const isErrorCode = Schema.is(ErrorCode);
 
-const problemOf = ({ cause }: SupabaseCallFailed): AdminProblem => {
+export const problemOf = ({ cause }: SupabaseCallFailed): AdminProblem => {
   if (!isErrorCode(cause)) return 'failed';
   if (cause.code === '42501') return 'not-allowed';
   if (cause.code === '23505') return 'name-taken';
