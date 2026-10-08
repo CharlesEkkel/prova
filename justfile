@@ -33,7 +33,7 @@ set-owners *emails:
     #!/usr/bin/env bash
     set -euo pipefail
     eval "$(pnpm --silent exec supabase status -o env | sed 's/^/export /')"
-    PUBLIC_SUPABASE_URL="$API_URL" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" node scripts/set-owner-emails.mjs {{ emails }}
+    PUBLIC_SUPABASE_URL="$API_URL" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" node scripts/set-owner-emails.mjs {{ quote(emails) }}
 
 # Write .env from the running Supabase stack (replaces any existing .env), and create
 # supabase/.env from its example if it is missing (never overwritten: it holds the Google secret).

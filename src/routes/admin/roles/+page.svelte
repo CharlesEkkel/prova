@@ -2,7 +2,12 @@
   import { enhance } from '$app/forms';
   import AlertMessage from '../../../lib/components/AlertMessage.svelte';
   import Modal from '../../../lib/components/Modal.svelte';
-  import { canChangeRole, hasNoRead, mayOpenAdmin } from '../../../lib/core/admin-rules';
+  import {
+    canChangeRole,
+    canOfferPermission,
+    hasNoRead,
+    mayOpenAdmin,
+  } from '../../../lib/core/admin-rules';
   import {
     permissionDescriptions,
     rolePermissions,
@@ -14,11 +19,8 @@
   const { data, form }: { readonly data: PageData; readonly form: ActionData } = $props();
 
   const held = $derived(data.permissions);
-  // Only an Owner may put manage-users in a Role.
   const offered = $derived(
-    rolePermissions.filter(
-      (permission) => permission !== 'manage-users' || held.includes('manage-admins'),
-    ),
+    rolePermissions.filter((permission) => canOfferPermission(held, permission)),
   );
 
   type Dialog =

@@ -19,6 +19,12 @@ const emails = given
   .map((email) => email.trim())
   .filter((email) => email !== '');
 
+// An empty list would demote every Owner, so a missing OWNER_EMAILS must not pass silently.
+if (emails.length === 0) {
+  console.error('No owner emails given: pass them as arguments or set OWNER_EMAILS.');
+  process.exit(1);
+}
+
 const response = await fetch(new URL('/rest/v1/rpc/set_owner_emails', url), {
   method: 'POST',
   headers: { apikey: key, authorization: `Bearer ${key}`, 'content-type': 'application/json' },
@@ -29,4 +35,4 @@ if (!response.ok) {
   console.error(`Could not set the owner emails (${response.status}): ${await response.text()}`);
   process.exit(1);
 }
-console.log(emails.length === 0 ? 'No owner emails set.' : `Owners: ${emails.join(', ')}`);
+console.log(`Owners: ${emails.join(', ')}`);

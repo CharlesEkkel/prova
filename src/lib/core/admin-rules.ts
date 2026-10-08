@@ -29,3 +29,18 @@ export const canChangeSinger = (held: readonly Permission[], singer: SingerSumma
 /** A Role without `read` leaves its holders Pending. */
 export const hasNoRead = (permissions: readonly Permission[]): boolean =>
   !permissions.includes('read');
+
+/** A Singer without `read` is a Pending Singer. */
+export const isPendingSinger = (permissions: readonly Permission[]): boolean =>
+  hasNoRead(permissions);
+
+/**
+ * Whether a Role can be handed to a Singer: never one that holds manage-admins (Owner is derived,
+ * not granted), and one that holds manage-users only by an Owner.
+ */
+export const canGrantRole = (held: readonly Permission[], role: RoleSummary): boolean =>
+  !role.permissions.includes('manage-admins') && mayTouch(held, role.permissions);
+
+/** Whether a Permission can be ticked when building a Role: manage-users only by an Owner. */
+export const canOfferPermission = (held: readonly Permission[], permission: Permission): boolean =>
+  permission !== 'manage-admins' && mayTouch(held, [permission]);

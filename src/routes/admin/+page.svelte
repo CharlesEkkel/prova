@@ -2,20 +2,18 @@
   import { enhance } from '$app/forms';
   import AlertMessage from '../../lib/components/AlertMessage.svelte';
   import Modal from '../../lib/components/Modal.svelte';
-  import { canChangeSinger } from '../../lib/core/admin-rules';
+  import { canChangeSinger, canGrantRole, isPendingSinger } from '../../lib/core/admin-rules';
   import type { SingerRow } from '../../lib/shell/admin';
   import type { ActionData, PageData } from './$types';
 
   const { data, form }: { readonly data: PageData; readonly form: ActionData } = $props();
 
   const held = $derived(data.permissions);
-  const isPending = (singer: SingerRow) => !singer.permissions.includes('read');
+  const isPending = (singer: SingerRow) => isPendingSinger(singer.permissions);
   const pending = $derived(data.singers.filter(isPending));
   const approved = $derived(data.singers.filter((singer) => !isPending(singer)));
-  // Admin and Owner are Roles too; Owner is never offered, as nobody can be granted it.
-  const grantable = $derived(
-    data.roles.filter((role) => !(role.isBuiltin && role.name === 'Owner')),
-  );
+  // Only Roles this Singer may hand out are offered; Owner never is, as nobody can be granted it.
+  const grantable = $derived(data.roles.filter((role) => canGrantRole(held, role)));
 
   type Dialog = {
     readonly kind: 'edit-roles' | 'remove' | 'decline';
@@ -61,11 +59,7 @@
             Role
             <select name="role" required class="min-h-11 rounded border bg-transparent px-2">
               {#each grantable as role (role.id)}
-                <option
-                  value={role.id}
-                  disabled={!canChangeSinger(held, singer) ||
-                    (role.permissions.includes('manage-users') && !held.includes('manage-admins'))}
-                >
+                <option value={role.id}>
                   {role.name}
                 </option>
               {/each}
@@ -166,7 +160,6 @@
             name="role"
             value={role.id}
             checked={singer.roles.some((owned) => owned.id === role.id)}
-            disabled={role.permissions.includes('manage-users') && !held.includes('manage-admins')}
           />
           {role.name}
         </label>
