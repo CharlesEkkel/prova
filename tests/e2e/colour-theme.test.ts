@@ -163,6 +163,50 @@ test.describe('Admin > Appearance', () => {
     await other.close();
   });
 
+  test('a visitor who saw the old colour sees the new one in a fresh session once their cookie has expired', async ({
+    page,
+    context,
+    browser,
+  }) => {
+    // The visitor opens the site first, and the server gives them Forest and its cookie.
+    const visitorContext = await browser.newContext();
+    const visitor = await visitorContext.newPage();
+    await visitor.goto('/sign-in');
+    expect(await accentOf(visitor)).toBe('forest');
+    const issued = (await visitorContext.cookies()).find(({ name }) => name === cookieName);
+    expect(issued?.value).toBe('forest');
+    const hour = 60 * 60;
+    expect(issued?.expires).toBeGreaterThan(Date.now() / 1000 + hour - 120);
+
+    // Then an Admin changes the colour.
+    await signInAsSingerWith(context, ['manage-users']);
+    await page.goto('/admin/appearance');
+    await page.waitForLoadState('networkidle');
+    await page.getByTestId('colour-theme').filter({ hasText: 'Violet' }).click();
+    await expect.poll(() => accentOf(page)).toBe('violet');
+
+    // The visitor, still inside the hour, keeps what they had.
+    await visitor.reload();
+    expect(await accentOf(visitor)).toBe('forest');
+
+    // Their browser closes; later the cookie's hour is up, so the new session does not send it.
+    const saved = await visitorContext.storageState();
+    await visitorContext.close();
+    const afterAnHour = {
+      ...saved,
+      cookies: saved.cookies.map((cookie) =>
+        cookie.name === cookieName ? { ...cookie, expires: Date.now() / 1000 - 1 } : cookie,
+      ),
+    };
+    const fresh = await browser.newContext({ storageState: afterAnHour });
+    const returning = await fresh.newPage();
+    await returning.goto('/sign-in');
+
+    expect(await accentOf(returning)).toBe('violet');
+    expect((await fresh.cookies()).find(({ name }) => name === cookieName)?.value).toBe('violet');
+    await fresh.close();
+  });
+
   test('Reset to the default puts Forest back', async ({ page, context }) => {
     await signInAsSingerWith(context, ['manage-users']);
     await setInDatabase('sunset');
