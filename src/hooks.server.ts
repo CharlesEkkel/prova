@@ -3,6 +3,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { Handle } from '@sveltejs/kit/hooks';
 import { accessUnknown, resolveGate } from './lib/core/gate';
+import { colourThemeFor } from './lib/shell/colour-theme';
 import { valueOrNull } from './lib/shell/run';
 import { loadVisitor } from './lib/shell/visitor';
 import { createRequestSupabase } from './lib/shell/supabase';
@@ -19,10 +20,16 @@ export const handle: Handle = async ({ event, resolve }) => {
     error(503, 'Prova cannot check your access right now. Try again in a moment.');
   }
 
+  // The cookie keeps this to a database read once an hour; either way the theme is on <html> in
+  // the first response, before any script runs.
+  const colourTheme = await colourThemeFor(event.cookies, supabase);
+  Object.assign(event.locals, { colourTheme });
+
   const response = await resolve(event, {
+    transformPageChunk: ({ html }) => html.replace('%accent%', colourTheme),
     filterSerializedResponseHeaders: (name) => name === 'content-range',
   });
-  // Pages differ per person, so a shared cache must never keep them.
+  // Pages differ per person and by the Colour Theme cookie, so a shared cache must never keep them.
   if (response.headers.get('content-type')?.includes('text/html') === true) {
     response.headers.set('cache-control', 'private');
   }

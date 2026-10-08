@@ -19,10 +19,11 @@ describe('mainNavigation', () => {
 });
 
 describe('adminTabs', () => {
-  it('are Singers and Roles', () => {
+  it('are Singers, Roles and Appearance', () => {
     expect(adminTabs.map(({ label, path }) => [label, path])).toEqual([
       ['Singers', '/admin'],
       ['Roles', '/admin/roles'],
+      ['Appearance', '/admin/appearance'],
     ]);
   });
 });
@@ -32,6 +33,7 @@ describe('isActive', () => {
   const admin = itemWith(mainNavigation(true), 'admin');
   const singers = itemWith(adminTabs, 'admin-singers');
   const roles = itemWith(adminTabs, 'admin-roles');
+  const appearance = itemWith(adminTabs, 'admin-appearance');
 
   it('lights Admin for the portal and every page in it, and Home only for home', () => {
     expect(isActive(admin, '/admin/roles')).toBe(true);
@@ -41,7 +43,20 @@ describe('isActive', () => {
   });
 
   it('lights exactly one admin tab', () => {
-    expect([singers, roles].map((tab) => isActive(tab, '/admin'))).toEqual([true, false]);
-    expect([singers, roles].map((tab) => isActive(tab, '/admin/roles'))).toEqual([false, true]);
+    expect([singers, roles, appearance].map((tab) => isActive(tab, '/admin'))).toEqual([
+      true,
+      false,
+      false,
+    ]);
+    expect([singers, roles, appearance].map((tab) => isActive(tab, '/admin/roles'))).toEqual([
+      false,
+      true,
+      false,
+    ]);
+    expect([singers, roles, appearance].map((tab) => isActive(tab, '/admin/appearance'))).toEqual([
+      false,
+      false,
+      true,
+    ]);
   });
 });

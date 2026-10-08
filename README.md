@@ -41,6 +41,15 @@ Google is the only way in: email sign-up and anonymous sign-ins are switched off
 3. On Supabase cloud, in the dashboard: enable the Google provider with the same client; under Authentication → Sign In / Providers turn the **Email** provider off and **Allow anonymous sign-ins** off; under URL Configuration set the Site URL to the app's URL and add `https://<your-app>/auth/callback` to the redirect URLs.
 4. On Cloudflare Pages, set `PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_ANON_KEY` for the build. They are build-time variables (Vite bakes them into the app), and the build fails without them. Never set `SUPABASE_SERVICE_ROLE_KEY` anywhere the app runs; only the tests use it, against the local stack.
 
+## Colour Theme
+
+The Colour Theme (Forest, Violet, Ocean, Sunset or Graphite) is one site-wide setting: a single row in the `site_settings` table, seeded as Forest. A Singer holding `manage-users` changes it in Admin > Appearance; anyone, signed in or not, can read it.
+
+- **Cookie.** Each visitor's theme comes from a cookie named `prova-colour-theme`, which holds only the theme's name. When it is missing, expired or invalid, the server reads the database and sets it again for **one hour**; a failed read shows Forest and is remembered for a minute. The first HTML response already carries the theme on `<html data-accent>`, so there is no flash. The cookie is `HttpOnly`, `Secure`, `SameSite=Lax`, path `/`, and is kept when signing out.
+- **Delay.** The Admin who saves sees the change at once, because the save sets their own cookie. Everyone else sees it when their cookie expires, **within an hour**.
+- **Caching.** HTML is sent with `Cache-Control: private`, so a CDN never serves one visitor's theme to another. Built assets stay cacheable.
+- **Palettes.** `src/accents.css` re-points `--color-primary-*` for each theme but Forest, which is the default in `src/app.css`. It is generated: edit the palettes in `scripts/gen-accents.mjs`, run `node scripts/gen-accents.mjs`, and check in the output. A unit test keeps white on `primary-600` at 4.5:1 or better in all five.
+
 ## Tests
 
 There are three seams, each with a trivial passing test to start from.

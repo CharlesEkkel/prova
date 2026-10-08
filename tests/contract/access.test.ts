@@ -18,8 +18,7 @@ type CarveOut = { readonly reason: string; readonly columns: readonly string[] }
 
 /**
  * Tables any signed-in person may read before approval, each with the reason and the only columns
- * they may see. Anything not listed here must read as empty for a Pending Singer. The site Colour
- * Theme (#31) is added by #31.
+ * they may see. Anything not listed here must read as empty for a Pending Singer.
  */
 const readableBeforeApproval: ReadonlyMap<string, CarveOut> = new Map([
   [
@@ -29,6 +28,13 @@ const readableBeforeApproval: ReadonlyMap<string, CarveOut> = new Map([
         'a new Singer chooses their Voice Part before approval: the names and labels to show, ' +
         'the id the choice is saved by and the position the list is ordered by',
       columns: ['id', 'name', 'short_label', 'position'],
+    },
+  ],
+  [
+    'site_settings',
+    {
+      reason: 'the Colour Theme is shown to everyone, including a visitor who has not signed in',
+      columns: ['colour_theme'],
     },
   ],
   ['app_info', { reason: 'scaffold ping row, holds no choir data', columns: ['key', 'value'] }],

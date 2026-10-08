@@ -14,6 +14,7 @@ export const paths = {
   waiting: '/waiting',
   admin: '/admin',
   adminRoles: '/admin/roles',
+  adminAppearance: '/admin/appearance',
 } as const;
 
 /** Reachable at every stage of sign-in: the manifest, Invite Links and the built assets. */
@@ -35,6 +36,7 @@ export const formActions = {
   signIn: { google: 'google' },
   singers: { setRoles: 'setRoles', remove: 'remove' },
   roles: { create: 'create', update: 'update', delete: 'delete' },
+  appearance: { set: 'set', reset: 'reset' },
 } as const;
 
 /** The address of a named form action on the current page. */
