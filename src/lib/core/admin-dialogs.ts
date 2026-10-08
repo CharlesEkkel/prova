@@ -1,4 +1,5 @@
 // What the admin portal's dialogs say: their titles, explanations and action buttons.
+import { combinedTrackLabel } from './voice-parts';
 
 export type SingerDialogKind = 'approve' | 'edit-roles' | 'remove' | 'decline';
 export type RoleDialogKind = 'new' | 'edit' | 'delete';
@@ -83,8 +84,7 @@ export const voicePartDialogCopy = (
     case 'edit':
       return {
         title: `Edit ${name}`,
-        description:
-          'Renaming a Voice Part does not change its short label. The short label is unique in the choir, and All is kept for the Combined Track.',
+        description: `Renaming a Voice Part does not change its short label. The short label is unique in the choir, and ${combinedTrackLabel} is kept for the Combined Track.`,
         submit: 'Save Voice Part',
       };
     case 'remove':

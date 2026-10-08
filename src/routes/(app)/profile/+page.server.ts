@@ -1,12 +1,9 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { safeNextPath } from '../../../lib/core/gate';
 import { nextParam } from '../../../lib/core/paths';
+import { voicePartChoiceMessages } from '../../../lib/core/voice-parts';
 import { failureOrNull, valueOrNull } from '../../../lib/shell/run';
-import {
-  loadVoiceParts,
-  saveVoicePartChoice,
-  voicePartChoiceMessages,
-} from '../../../lib/shell/voice-parts';
+import { loadVoiceParts, saveVoicePartChoice } from '../../../lib/shell/voice-parts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {

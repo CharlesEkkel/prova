@@ -17,7 +17,7 @@
     "format:check": "prettier --check .",
     "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --fail-on-warnings && tsc --noEmit -p tsconfig.json",
     "test:resolver": "vitest run --project resolver",
-    "test:contract": "vitest run --project contract",
+    "test:contract": "vitest run --project contract && vitest run --project contract-exclusive",
     "test:e2e": "playwright test",
     "test": "pnpm test:resolver && pnpm test:contract && pnpm test:e2e",
     "supabase:start": "supabase start",

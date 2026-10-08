@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { adminTabs, isActive, mainNavigation, type NavItem } from './navigation';
+import {
+  adminTabs,
+  changeVoicePartLink,
+  isActive,
+  mainNavigation,
+  type NavItem,
+} from './navigation';
 
 const itemWith = (items: readonly NavItem[], key: NavItem['key']): NavItem => {
   const found = items.find((item) => item.key === key);
@@ -60,5 +66,24 @@ describe('isActive', () => {
       false,
       true,
     ]);
+  });
+});
+
+describe('changeVoicePartLink', () => {
+  it('opens the profile, and saving returns to the page it was opened from', () => {
+    expect(changeVoicePartLink('/admin/roles', '')).toBe('/profile?next=%2Fadmin%2Froles');
+  });
+
+  it('returns to the query as well as the path', () => {
+    expect(changeVoicePartLink('/', '?overview=abc')).toBe('/profile?next=%2F%3Foverview%3Dabc');
+  });
+
+  it('carries no return address from home, since saving returns home anyway', () => {
+    expect(changeVoicePartLink('/', '')).toBe('/profile');
+  });
+
+  it('returns home when opened from the profile itself, not back to the profile', () => {
+    expect(changeVoicePartLink('/profile', '')).toBe('/profile');
+    expect(changeVoicePartLink('/profile', '?next=%2Fadmin')).toBe('/profile');
   });
 });

@@ -7,6 +7,8 @@ alter table public.voice_parts
 create unique index voice_parts_name_unique on public.voice_parts (lower(name));
 create unique index voice_parts_short_label_unique on public.voice_parts (lower(short_label));
 
+-- The limits below (40 characters, 3 letters or digits, "All") are also in src/lib/core/voice-parts.ts;
+-- tests/contract/voice-part-admin.test.ts takes its boundaries from there, so they are kept in step.
 alter table public.voice_parts
   add constraint voice_parts_name_shape
     check (name = btrim(name) and char_length(name) between 1 and 40 and lower(name) <> 'all'),

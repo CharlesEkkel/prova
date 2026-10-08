@@ -26,6 +26,14 @@ export const suggestShortLabel = (name: string): string => {
   return `${first}${first === '' ? '' : number}`.slice(0, shortLabelMaxLength);
 };
 
+/** Why a Singer's choice of their own default Voice Part was not saved. */
+export type VoicePartChoiceProblem = 'none-chosen' | 'unavailable';
+
+export const voicePartChoiceMessages: Readonly<Record<VoicePartChoiceProblem, string>> = {
+  'none-chosen': 'Choose your Voice Part to continue.',
+  unavailable: 'That Voice Part is not available. Choose another.',
+};
+
 /** Why a change to the Voice Part list was not made. */
 export type VoicePartEditProblem =
   | 'not-allowed'

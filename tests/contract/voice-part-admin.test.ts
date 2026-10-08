@@ -9,6 +9,11 @@ import {
   signInNewSinger,
   type TestSinger,
 } from './support';
+import {
+  combinedTrackLabel,
+  shortLabelMaxLength,
+  voicePartNameMaxLength,
+} from '../../src/lib/core/voice-parts';
 
 /** Every Voice Part a test adds, so the shared list is left as the seed left it. */
 const created: string[] = [];
@@ -119,46 +124,58 @@ describe('the rules for a Voice Part’s name and short label', () => {
     expect(error).toMatchObject({ code: '23505', hint: 'label-taken' });
   });
 
-  it.each(['All', 'all', 'ALL', ' aLl '])(
-    'keeps %j for the Combined Track, as a label',
-    async (label) => {
-      const manager = await signInNewManager();
-
-      const { error } = await addAs(manager, `Everyone ${unique()}`, label);
-
-      expect(error).toMatchObject({ code: '22023', hint: 'reserved' });
-    },
-  );
-
-  it('keeps All for the Combined Track, as a name', async () => {
+  it.each([
+    combinedTrackLabel,
+    combinedTrackLabel.toLowerCase(),
+    combinedTrackLabel.toUpperCase(),
+    ` ${combinedTrackLabel.toLowerCase()} `,
+  ])('keeps %j for the Combined Track, as a label', async (label) => {
     const manager = await signInNewManager();
 
-    const { error } = await addAs(manager, 'all', freshLabel());
+    const { error } = await addAs(manager, `Everyone ${unique()}`, label);
 
     expect(error).toMatchObject({ code: '22023', hint: 'reserved' });
   });
 
-  it.each(['', '   ', 'ABCD', 'A 1', 'A-1', 'É'])('refuses the short label %j', async (label) => {
+  it('keeps the Combined Track’s label for it, as a name', async () => {
     const manager = await signInNewManager();
 
-    const { error } = await addAs(manager, `Odd label ${unique()}`, label);
+    const { error } = await addAs(manager, combinedTrackLabel.toLowerCase(), freshLabel());
 
-    expect(error).toMatchObject({ code: '22023', hint: 'invalid' });
+    expect(error).toMatchObject({ code: '22023', hint: 'reserved' });
   });
 
-  it.each(['', '   ', 'x'.repeat(41)])('refuses the name %j', async (name) => {
-    const manager = await signInNewManager();
+  it.each(['', '   ', 'A'.repeat(shortLabelMaxLength + 1), 'A 1', 'A-1', 'É'])(
+    'refuses the short label %j',
+    async (label) => {
+      const manager = await signInNewManager();
 
-    const { error } = await addAs(manager, name, freshLabel());
+      const { error } = await addAs(manager, `Odd label ${unique()}`, label);
 
-    expect(error).toMatchObject({ code: '22023', hint: 'invalid' });
-  });
+      expect(error).toMatchObject({ code: '22023', hint: 'invalid' });
+    },
+  );
 
-  it('accepts a name of exactly 40 characters and a three-character numbered label', async () => {
+  it.each(['', '   ', 'x'.repeat(voicePartNameMaxLength + 1)])(
+    'refuses the name %j',
+    async (name) => {
+      const manager = await signInNewManager();
+
+      const { error } = await addAs(manager, name, freshLabel());
+
+      expect(error).toMatchObject({ code: '22023', hint: 'invalid' });
+    },
+  );
+
+  // These limits are written in the database and in core/voice-parts.ts. Taking the boundaries from
+  // core here is what stops the two drifting apart.
+  it('accepts the longest name and short label the core rules allow', async () => {
     const manager = await signInNewManager();
     const before = await countParts();
+    const longestName = `${'x'.repeat(voicePartNameMaxLength - unique().length)}${unique()}`;
+    const longestLabel = `T${'1'.repeat(shortLabelMaxLength - 1)}`;
 
-    const { error } = await addAs(manager, 'x'.repeat(30) + unique().padEnd(10, 'y'), 'T12');
+    const { error } = await addAs(manager, longestName, longestLabel);
 
     expect(error).toBeNull();
     expect(await countParts()).toBe(before + 1);

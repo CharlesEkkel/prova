@@ -2,23 +2,14 @@
   import { DropdownMenu } from 'bits-ui';
   import { ChevronDown } from '@lucide/svelte';
   import { page } from '$app/state';
-  import { safeNextPath } from '../../core/gate';
-  import { paths, pathWithNext } from '../../core/paths';
-  import { homePath } from '../../core/safe-path';
+  import { changeVoicePartLink } from '../../core/navigation';
+  import { paths } from '../../core/paths';
   import PersonAvatar from '../ui/PersonAvatar.svelte';
   import { menuEntry, menuPanel } from '../ui/styles';
 
   const { name, voicePart }: { readonly name: string; readonly voicePart: string } = $props();
 
-  // Saving a change returns the Singer to the page they were on, or home from the profile itself.
-  const profileHref = $derived(
-    pathWithNext(
-      paths.profile,
-      page.url.pathname === paths.profile
-        ? homePath
-        : safeNextPath(page.url.pathname + page.url.search),
-    ),
-  );
+  const profileHref = $derived(changeVoicePartLink(page.url.pathname, page.url.search));
 
   let signOutForm = $state<HTMLFormElement | null>(null);
 </script>

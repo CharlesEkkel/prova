@@ -14,6 +14,7 @@
   import { voicePartDialogCopy } from '../../../../lib/core/admin-dialogs';
   import { actionPath, formActions } from '../../../../lib/core/paths';
   import {
+    combinedTrackLabel,
     shortLabelMaxLength,
     shortLabelPattern,
     suggestShortLabel,
@@ -29,13 +30,16 @@
     { readonly kind: 'new' } | { readonly kind: 'edit' | 'remove'; readonly part: AdminVoicePart };
   const dialog = createDialogState<Dialog>();
   const current = $derived(dialog.current);
+  // The Voice Part a dialog is about; the dialog for a new one is about none yet.
+  const subjectOf = (dialogue: Dialog): AdminVoicePart | null =>
+    dialogue.kind === 'new' ? null : dialogue.part;
   const copy = $derived(
     current === null
       ? null
       : voicePartDialogCopy(
           current.kind,
-          current.kind === 'new' ? '' : current.part.name,
-          current.kind === 'new' ? 0 : current.part.singerCount,
+          subjectOf(current)?.name ?? '',
+          subjectOf(current)?.singerCount ?? 0,
         ),
   );
   const closeIfDone = closeOnSuccess(dialog.close);
@@ -52,8 +56,8 @@
 
   const openDialog = (next: Dialog) => {
     dismissed = form;
-    name = next.kind === 'edit' ? next.part.name : '';
-    label = next.kind === 'edit' ? next.part.shortLabel : '';
+    name = subjectOf(next)?.name ?? '';
+    label = subjectOf(next)?.shortLabel ?? '';
     labelEdited = next.kind === 'edit';
     dialog.open(next);
   };
@@ -222,8 +226,8 @@
           }}
         />
         <p class={hint}>
-          Up to {shortLabelMaxLength} letters or digits, unique in the choir. All is kept for the Combined
-          Track.
+          Up to {shortLabelMaxLength} letters or digits, unique in the choir. {combinedTrackLabel} is
+          kept for the Combined Track.
         </p>
       </div>
       {#if problem !== undefined}

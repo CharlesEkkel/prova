@@ -11,23 +11,24 @@ import { failureOrNull } from './run';
 import { callSupabase, type Supabase } from './supabase';
 import { VoicePartId } from './voice-parts';
 
-const Text = Schema.String;
-const NewPartForm = Schema.Struct({ name: Text, label: Text });
+// Plain text here: the database decides what a name and short label may be, and says which rule broke.
+const FormText = Schema.String;
+const NewPartForm = Schema.Struct({ name: FormText, label: FormText });
 const EditPartForm = Schema.Struct({ ...NewPartForm.fields, part: VoicePartId });
 /** The Voice Parts in the order the Admin dropped them, as one `part` field per Voice Part. */
 const ReorderForm = Schema.Struct({ parts: Schema.Array(VoicePartId) });
 const PartForm = Schema.Struct({ part: VoicePartId });
 
-const HasCode = Schema.Struct({ code: Schema.String });
-const HasHint = Schema.Struct({ hint: Schema.String });
-const isHasCode = Schema.is(HasCode);
-const isHasHint = Schema.is(HasHint);
+const ErrorWithCode = Schema.Struct({ code: Schema.String });
+const ErrorWithHint = Schema.Struct({ hint: Schema.String });
+const hasCode = Schema.is(ErrorWithCode);
+const hasHint = Schema.is(ErrorWithHint);
 
 /** Which problem a failed call means, from the code and hint the database answered with. */
 const problemOf = (cause: unknown): VoicePartEditProblem =>
   voicePartProblemOf({
-    ...(isHasCode(cause) ? { code: cause.code } : {}),
-    ...(isHasHint(cause) ? { hint: cause.hint } : {}),
+    ...(hasCode(cause) ? { code: cause.code } : {}),
+    ...(hasHint(cause) ? { hint: cause.hint } : {}),
   });
 
 /** A form's fields, with the repeated `part` ones (a new order) gathered into `parts`. */
@@ -38,8 +39,8 @@ const fieldsOf = (form: FormData): Readonly<Record<string, unknown>> => ({
 
 type RpcReply = PromiseLike<{ readonly data?: unknown; readonly error: unknown }>;
 
-/** A command: decode the submitted form, then make one RPC call with what it said. */
-const command =
+/** A Voice Part command: decode the submitted form, then make one RPC call with what it said. */
+const voicePartCommand =
   <A, I>(schema: Schema.Codec<A, I>, call: (supabase: Supabase, input: A) => RpcReply) =>
   (supabase: Supabase, request: Request): Effect.Effect<void, VoicePartEditProblem> =>
     Effect.tryPromise(() => request.formData()).pipe(
@@ -53,27 +54,27 @@ const command =
       Effect.asVoid,
     );
 
-export const addVoicePart = command(NewPartForm, (supabase, { name, label }) =>
+export const addVoicePart = voicePartCommand(NewPartForm, (supabase, { name, label }) =>
   supabase.rpc('admin_add_voice_part', { part_name: name, part_label: label }),
 );
 
-export const updateVoicePart = command(EditPartForm, (supabase, { part, name, label }) =>
+export const updateVoicePart = voicePartCommand(EditPartForm, (supabase, { part, name, label }) =>
   supabase.rpc('admin_update_voice_part', { target: part, part_name: name, part_label: label }),
 );
 
-export const reorderVoiceParts = command(ReorderForm, (supabase, { parts }) =>
+export const reorderVoiceParts = voicePartCommand(ReorderForm, (supabase, { parts }) =>
   supabase.rpc('admin_reorder_voice_parts', { ordered: [...parts] }),
 );
 
-export const removeVoicePart = command(PartForm, (supabase, { part }) =>
+export const removeVoicePart = voicePartCommand(PartForm, (supabase, { part }) =>
   supabase.rpc('admin_remove_voice_part', { target: part }),
 );
 
-type Command = typeof addVoicePart;
+type VoicePartCommand = typeof addVoicePart;
 
 /** What a form action returns: success, or a refusal carrying the message to show. */
 export const runVoicePartAction = async (
-  run: Command,
+  run: VoicePartCommand,
   supabase: Supabase,
   request: Request,
 ): Promise<{ readonly ok: true } | ActionFailure<{ readonly problem: string }>> => {
