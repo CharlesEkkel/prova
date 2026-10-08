@@ -3,8 +3,11 @@
   import { Dialog } from 'bits-ui';
   import { Moon, Sun } from '@lucide/svelte';
   import { signOutPath } from '../lib/core/gate';
+  import type { PageData } from './$types';
   import { getDisplayMode, setDisplayMode } from '../lib/shell/display-mode-adapter';
   import type { DisplayMode } from '../lib/shell/display-mode';
+
+  const { data }: { readonly data: PageData } = $props();
 
   let mode = $state<DisplayMode>('system');
 
@@ -58,6 +61,10 @@
       </Dialog.Content>
     </Dialog.Portal>
   </Dialog.Root>
+
+  {#if data.showAdminLink}
+    <a class="w-fit rounded border px-3 py-1" href="/admin">Admin</a>
+  {/if}
 
   <!-- Until the app shell (#30) puts Sign out in the user menu. -->
   <form method="POST" action={signOutPath}>

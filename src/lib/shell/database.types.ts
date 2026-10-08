@@ -38,6 +38,18 @@ export type Database = {
         };
         Relationships: [];
       };
+      owner_emails: {
+        Row: {
+          email: string;
+        };
+        Insert: {
+          email: string;
+        };
+        Update: {
+          email?: string;
+        };
+        Relationships: [];
+      };
       role_permissions: {
         Row: {
           permission: Database['public']['Enums']['permission'];
@@ -63,15 +75,21 @@ export type Database = {
       };
       roles: {
         Row: {
+          builtin: string | null;
           id: string;
+          is_builtin: boolean | null;
           name: string;
         };
         Insert: {
+          builtin?: string | null;
           id?: string;
+          is_builtin?: never;
           name: string;
         };
         Update: {
+          builtin?: string | null;
           id?: string;
+          is_builtin?: never;
           name?: string;
         };
         Relationships: [];
@@ -170,19 +188,57 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      admin_create_role: {
+        Args: { perms: Database['public']['Enums']['permission'][]; role_name: string };
+        Returns: string;
+      };
+      admin_delete_role: { Args: { target: string }; Returns: undefined };
+      admin_remove_singer: { Args: { target: string }; Returns: undefined };
+      admin_roles: { Args: Record<PropertyKey, never>; Returns: Json };
+      admin_set_singer_roles: { Args: { role_ids: string[]; target: string }; Returns: undefined };
+      admin_singers: { Args: Record<PropertyKey, never>; Returns: Json };
+      admin_update_role: {
+        Args: {
+          perms: Database['public']['Enums']['permission'][];
+          role_name: string;
+          target: string;
+        };
+        Returns: undefined;
+      };
+      check_role_definition: {
+        Args: {
+          except_role: string;
+          perms: Database['public']['Enums']['permission'][];
+          role_name: string;
+        };
+        Returns: undefined;
+      };
+      grant_admin_to_owners: { Args: Record<PropertyKey, never>; Returns: undefined };
       has_permission: {
         Args: { required: Database['public']['Enums']['permission'] };
         Returns: boolean;
       };
+      is_owner: { Args: { singer: string }; Returns: boolean };
       my_default_voice_part: { Args: Record<PropertyKey, never>; Returns: Json };
       my_permissions: {
         Args: Record<PropertyKey, never>;
         Returns: Database['public']['Enums']['permission'][];
       };
+      permissions_of: {
+        Args: { singer: string };
+        Returns: Database['public']['Enums']['permission'][];
+      };
+      require_manage_admins_if: { Args: { touches_manage_users: boolean }; Returns: undefined };
+      require_permission: {
+        Args: { required: Database['public']['Enums']['permission'] };
+        Returns: undefined;
+      };
+      role_grants_manage_users: { Args: { role: string }; Returns: boolean };
       set_my_default_voice_part: { Args: { chosen: string }; Returns: undefined };
+      set_owner_emails: { Args: { emails: string[] }; Returns: undefined };
     };
     Enums: {
-      permission: 'read' | 'append' | 'update' | 'delete' | 'manage-users';
+      permission: 'read' | 'append' | 'update' | 'delete' | 'manage-users' | 'manage-admins';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -297,7 +353,7 @@ export const Constants = {
   },
   public: {
     Enums: {
-      permission: ['read', 'append', 'update', 'delete', 'manage-users'],
+      permission: ['read', 'append', 'update', 'delete', 'manage-users', 'manage-admins'],
     },
   },
 } as const;

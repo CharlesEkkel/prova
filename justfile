@@ -28,33 +28,12 @@ db-down:
 db-reset:
     pnpm supabase:reset
 
-# Approve a Singer locally: give them an "Admin" Role holding every Permission. They must have signed in once. Stopgap until #15.
-make-admin email:
+# Set the owner emails (the whole list, replacing any earlier one) on the local stack. A Singer is an Owner while their verified Google email is listed. Safe to repeat; the deployment runs the same script.
+set-owners *emails:
     #!/usr/bin/env bash
     set -euo pipefail
-    granted=$(docker exec -i supabase_db_prova psql -U postgres -qtA -v ON_ERROR_STOP=1 -v email={{ quote(email) }} <<'SQL'
-    with r as (
-      insert into public.roles (name) values ('Admin')
-      on conflict (name) do update set name = excluded.name
-      returning id
-    ), p as (
-      insert into public.role_permissions (role_id, permission)
-      select r.id, x from r, unnest(enum_range(null::public.permission)) x
-      on conflict do nothing
-    ), g as (
-      insert into public.singer_roles (singer_id, role_id)
-      select s.id, r.id from public.singers s, r where s.email = :'email'
-      on conflict do nothing
-      returning 1
-    )
-    select count(*) from public.singers where email = :'email';
-    SQL
-    )
-    if [ "$granted" = "0" ]; then
-      echo "No Singer with email {{ email }}: sign in with Google once first." >&2
-      exit 1
-    fi
-    echo "{{ email }} is now an Admin"
+    eval "$(pnpm --silent exec supabase status -o env | sed 's/^/export /')"
+    PUBLIC_SUPABASE_URL="$API_URL" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" node scripts/set-owner-emails.mjs {{ quote(emails) }}
 
 # Write .env from the running Supabase stack (replaces any existing .env), and create
 # supabase/.env from its example if it is missing (never overwritten: it holds the Google secret).

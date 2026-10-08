@@ -43,3 +43,13 @@ export const signInAsApprovedSinger = async (context: BrowserContext): Promise<T
   await singer.client.rpc('set_my_default_voice_part', { chosen: alto });
   return singer;
 };
+
+/** Signs in an approved Singer who also holds the given Permissions. */
+export const signInAsSingerWith = async (
+  context: BrowserContext,
+  extra: readonly Parameters<typeof grantRole>[1][number][],
+): Promise<TestSinger> => {
+  const singer = await signInAsApprovedSinger(context);
+  await grantRole(singer, extra);
+  return singer;
+};

@@ -35,7 +35,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['**/*.svelte'],
+    files: ['**/*.svelte', '**/*.svelte.ts'],
     languageOptions: { parserOptions: { parser: tseslint.parser } },
   },
   {
@@ -82,7 +82,7 @@ export default tseslint.config(
   },
   {
     // Immutability is relaxed in the shell, in components ($state) and in tests.
-    files: [...shellFiles, ...testFiles, '**/*.svelte', '*.config.*'],
+    files: [...shellFiles, ...testFiles, '**/*.svelte', '**/*.svelte.ts', '*.config.*'],
     rules: {
       'functional/immutable-data': 'off',
       'functional/no-let': 'off',
