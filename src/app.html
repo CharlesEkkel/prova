@@ -7,13 +7,17 @@
     <!-- Apply the saved Display Mode before first paint so a reload never flashes the wrong theme.
          Keep in step with src/lib/shell/display-mode.ts (same storage key and logic). -->
     <script>
+      // Same rules as loadDisplayMode: only a saved light or dark counts, anything else (or blocked
+      // storage) means System.
+      var choice = 'system';
       try {
-        var choice = localStorage.getItem('prova-display-mode') || 'system';
-        var dark =
-          choice === 'dark' ||
-          (choice === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
-        document.documentElement.classList.toggle('dark', dark);
+        var saved = localStorage.getItem('prova-display-mode');
+        if (saved === 'light' || saved === 'dark') choice = saved;
       } catch (e) {}
+      var dark =
+        choice === 'dark' ||
+        (choice === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.classList.toggle('dark', dark);
     </script>
     %sveltekit.head%
   </head>

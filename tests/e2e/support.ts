@@ -1,6 +1,6 @@
 // Browser-test support: real people with real sessions, without going through Google.
 import { createServerClient } from '@supabase/ssr';
-import type { BrowserContext } from '@playwright/test';
+import type { BrowserContext, Locator, Page } from '@playwright/test';
 import { anonKey, grantRole, signInNewSinger, url, type TestSinger } from '../contract/support';
 
 const appUrl = 'http://localhost:4173';
@@ -52,4 +52,26 @@ export const signInAsSingerWith = async (
   const singer = await signInAsApprovedSinger(context);
   await grantRole(singer, extra);
   return singer;
+};
+
+/** The desktop layout starts at `lg`, 1024 px. */
+export const isDesktopLayout = (page: Page): boolean => (page.viewportSize()?.width ?? 0) >= 1024;
+
+/**
+ * The main navigation, opening the drawer first on a phone. On desktop the sidebar is always there.
+ */
+export const openNavigation = async (page: Page): Promise<Locator> => {
+  if (!isDesktopLayout(page)) {
+    // A click before the page has hydrated is lost, so let it settle first.
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: 'Open menu' }).click();
+  }
+  return page.getByRole('navigation', { name: 'Main' });
+};
+
+/** Signs out through the user menu, in the sidebar or the drawer. */
+export const signOutFromMenu = async (page: Page): Promise<void> => {
+  await openNavigation(page);
+  await page.getByRole('button', { name: /^User menu for/ }).click();
+  await page.getByRole('menuitem', { name: 'Sign out' }).click();
 };

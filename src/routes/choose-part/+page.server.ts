@@ -1,5 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { nextParam, safeNextPath } from '../../lib/core/gate';
+import { safeNextPath } from '../../lib/core/gate';
+import { nextParam } from '../../lib/core/paths';
 import { failureOrNull, valueOrNull } from '../../lib/shell/run';
 import {
   loadVoiceParts,

@@ -4,6 +4,8 @@ import { Effect, Schema } from 'effect';
 export const DisplayMode = Schema.Literals(['system', 'light', 'dark']);
 export type DisplayMode = typeof DisplayMode.Type;
 
+export const isDisplayMode = Schema.is(DisplayMode);
+
 export const displayModeStorageKey = 'prova-display-mode';
 
 export const resolveDark = (mode: DisplayMode, systemPrefersDark: boolean): boolean =>
@@ -19,11 +21,29 @@ export const loadDisplayMode: Effect.Effect<DisplayMode> = Effect.try(() =>
   Effect.orElseSucceed((): DisplayMode => 'system'),
 );
 
-export const saveDisplayMode = (mode: DisplayMode): Effect.Effect<void> =>
-  Effect.sync(() => {
+const systemQuery = () => matchMedia('(prefers-color-scheme: dark)');
+
+/** Shows the Display Mode on the page: dark mode is a class on <html>. Returns whether it is dark. */
+export const applyDisplayMode = (mode: DisplayMode): boolean => {
+  const dark = resolveDark(mode, systemQuery().matches);
+  document.documentElement.classList.toggle('dark', dark);
+  return dark;
+};
+
+export const saveDisplayMode = (mode: DisplayMode): Effect.Effect<boolean> =>
+  // Remembering is best effort (storage can be blocked); the choice still applies for this visit.
+  Effect.try(() => {
     localStorage.setItem(displayModeStorageKey, mode);
-    document.documentElement.classList.toggle(
-      'dark',
-      resolveDark(mode, matchMedia('(prefers-color-scheme: dark)').matches),
-    );
-  });
+  }).pipe(
+    Effect.ignore,
+    Effect.map(() => applyDisplayMode(mode)),
+  );
+
+/** Calls `onChange` whenever the device switches between light and dark. Returns how to stop. */
+export const watchSystemPreference = (onChange: () => void): (() => void) => {
+  const query = systemQuery();
+  query.addEventListener('change', onChange);
+  return () => {
+    query.removeEventListener('change', onChange);
+  };
+};

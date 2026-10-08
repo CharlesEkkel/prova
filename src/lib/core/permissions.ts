@@ -9,6 +9,16 @@ export const permissions = [
 ] as const;
 export type Permission = (typeof permissions)[number];
 
+/** How each Permission is named on screen. The names in `CONTEXT.md` are the keys. */
+export const permissionLabels: Readonly<Record<Permission, string>> = {
+  read: 'Read',
+  append: 'Append',
+  update: 'Update',
+  delete: 'Delete',
+  'manage-users': 'Manage users',
+  'manage-admins': 'Manage admins',
+};
+
 /** What each Permission lets a Singer do, as shown beside it in the admin portal. */
 export const permissionDescriptions: Readonly<Record<Permission, string>> = {
   read: 'See and play Pieces, Practice Tracks, Scores and Performances. Without it a Singer stays Pending.',

@@ -3,6 +3,68 @@
 /* Dark mode is a class on <html>, so a Singer can override the device setting. */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+ * The primary colour is a token, not a hard-coded palette: components use `primary-*` and never name
+ * a hue. It currently points at Forest, the default Colour Theme (the prototype's mapping: the green
+ * palette, one step darker, so primary-600 is green-700 and white text stays readable). The site
+ * Colour Theme (#31) re-points these per theme, as the prototype's accents.css does.
+ */
+@theme {
+  --color-primary-50: var(--color-green-50);
+  --color-primary-100: var(--color-green-100);
+  --color-primary-200: var(--color-green-200);
+  --color-primary-300: var(--color-green-300);
+  --color-primary-400: var(--color-green-500);
+  --color-primary-500: var(--color-green-600);
+  --color-primary-600: var(--color-green-700);
+  --color-primary-700: var(--color-green-800);
+  --color-primary-800: var(--color-green-900);
+  --color-primary-900: var(--color-green-950);
+  --color-primary-950: var(--color-green-950);
+}
+
+@layer base {
+  /* Tailwind 4 draws borders in the text colour unless told otherwise, which looks like a black outline. */
+  *,
+  ::after,
+  ::before,
+  ::backdrop {
+    border-color: var(--color-zinc-200);
+  }
+  .dark *,
+  .dark ::after,
+  .dark ::before,
+  .dark ::backdrop {
+    border-color: var(--color-zinc-800);
+  }
+
+  /* Tailwind 4 leaves buttons with the default arrow; anything you can press shows a pointer. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='menuitem']:not([data-disabled]),
+  [role='radio'],
+  [role='checkbox'],
+  [role='tab'],
+  select:not(:disabled),
+  summary,
+  a {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+  }
+
+  /* Native controls (scrollbars, inputs) follow the Display Mode class, not just the device setting. */
+  html.dark {
+    color-scheme: dark;
+  }
+  html:not(.dark) {
+    color-scheme: light;
+  }
+}
+
 body {
-  @apply bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100;
+  @apply bg-zinc-50 text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100;
 }

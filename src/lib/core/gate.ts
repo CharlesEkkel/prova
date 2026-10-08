@@ -1,6 +1,15 @@
 // The sign-in gate: where a person belongs, given how far through sign-in they are. Pure; the
 // shell reads the session and the database, then asks this where to send the request.
 import type { Permission } from './permissions';
+import {
+  appAssetsPrefix,
+  invitePrefix,
+  manifestPath,
+  nextParam,
+  pathWithNext,
+  paths,
+  pdfjsPrefix,
+} from './paths';
 import { homePath, onDummyOrigin, sameSitePath, type SafePath } from './safe-path';
 
 /** What the shell knows about a signed-in person. The Singer and Voice Part are the shell's types. */
@@ -48,26 +57,10 @@ export const accessOf = <Singer, Part>({
     ? { stage: 'needs-voice-part', singer, permissions }
     : { stage: permissions.includes('read') ? 'ready' : 'pending', singer, permissions, voicePart };
 
-/** Where Google sends a person back to, with the one-time code that becomes their session. */
-export const callbackPath = '/auth/callback';
-
-export const signInPath = '/sign-in';
-export const signOutPath = '/sign-out';
-
-/** The query parameter that carries where a person was headed through sign-in. */
-export const nextParam = 'next';
-
-/** `path` (which may already have a query), carrying `next` along unless that is just home. */
-export const pathWithNext = (path: string, next: SafePath): string => {
-  if (next === homePath) return path;
-  const query = new URLSearchParams({ [nextParam]: next }).toString();
-  return `${path}${path.includes('?') ? '&' : '?'}${query}`;
-};
-
 const gatePageOf: Readonly<Record<Exclude<Stage, 'ready' | 'unknown'>, string>> = {
-  'signed-out': signInPath,
-  'needs-voice-part': '/choose-part',
-  pending: '/waiting',
+  'signed-out': paths.signIn,
+  'needs-voice-part': paths.chooseVoicePart,
+  pending: paths.waiting,
 };
 
 const gatePages: readonly string[] = Object.values(gatePageOf);
@@ -79,17 +72,17 @@ const homeOf = (stage: Exclude<Stage, 'unknown'>): string =>
 
 /** Reachable at every stage: sign-in plumbing, sign-out, Invite Links, the manifest and built assets. */
 const isAlwaysPublic = (pathname: string): boolean =>
-  pathname === callbackPath ||
-  pathname === signOutPath ||
-  pathname === '/manifest.webmanifest' ||
-  pathname.startsWith('/invite/') ||
-  pathname.startsWith('/_app/') ||
-  pathname.startsWith('/pdfjs/');
+  pathname === paths.authCallback ||
+  pathname === paths.signOut ||
+  pathname === manifestPath ||
+  pathname.startsWith(invitePrefix) ||
+  pathname.startsWith(appAssetsPrefix) ||
+  pathname.startsWith(pdfjsPrefix);
 
 /** A gate page would loop, and the callback needs a fresh code from Google. */
 const leadsBackIntoSignIn = (path: SafePath): boolean => {
   const { pathname } = onDummyOrigin(path);
-  return isGatePage(pathname) || pathname === callbackPath;
+  return isGatePage(pathname) || pathname === paths.authCallback;
 };
 
 /**

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { destinationCookie } from '../../src/lib/shell/destination-cookie';
 import { grantRole } from '../contract/support';
-import { signInAsApprovedSinger, signInAsNewSinger } from './support';
+import { signInAsApprovedSinger, signInAsNewSinger, signOutFromMenu } from './support';
 
 test.describe('signed out', () => {
   test('a visitor to any page is sent to sign-in, remembering where they were headed', async ({
@@ -169,7 +169,7 @@ test.describe('a Pending Singer', () => {
     await page.getByRole('button', { name: 'Check again' }).click();
 
     await expect(page).toHaveURL('/');
-    await expect(page.getByRole('heading', { name: 'Prova' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^Welcome/ })).toBeVisible();
   });
 
   test('re-checks by itself when the Singer comes back to the tab', async ({ page, context }) => {
@@ -246,7 +246,7 @@ test.describe('an approved Singer', () => {
     await signInAsApprovedSinger(context);
     await page.goto('/');
 
-    await page.getByRole('button', { name: 'Sign out' }).click();
+    await signOutFromMenu(page);
     await expect(page).toHaveURL('/sign-in');
 
     await page.goto('/');

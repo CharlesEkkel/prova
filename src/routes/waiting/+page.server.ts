@@ -1,9 +1,10 @@
 import { redirect } from '@sveltejs/kit';
+import { paths } from '../../lib/core/paths';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ locals: { visitor } }) => {
   // The gate sends only a Pending Singer here; anyone else goes back through it.
-  if (visitor.stage !== 'pending') redirect(303, '/');
+  if (visitor.stage !== 'pending') redirect(303, paths.home);
   return {
     displayName: visitor.singer.displayName,
     email: visitor.singer.email,
