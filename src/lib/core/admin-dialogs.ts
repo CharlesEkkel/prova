@@ -1,7 +1,9 @@
 // What the admin portal's dialogs say: their titles, explanations and action buttons.
+import { combinedTrackLabel } from './voice-parts';
 
 export type SingerDialogKind = 'approve' | 'edit-roles' | 'remove' | 'decline';
 export type RoleDialogKind = 'new' | 'edit' | 'delete';
+export type VoicePartDialogKind = 'new' | 'edit' | 'remove';
 
 export type DialogCopy = {
   readonly title: string;
@@ -61,6 +63,38 @@ export const roleDialogCopy = (kind: RoleDialogKind, name: string, holders: numb
         title: `Delete the ${name} Role?`,
         description: `${singerCountLabel(holders)} will lose this Role. Permissions from their other Roles are kept. This cannot be undone.`,
         submit: 'Delete Role',
+      };
+  }
+};
+
+/** The wording for a dialog about a Voice Part; `singers` is how many have it as their default. */
+export const voicePartDialogCopy = (
+  kind: VoicePartDialogKind,
+  name: string,
+  singers: number,
+): DialogCopy => {
+  switch (kind) {
+    case 'new':
+      return {
+        title: 'New Voice Part',
+        description:
+          'The short label is what fits on small screens, such as A1 for Alto 1. Change the suggestion if it clashes.',
+        submit: 'Add Voice Part',
+      };
+    case 'edit':
+      return {
+        title: `Edit ${name}`,
+        description: `Renaming a Voice Part does not change its short label. The short label is unique in the choir, and ${combinedTrackLabel} is kept for the Combined Track.`,
+        submit: 'Save Voice Part',
+      };
+    case 'remove':
+      return {
+        title: `Remove ${name}?`,
+        description:
+          singers === 0
+            ? 'No Singer has this as their default.'
+            : `${singers === 1 ? '1 Singer has' : `${singers.toString()} Singers have`} this as their default and will be asked to choose again.`,
+        submit: 'Remove Voice Part',
       };
   }
 };

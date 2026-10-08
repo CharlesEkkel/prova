@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { roleDialogCopy, singerCountLabel, singerDialogCopy } from './admin-dialogs';
+import {
+  roleDialogCopy,
+  singerCountLabel,
+  singerDialogCopy,
+  voicePartDialogCopy,
+} from './admin-dialogs';
 
 describe('singerCountLabel', () => {
   it('counts Singers with the right plural', () => {
@@ -56,5 +61,34 @@ describe('roleDialogCopy', () => {
   it('warns how many Singers a deletion affects', () => {
     expect(roleDialogCopy('delete', 'Choir', 1).description).toMatch(/^1 Singer will lose/);
     expect(roleDialogCopy('delete', 'Choir', 0).description).toMatch(/^0 Singers will lose/);
+  });
+});
+
+describe('voicePartDialogCopy', () => {
+  it('titles each Voice Part dialog and names the action', () => {
+    expect(voicePartDialogCopy('new', '', 0)).toMatchObject({
+      title: 'New Voice Part',
+      submit: 'Add Voice Part',
+    });
+    expect(voicePartDialogCopy('edit', 'Alto 1', 3)).toMatchObject({
+      title: 'Edit Alto 1',
+      submit: 'Save Voice Part',
+    });
+    expect(voicePartDialogCopy('remove', 'Alto 1', 3)).toMatchObject({
+      title: 'Remove Alto 1?',
+      submit: 'Remove Voice Part',
+    });
+  });
+
+  it('says how many Singers a removal sends back to choose again', () => {
+    expect(voicePartDialogCopy('remove', 'Alto', 1).description).toMatch(
+      /^1 Singer has this as their default and will be asked to choose again/,
+    );
+    expect(voicePartDialogCopy('remove', 'Alto', 4).description).toMatch(
+      /^4 Singers have this as their default and will be asked to choose again/,
+    );
+    expect(voicePartDialogCopy('remove', 'Alto', 0).description).toMatch(
+      /^No Singer has this as their default/,
+    );
   });
 });

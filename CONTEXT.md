@@ -9,7 +9,7 @@ A single musical work the choir is learning or performing.
 _Avoid_: Song, track, number
 
 **Voice Part**:
-The section a singer sings in for a Piece (e.g. Soprano, Alto, Tenor, Bass). A label can carry a number, such as Alto 1 and Alto 2, for a divisi split. Each also has a short label for compact screens, by default its first letter plus any number (A1, T2, and A for a plain Alto), and the Combined Track is labelled All.
+The section a singer sings in for a Piece (e.g. Soprano, Alto, Tenor, Bass). A label can carry a number, such as Alto 1 and Alto 2, for a divisi split. Each also has a short label for compact screens, by default its first letter plus any number (A1, T2, and A for a plain Alto), and the Combined Track is labelled All. The list is the choir's own, edited by a Singer with `manage-users`, in an order they set that every picker follows. Short labels are unique within the choir ignoring case, and All is reserved for the Combined Track, so no Voice Part can take it as a label or a name. Removing a Voice Part sends the Singers whose default it was back to choose again, and the last one cannot be removed.
 _Avoid_: Part (ambiguous with Practice Track), section, voice
 
 **Practice Track**:
@@ -63,7 +63,7 @@ _Avoid_: Exception, custom part
 ## Access
 
 **Permission**:
-A single capability: `read`, `append` (add new Pieces, Practice Tracks, Scores and Performances, including tagging them as they are first added, never alter existing ones), `update` (edit names, labels and Performance tags, and reorder a Performance's Pieces, only; this includes marking a Performance major), `delete`, `manage-users` (run the admin portal: approving Singers, Roles, Invite Links, removing Singers and the Colour Theme), or `manage-admins` (grant or revoke `manage-users`, directly or through a Role, and remove or change the Roles of a Singer who holds it; held only by an Owner). A Singer is only shown the actions their Permissions allow.
+A single capability: `read`, `append` (add new Pieces, Practice Tracks, Scores and Performances, including tagging them as they are first added, never alter existing ones), `update` (edit names, labels and Performance tags, and reorder a Performance's Pieces, only; this includes marking a Performance major), `delete`, `manage-users` (run the admin portal: approving Singers, Roles, Invite Links, removing Singers, editing the Voice Parts and the Colour Theme), or `manage-admins` (grant or revoke `manage-users`, directly or through a Role, and remove or change the Roles of a Singer who holds it; held only by an Owner). A Singer is only shown the actions their Permissions allow.
 _Avoid_: Right, privilege
 
 **Role**:
@@ -79,7 +79,7 @@ A Singer whose verified Google email is one of the owner emails in the deploymen
 _Avoid_: Admin email, superuser
 
 **Admin portal**:
-The screens a Singer with `manage-users` uses to run the choir: approving Pending Singers, Roles, Singers, Invite Links and the Colour Theme. Reached from the "Admin" item in the navigation. Not the same thing as the **Admin** Role, which is a set of Permissions.
+The screens a Singer with `manage-users` uses to run the choir: approving Pending Singers, Roles, Singers, Invite Links, the Voice Parts and the Colour Theme. Reached from the "Admin" item in the navigation. Not the same thing as the **Admin** Role, which is a set of Permissions.
 _Avoid_: Dashboard, back office
 
 **Invite Link**:

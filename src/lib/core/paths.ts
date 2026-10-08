@@ -11,9 +11,12 @@ export const paths = {
   /** Where Google sends a person back to, with the one-time code that becomes their session. */
   authCallback: '/auth/callback',
   chooseVoicePart: '/choose-part',
+  /** Where a Singer changes their own default Voice Part. */
+  profile: '/profile',
   waiting: '/waiting',
   admin: '/admin',
   adminRoles: '/admin/roles',
+  adminVoiceParts: '/admin/voice-parts',
   adminAppearance: '/admin/appearance',
 } as const;
 
@@ -36,6 +39,7 @@ export const formActions = {
   signIn: { google: 'google' },
   singers: { setRoles: 'setRoles', remove: 'remove' },
   roles: { create: 'create', update: 'update', delete: 'delete' },
+  voiceParts: { add: 'add', update: 'update', reorder: 'reorder', remove: 'remove' },
   appearance: { set: 'set', reset: 'reset' },
 } as const;
 

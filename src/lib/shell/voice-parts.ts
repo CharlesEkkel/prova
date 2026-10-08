@@ -1,5 +1,6 @@
 // Shell: the choir's Voice Parts, and a Singer's choice of their default one.
 import { Effect, Schema } from 'effect';
+import type { VoicePartChoiceProblem } from '../core/voice-parts';
 import { callSupabase, callSupabaseAs, type Supabase, type SupabaseCallFailed } from './supabase';
 
 export const VoicePartId = Schema.String.check(Schema.isUUID()).pipe(Schema.brand('VoicePartId'));
@@ -13,8 +14,14 @@ export const VoicePart = Schema.Struct({
 }).pipe(Schema.encodeKeys({ shortLabel: 'short_label' }));
 export type VoicePart = typeof VoicePart.Type;
 
-/** Why a Voice Part choice was not saved. */
-export type VoicePartProblem = 'none-chosen' | 'unavailable';
+/** A Voice Part as the admin portal lists it, with how many Singers have it as their default. */
+export const AdminVoicePart = Schema.Struct({
+  id: VoicePartId,
+  name: Schema.String,
+  shortLabel: Schema.String,
+  singerCount: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+}).pipe(Schema.encodeKeys({ shortLabel: 'short_label', singerCount: 'singer_count' }));
+export type AdminVoicePart = typeof AdminVoicePart.Type;
 
 const VoicePartChoice = Schema.Struct({ voice_part: VoicePartId });
 const decodeVoicePartChoice = Schema.decodeUnknownEffect(VoicePartChoice);
@@ -28,10 +35,12 @@ export const loadVoiceParts = (
   );
 
 /** The Voice Part picked on the choose-part form. */
-const readVoicePartChoice = (request: Request): Effect.Effect<VoicePartId, VoicePartProblem> =>
+const readVoicePartChoice = (
+  request: Request,
+): Effect.Effect<VoicePartId, VoicePartChoiceProblem> =>
   Effect.tryPromise(() => request.formData()).pipe(
     Effect.flatMap((form) => decodeVoicePartChoice(Object.fromEntries(form))),
-    Effect.mapError((): VoicePartProblem => 'none-chosen'),
+    Effect.mapError((): VoicePartChoiceProblem => 'none-chosen'),
     Effect.map(({ voice_part }) => voice_part),
   );
 
@@ -39,7 +48,7 @@ const readVoicePartChoice = (request: Request): Effect.Effect<VoicePartId, Voice
 export const saveVoicePartChoice = (
   supabase: Supabase,
   request: Request,
-): Effect.Effect<void, VoicePartProblem> =>
+): Effect.Effect<void, VoicePartChoiceProblem> =>
   readVoicePartChoice(request).pipe(
     Effect.flatMap((chosen) =>
       // The database refuses a Voice Part that does not exist.
@@ -48,3 +57,9 @@ export const saveVoicePartChoice = (
     Effect.mapError((problem) => (problem === 'none-chosen' ? problem : 'unavailable')),
     Effect.asVoid,
   );
+
+/** The Voice Parts for the admin portal, in order, each with the Singers who would choose again. */
+export const loadAdminVoiceParts = (
+  supabase: Supabase,
+): Effect.Effect<readonly AdminVoicePart[], SupabaseCallFailed> =>
+  callSupabaseAs(Schema.Array(AdminVoicePart), () => supabase.rpc('admin_voice_parts'));

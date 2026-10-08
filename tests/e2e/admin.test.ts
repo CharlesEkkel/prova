@@ -21,7 +21,7 @@ test.describe('without manage-users', () => {
     await expect(nav.getByRole('link', { name: 'Home' })).toBeVisible();
     await expect(nav.getByRole('link', { name: 'Admin' })).toHaveCount(0);
 
-    for (const path of ['/admin', '/admin/roles', '/admin/appearance']) {
+    for (const path of ['/admin', '/admin/roles', '/admin/voice-parts', '/admin/appearance']) {
       const response = await page.goto(path);
       expect(response?.status()).toBe(403);
     }
@@ -29,7 +29,7 @@ test.describe('without manage-users', () => {
 });
 
 test.describe('with manage-users', () => {
-  test('sees the Admin link and all three tabs', async ({ page, context }) => {
+  test('sees the Admin link and all four tabs', async ({ page, context }) => {
     await signInAsSingerWith(context, ['manage-users']);
 
     await page.goto('/');
@@ -40,6 +40,8 @@ test.describe('with manage-users', () => {
     await page.waitForLoadState('networkidle');
     await page.getByRole('link', { name: /^Roles/ }).click();
     await page.waitForURL('/admin/roles');
+    await page.getByRole('link', { name: 'Voice Parts' }).click();
+    await page.waitForURL('/admin/voice-parts');
     await page.getByRole('link', { name: 'Appearance' }).click();
     await page.waitForURL('/admin/appearance');
   });

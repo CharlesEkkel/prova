@@ -2,6 +2,10 @@
 import { describe, expect, it } from 'vitest';
 import { anonClient, serviceClient, signInNewSinger } from './support';
 
+// Other contract files add and remove Voice Parts of their own, so the seeded four are picked out
+// of the list rather than the list being compared whole.
+const seeded = ['Soprano', 'Alto', 'Tenor', 'Bass'];
+
 describe('the Voice Part list', () => {
   it('is seeded with Soprano, Alto, Tenor and Bass and their short labels, in choir order', async () => {
     const singer = await signInNewSinger();
@@ -11,7 +15,7 @@ describe('the Voice Part list', () => {
       .select('name, short_label')
       .order('position');
 
-    expect(data).toEqual([
+    expect((data ?? []).filter(({ name }) => seeded.includes(name))).toEqual([
       { name: 'Soprano', short_label: 'S' },
       { name: 'Alto', short_label: 'A' },
       { name: 'Tenor', short_label: 'T' },
@@ -35,12 +39,10 @@ describe('the Voice Part list', () => {
     await singer.client.from('voice_parts').delete().eq('name', 'Bass');
 
     const after = await serviceClient().from('voice_parts').select('name').order('position');
-    expect(after.data).toEqual([
-      { name: 'Soprano' },
-      { name: 'Alto' },
-      { name: 'Tenor' },
-      { name: 'Bass' },
-    ]);
+    const names = (after.data ?? []).map(({ name }) => name);
+    expect(names.filter((name) => seeded.includes(name))).toEqual(seeded);
+    expect(names).not.toContain('Descant');
+    expect(names).not.toContain('Mezzo');
   });
 });
 

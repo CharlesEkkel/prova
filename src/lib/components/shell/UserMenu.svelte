@@ -1,11 +1,15 @@
 <script lang="ts">
   import { DropdownMenu } from 'bits-ui';
   import { ChevronDown } from '@lucide/svelte';
+  import { page } from '$app/state';
+  import { changeVoicePartLink } from '../../core/navigation';
   import { paths } from '../../core/paths';
   import PersonAvatar from '../ui/PersonAvatar.svelte';
   import { menuEntry, menuPanel } from '../ui/styles';
 
   const { name, voicePart }: { readonly name: string; readonly voicePart: string } = $props();
+
+  const profileHref = $derived(changeVoicePartLink(page.url.pathname, page.url.search));
 
   let signOutForm = $state<HTMLFormElement | null>(null);
 </script>
@@ -31,7 +35,11 @@
       sideOffset={8}
       class="z-50 w-56 text-zinc-900 dark:text-zinc-100 {menuPanel}"
     >
-      <!-- "Change default Voice Part" is added by #16. -->
+      <DropdownMenu.Item class={menuEntry}>
+        {#snippet child({ props })}
+          <a href={profileHref} {...props}>Change default Voice Part</a>
+        {/snippet}
+      </DropdownMenu.Item>
       <DropdownMenu.Item
         class={menuEntry}
         onSelect={() => {

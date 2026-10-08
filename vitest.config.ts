@@ -24,6 +24,16 @@ export default defineConfig({
           env: supabaseEnv,
         },
       },
+      {
+        // Tests that need the whole database to themselves, so they run after the contract project.
+        test: {
+          name: 'contract-exclusive',
+          include: ['tests/contract-exclusive/**/*.test.ts'],
+          environment: 'node',
+          testTimeout: 60_000,
+          env: supabaseEnv,
+        },
+      },
     ],
   },
 });
