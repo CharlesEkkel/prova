@@ -10,10 +10,10 @@ const brand = (path: string): SafePath => path as SafePath;
 
 export const homePath: SafePath = brand('/');
 
-const placeholderOrigin = 'http://prova.invalid';
+const dummyOrigin = 'http://prova.invalid';
 
-/** Parses a path against a stand-in origin, so only its path, query and hash matter. */
-export const onThisSite = (path: string): URL => new URL(path, placeholderOrigin);
+/** Parses a path against a dummy origin, so only its path, query and hash matter. */
+export const onDummyOrigin = (path: string): URL => new URL(path, dummyOrigin);
 
 const hasControlCharacter = (text: string): boolean =>
   Array.from({ length: text.length }, (_, index) => text.charCodeAt(index)).some(
@@ -26,8 +26,8 @@ const leavesSite = (path: string): boolean => path.startsWith('//') || path.star
 /** The path, query and hash of `raw` if it stays on this site, otherwise null. */
 export const sameSitePath = (raw: string): SafePath | null => {
   if (!raw.startsWith('/') || leavesSite(raw) || hasControlCharacter(raw)) return null;
-  const url = onThisSite(raw);
+  const url = onDummyOrigin(raw);
   // Dot segments normalise away, so `/.//evil.example` parses to the pathname `//evil.example`.
-  if (url.origin !== placeholderOrigin || leavesSite(url.pathname)) return null;
+  if (url.origin !== dummyOrigin || leavesSite(url.pathname)) return null;
   return brand(`${url.pathname}${url.search}${url.hash}`);
 };

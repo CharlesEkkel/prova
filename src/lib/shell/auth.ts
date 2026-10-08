@@ -1,6 +1,7 @@
 // Shell: signing in with Google and out again, through Supabase Auth.
 import { Effect, Schema } from 'effect';
-import { callbackPath } from '../core/gate';
+import { callbackPath, pathWithNext, signInPath } from '../core/gate';
+import type { SafePath } from '../core/safe-path';
 import { callSupabase, callSupabaseAs, type Supabase, type SupabaseCallFailed } from './supabase';
 
 /** Why sign-in did not finish, as carried back to the sign-in screen in `?error=`. */
@@ -9,11 +10,15 @@ export type SignInProblem = typeof SignInProblem.Type;
 
 const isSignInProblem = Schema.is(SignInProblem);
 
-/** The sign-in screen, showing this problem. */
-export const signInProblemPath = (problem: SignInProblem): string => `/sign-in?error=${problem}`;
+const problemParam = 'error';
 
-/** Reads `?error=`: no problem, a known one, or anything else counted as `failed`. */
-export const signInProblemFrom = (raw: string | null): SignInProblem | null => {
+/** The sign-in screen showing this problem, still carrying where the person was headed. */
+export const signInProblemPath = (problem: SignInProblem, headedFor: SafePath): string =>
+  pathWithNext(`${signInPath}?${problemParam}=${problem}`, headedFor);
+
+/** Reads the sign-in screen's problem: none, a known one, or anything else counted as `failed`. */
+export const signInProblemFrom = (query: URLSearchParams): SignInProblem | null => {
+  const raw = query.get(problemParam);
   if (raw === null) return null;
   return isSignInProblem(raw) ? raw : 'failed';
 };
@@ -49,14 +54,15 @@ export const finishGoogleSignIn = (
   reply: URLSearchParams,
 ): Effect.Effect<void, SignInProblem> =>
   decodeGoogleReply(Object.fromEntries(reply)).pipe(
-    Effect.mapError((): SignInProblem => 'failed'),
-    Effect.flatMap(({ code, error }) => {
-      if (error !== undefined) return Effect.fail(problemFromGoogle(error));
-      if (code === undefined) return Effect.fail<SignInProblem>('failed');
-      return callSupabase(() => supabase.auth.exchangeCodeForSession(code)).pipe(
-        Effect.mapError((): SignInProblem => 'failed'),
-      );
-    }),
+    Effect.flatMap(
+      ({ code, error }): Effect.Effect<unknown, SignInProblem | SupabaseCallFailed> => {
+        if (error !== undefined) return Effect.fail(problemFromGoogle(error));
+        if (code === undefined) return Effect.fail<SignInProblem>('failed');
+        return callSupabase(() => supabase.auth.exchangeCodeForSession(code));
+      },
+    ),
+    // A reply that does not decode, or a code Supabase refuses, is simply a failed sign-in.
+    Effect.mapError((failure) => (isSignInProblem(failure) ? failure : 'failed')),
     Effect.asVoid,
   );
 

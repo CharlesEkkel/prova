@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { destinationCookie } from '../../src/lib/shell/destination-cookie';
 import { grantRole } from '../contract/support';
 import { signInAsApprovedSinger, signInAsNewSinger } from './support';
 
@@ -62,6 +63,17 @@ test.describe('signed out', () => {
 
     await expect(page.getByRole('alert')).toContainText('We could not sign you in with Google');
     await expect(page.getByText('secret details')).toHaveCount(0);
+  });
+
+  test('a cancelled sign-in still remembers where they were headed', async ({ page, context }) => {
+    await context.addCookies([
+      { name: destinationCookie, value: '/piece/3', url: 'http://localhost:4173' },
+    ]);
+
+    await page.goto('/auth/callback?error=access_denied');
+
+    await expect(page).toHaveURL('/sign-in?error=cancelled&next=%2Fpiece%2F3');
+    await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
   });
 
   test('a callback with no code does not sign anyone in', async ({ page }) => {

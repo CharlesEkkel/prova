@@ -1,13 +1,11 @@
 // Backend contract seam: talks to the local Supabase stack (`pnpm supabase:start`).
 import { createClient } from '@supabase/supabase-js';
 import { describe, expect, it } from 'vitest';
-
-const url = process.env['SUPABASE_URL'] ?? 'http://127.0.0.1:54321';
-const anonKey = process.env['SUPABASE_ANON_KEY'] ?? '';
+import { anonKey, url } from './support';
 
 describe('backend contract', () => {
   it('has the local stack credentials', () => {
-    expect(anonKey, 'set SUPABASE_ANON_KEY (see README)').not.toBe('');
+    expect(anonKey, 'set PUBLIC_SUPABASE_ANON_KEY (see README)').not.toBe('');
   });
 
   it('serves the app_info row created by the first migration', async () => {

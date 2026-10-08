@@ -16,7 +16,7 @@ If you have [`just`](https://github.com/casey/just) installed, `just` lists shor
 ```sh
 pnpm install                 # also copies the pdf.js WebAssembly decoders into static/
 pnpm supabase:start          # local Supabase; applies supabase/migrations
-cp .env.example .env         # fill in the URL and anon key from `pnpm exec supabase status -o env`
+just env                     # writes .env from the running stack (or copy .env.example and fill it in)
 pnpm dev                     # http://localhost:5173
 ```
 
@@ -39,7 +39,7 @@ Google is the only way in: email sign-up and anonymous sign-ins are switched off
    To get past the waiting screen locally, sign in once, then run `just make-admin you@example.com`. It gives that Singer an `Admin` Role holding every Permission (a stopgap until Role management lands in #15).
 
 3. On Supabase cloud, in the dashboard: enable the Google provider with the same client; under Authentication → Sign In / Providers turn the **Email** provider off and **Allow anonymous sign-ins** off; under URL Configuration set the Site URL to the app's URL and add `https://<your-app>/auth/callback` to the redirect URLs.
-4. On Cloudflare Pages, set `PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_ANON_KEY`. Never set `SUPABASE_SERVICE_ROLE_KEY` anywhere the app runs; only the tests use it, against the local stack.
+4. On Cloudflare Pages, set `PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_ANON_KEY` for the build. They are build-time variables (Vite bakes them into the app), and the build fails without them. Never set `SUPABASE_SERVICE_ROLE_KEY` anywhere the app runs; only the tests use it, against the local stack.
 
 ## Tests
 
@@ -51,11 +51,11 @@ There are three seams, each with a trivial passing test to start from.
 | Backend contract      | `pnpm test:contract` | the local Supabase stack, see below                                        |
 | Browser (Playwright)  | `pnpm test:e2e`      | the local Supabase stack, and `pnpm exec playwright install chromium` once |
 
-The contract and browser tests read `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` from `.env` (`just env` writes it from the running stack), or from the real environment, which wins:
+The contract and browser tests read `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` from `.env` (`just env` writes it from the running stack), or from the real environment, which wins:
 
 ```sh
 eval "$(pnpm --silent exec supabase status -o env | sed 's/^/export /')"
-SUPABASE_URL=$API_URL SUPABASE_ANON_KEY=$ANON_KEY SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY pnpm test:contract
+PUBLIC_SUPABASE_URL=$API_URL PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY pnpm test:contract
 ```
 
 The contract tests include a guard that lists every table the API exposes and proves a Pending Singer (no `read`) reads nothing from any of them, apart from an explicit allowlist in `tests/contract/access.test.ts`. A new table with data in it fails that guard until it is either locked down or allowlisted with a reason.

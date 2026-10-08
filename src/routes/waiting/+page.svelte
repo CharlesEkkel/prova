@@ -3,6 +3,7 @@
   import { refreshAll } from '$app/navigation';
   import GateScreen from '../../lib/components/GateScreen.svelte';
   import PrimaryButton from '../../lib/components/PrimaryButton.svelte';
+  import { signOutPath } from '../../lib/core/gate';
   import type { PageData } from './$types';
 
   const { data }: { readonly data: PageData } = $props();
@@ -36,8 +37,8 @@
 
 <GateScreen title="Waiting for approval">
   <p>
-    Your account is waiting for approval. Please contact an Admin of your choir and ask them to
-    approve you.
+    An Admin needs to approve you before you can use Prova. Please contact an Admin of your choir
+    and ask them to approve you.
   </p>
 
   <dl class="rounded border p-3 text-sm">
@@ -55,7 +56,7 @@
 
   <PrimaryButton disabled={checking} onclick={checkAgain}>Check again</PrimaryButton>
 
-  <form method="POST" action="/sign-out">
+  <form method="POST" action={signOutPath}>
     <button class="min-h-11 w-full rounded border px-4 py-2 font-medium">Sign out</button>
   </form>
 </GateScreen>

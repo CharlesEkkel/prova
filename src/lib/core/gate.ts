@@ -1,7 +1,7 @@
 // The sign-in gate: where a person belongs, given how far through sign-in they are. Pure; the
 // shell reads the session and the database, then asks this where to send the request.
 import type { Permission } from './permissions';
-import { homePath, onThisSite, sameSitePath, type SafePath } from './safe-path';
+import { homePath, onDummyOrigin, sameSitePath, type SafePath } from './safe-path';
 
 /** What the shell knows about a signed-in person. The Singer and Voice Part are the shell's types. */
 export type Standing<Singer, Part> = {
@@ -51,8 +51,21 @@ export const accessOf = <Singer, Part>({
 /** Where Google sends a person back to, with the one-time code that becomes their session. */
 export const callbackPath = '/auth/callback';
 
+export const signInPath = '/sign-in';
+export const signOutPath = '/sign-out';
+
+/** The query parameter that carries where a person was headed through sign-in. */
+export const nextParam = 'next';
+
+/** `path` (which may already have a query), carrying `next` along unless that is just home. */
+export const pathWithNext = (path: string, next: SafePath): string => {
+  if (next === homePath) return path;
+  const query = new URLSearchParams({ [nextParam]: next }).toString();
+  return `${path}${path.includes('?') ? '&' : '?'}${query}`;
+};
+
 const gatePageOf: Readonly<Record<Exclude<Stage, 'ready' | 'unknown'>, string>> = {
-  'signed-out': '/sign-in',
+  'signed-out': signInPath,
   'needs-voice-part': '/choose-part',
   pending: '/waiting',
 };
@@ -67,7 +80,7 @@ const homeOf = (stage: Exclude<Stage, 'unknown'>): string =>
 /** Reachable at every stage: sign-in plumbing, sign-out, Invite Links, the manifest and built assets. */
 const isAlwaysPublic = (pathname: string): boolean =>
   pathname === callbackPath ||
-  pathname === '/sign-out' ||
+  pathname === signOutPath ||
   pathname === '/manifest.webmanifest' ||
   pathname.startsWith('/invite/') ||
   pathname.startsWith('/_app/') ||
@@ -75,7 +88,7 @@ const isAlwaysPublic = (pathname: string): boolean =>
 
 /** A gate page would loop, and the callback needs a fresh code from Google. */
 const leadsBackIntoSignIn = (path: SafePath): boolean => {
-  const { pathname } = onThisSite(path);
+  const { pathname } = onDummyOrigin(path);
   return isGatePage(pathname) || pathname === callbackPath;
 };
 
@@ -90,15 +103,9 @@ export const safeNextPath = (raw: string | null): SafePath => {
 
 const redirect = (to: string): GateDecision => ({ kind: 'redirect', to });
 
-/** Keeps where the person was headed, unless that is just home. */
-const withNext = (page: string, headedFor: string): string => {
-  const next = safeNextPath(headedFor);
-  return next === homePath ? page : `${page}?next=${encodeURIComponent(next)}`;
-};
-
 /** Decides what to do with a request, from the person's stage and the path they asked for. */
 export const resolveGate = (stage: Stage, pathAndSearch: string): GateDecision => {
-  const url = onThisSite(pathAndSearch);
+  const url = onDummyOrigin(pathAndSearch);
   if (isAlwaysPublic(url.pathname)) return { kind: 'allow' };
 
   // Without knowing who is asking, only signing in can still work.
@@ -108,12 +115,14 @@ export const resolveGate = (stage: Stage, pathAndSearch: string): GateDecision =
 
   if (stage === 'ready') {
     return isGatePage(url.pathname)
-      ? redirect(safeNextPath(url.searchParams.get('next')))
+      ? redirect(safeNextPath(url.searchParams.get(nextParam)))
       : { kind: 'allow' };
   }
 
   if (url.pathname === gatePageOf[stage]) return { kind: 'allow' };
 
   const keepsDestination = stage !== 'pending' && !isGatePage(url.pathname);
-  return redirect(keepsDestination ? withNext(homeOf(stage), pathAndSearch) : homeOf(stage));
+  return redirect(
+    keepsDestination ? pathWithNext(homeOf(stage), safeNextPath(pathAndSearch)) : homeOf(stage),
+  );
 };

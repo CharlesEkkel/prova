@@ -1,9 +1,17 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { Effect } from 'effect';
-import { safeNextPath } from '../../lib/core/gate';
+import { nextParam, safeNextPath } from '../../lib/core/gate';
 import { failureOrNull, valueOrNull } from '../../lib/shell/run';
-import { chooseVoicePart, loadVoiceParts, readVoicePartChoice } from '../../lib/shell/voice-parts';
+import {
+  loadVoiceParts,
+  saveVoicePartChoice,
+  type VoicePartProblem,
+} from '../../lib/shell/voice-parts';
 import type { Actions, PageServerLoad } from './$types';
+
+const voicePartProblemMessages: Readonly<Record<VoicePartProblem, string>> = {
+  'none-chosen': 'Choose your Voice Part to continue.',
+  unavailable: 'That Voice Part is not available. Choose another.',
+};
 
 export const load: PageServerLoad = async ({ locals }) => {
   const voiceParts = await valueOrNull(loadVoiceParts(locals.supabase));
@@ -15,18 +23,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 export const actions: Actions = {
   default: async ({ locals, request, url }) => {
-    const problem = await failureOrNull(
-      readVoicePartChoice(request).pipe(
-        Effect.mapError(() => 'Choose your Voice Part to continue.'),
-        Effect.flatMap((chosen) =>
-          chooseVoicePart(locals.supabase, chosen).pipe(
-            Effect.mapError(() => 'That Voice Part is not available. Choose another.'),
-          ),
-        ),
-      ),
-    );
+    const problem = await failureOrNull(saveVoicePartChoice(locals.supabase, request));
     return problem === null
-      ? redirect(303, safeNextPath(url.searchParams.get('next')))
-      : fail(400, { problem });
+      ? redirect(303, safeNextPath(url.searchParams.get(nextParam)))
+      : fail(400, { problem: voicePartProblemMessages[problem] });
   },
 };

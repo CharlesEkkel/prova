@@ -1,20 +1,20 @@
 // Shell: the choir's Voice Parts, and a Singer's choice of their default one.
-import { Data, Effect, Schema } from 'effect';
+import { Effect, Schema } from 'effect';
 import { callSupabase, callSupabaseAs, type Supabase, type SupabaseCallFailed } from './supabase';
 
 export const VoicePartId = Schema.String.check(Schema.isUUID()).pipe(Schema.brand('VoicePartId'));
 export type VoicePartId = typeof VoicePartId.Type;
 
+/** A Voice Part as the app uses it, decoded from the database's `voice_parts` columns. */
 export const VoicePart = Schema.Struct({
   id: VoicePartId,
   name: Schema.String,
-  short_label: Schema.String,
-});
+  shortLabel: Schema.String,
+}).pipe(Schema.encodeKeys({ shortLabel: 'short_label' }));
 export type VoicePart = typeof VoicePart.Type;
 
-export class NoVoicePartChosen extends Data.TaggedError('NoVoicePartChosen')<{
-  readonly cause: unknown;
-}> {}
+/** Why a Voice Part choice was not saved. */
+export type VoicePartProblem = 'none-chosen' | 'unavailable';
 
 const VoicePartChoice = Schema.Struct({ voice_part: VoicePartId });
 const decodeVoicePartChoice = Schema.decodeUnknownEffect(VoicePartChoice);
@@ -27,22 +27,24 @@ export const loadVoiceParts = (
     supabase.from('voice_parts').select('id, name, short_label').order('position'),
   );
 
-/** The Voice Part a Singer picked on the choose-part form. */
-export const readVoicePartChoice = (
-  request: Request,
-): Effect.Effect<VoicePartId, NoVoicePartChosen> =>
-  Effect.tryPromise({
-    try: () => request.formData(),
-    catch: (cause) => new NoVoicePartChosen({ cause }),
-  }).pipe(
+/** The Voice Part picked on the choose-part form. */
+const readVoicePartChoice = (request: Request): Effect.Effect<VoicePartId, VoicePartProblem> =>
+  Effect.tryPromise(() => request.formData()).pipe(
     Effect.flatMap((form) => decodeVoicePartChoice(Object.fromEntries(form))),
-    Effect.mapError((cause) => new NoVoicePartChosen({ cause })),
+    Effect.mapError((): VoicePartProblem => 'none-chosen'),
     Effect.map(({ voice_part }) => voice_part),
   );
 
-/** Saves the signed-in Singer's default Voice Part. The database refuses one that does not exist. */
-export const chooseVoicePart = (
+/** Saves the Voice Part picked on the choose-part form as the signed-in Singer's default. */
+export const saveVoicePartChoice = (
   supabase: Supabase,
-  chosen: VoicePartId,
-): Effect.Effect<void, SupabaseCallFailed> =>
-  callSupabase(() => supabase.rpc('set_my_default_voice_part', { chosen })).pipe(Effect.asVoid);
+  request: Request,
+): Effect.Effect<void, VoicePartProblem> =>
+  readVoicePartChoice(request).pipe(
+    Effect.flatMap((chosen) =>
+      // The database refuses a Voice Part that does not exist.
+      callSupabase(() => supabase.rpc('set_my_default_voice_part', { chosen })),
+    ),
+    Effect.mapError((problem) => (problem === 'none-chosen' ? problem : 'unavailable')),
+    Effect.asVoid,
+  );

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { RadioGroup } from 'bits-ui';
+  import AlertMessage from '../../lib/components/AlertMessage.svelte';
   import GateScreen from '../../lib/components/GateScreen.svelte';
   import PrimaryButton from '../../lib/components/PrimaryButton.svelte';
   import type { ActionData, PageData } from './$types';
@@ -17,14 +18,14 @@
           value={part.id}
           class="flex min-h-11 items-center gap-3 rounded border px-3 py-2 text-left data-[state=checked]:border-emerald-700 data-[state=checked]:bg-emerald-50 dark:data-[state=checked]:bg-emerald-950"
         >
-          <span class="w-6 font-semibold">{part.short_label}</span>
+          <span class="w-6 font-semibold">{part.shortLabel}</span>
           <span>{part.name}</span>
         </RadioGroup.Item>
       {/each}
     </RadioGroup.Root>
 
     {#if form?.problem}
-      <p role="alert" class="text-sm text-red-700 dark:text-red-300">{form.problem}</p>
+      <AlertMessage>{form.problem}</AlertMessage>
     {/if}
 
     <PrimaryButton>Continue</PrimaryButton>

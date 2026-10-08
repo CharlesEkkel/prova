@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AlertMessage from '../../lib/components/AlertMessage.svelte';
   import GateScreen from '../../lib/components/GateScreen.svelte';
   import PrimaryButton from '../../lib/components/PrimaryButton.svelte';
   import type { ActionData, PageData } from './$types';
@@ -13,15 +14,10 @@
   </p>
 
   {#if problem !== null}
-    <p
-      role="alert"
-      class="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100"
-    >
-      {problem}
-    </p>
+    <AlertMessage>{problem}</AlertMessage>
   {/if}
 
-  <form method="POST" action="?/google&next={encodeURIComponent(data.next)}">
+  <form method="POST" action={data.googleAction}>
     <PrimaryButton>{problem === null ? 'Continue with Google' : 'Try again'}</PrimaryButton>
   </form>
 </GateScreen>

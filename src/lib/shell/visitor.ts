@@ -1,14 +1,15 @@
 // Shell: who is asking, and how far through sign-in they are. Reads the Auth session, then asks the
 // database what access they hold right now (never the token), and decodes it once at this edge.
+import { isAuthApiError, isAuthSessionMissingError } from '@supabase/supabase-js';
 import { Effect, Schema } from 'effect';
 import { accessOf, signedOut, type Access } from '../core/gate';
 import { permissions as allPermissions } from '../core/permissions';
 import {
   callSupabaseAs,
   decodeReply,
+  SupabaseCallFailed,
   trySupabase,
   type Supabase,
-  type SupabaseCallFailed,
 } from './supabase';
 import { VoicePart } from './voice-parts';
 
@@ -21,7 +22,8 @@ export type SignedInSinger = {
   readonly displayName: string;
 };
 
-export type Session = Access<SignedInSinger, VoicePart>;
+/** Who is asking, and how far through sign-in they are. */
+export type Visitor = Access<SignedInSinger, VoicePart>;
 
 const Permissions = Schema.Array(Schema.Literals(allPermissions));
 
@@ -39,12 +41,22 @@ const GoogleProfile = Schema.Struct({
 });
 const decodeProfile = Schema.decodeUnknownEffect(GoogleProfile);
 
-/** The Auth user behind the cookies, checked with the Auth server, or null for no one. */
+/** No session, or one the Auth server turned down (expired, revoked, or the user removed). */
+const meansSignedOut = (error: unknown): boolean =>
+  isAuthSessionMissingError(error) || (isAuthApiError(error) && error.status < 500);
+
+/**
+ * The Auth user behind the cookies, checked with the Auth server, or null for no one. Any other
+ * error means the Auth server could not say, which is not the same as no one.
+ */
 const currentUser = (supabase: Supabase): Effect.Effect<AuthUser | null, SupabaseCallFailed> =>
   trySupabase(() => supabase.auth.getUser()).pipe(
-    // With no session Auth also reports an error; no user is the whole answer.
-    Effect.map(({ data }) => data.user),
-    Effect.flatMap(decodeReply(Schema.NullOr(AuthUser))),
+    Effect.flatMap(({ data, error }) => {
+      if (error === null) return decodeReply(Schema.NullOr(AuthUser))(data.user);
+      return meansSignedOut(error)
+        ? Effect.succeed(null)
+        : Effect.fail(new SupabaseCallFailed({ cause: error }));
+    }),
   );
 
 const nameOf = (metadata: unknown, email: string) =>
@@ -56,7 +68,7 @@ const nameOf = (metadata: unknown, email: string) =>
 const signedInSinger = ({ id, email, user_metadata }: AuthUser): Effect.Effect<SignedInSinger> =>
   nameOf(user_metadata, email).pipe(Effect.map((displayName) => ({ id, email, displayName })));
 
-export const loadSession = (supabase: Supabase): Effect.Effect<Session, SupabaseCallFailed> =>
+export const loadVisitor = (supabase: Supabase): Effect.Effect<Visitor, SupabaseCallFailed> =>
   Effect.gen(function* () {
     const user = yield* currentUser(supabase);
     if (user === null) return signedOut;

@@ -4,8 +4,8 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { randomUUID } from 'node:crypto';
 import type { Database } from '../../src/lib/shell/database.types';
 
-export const url = process.env['SUPABASE_URL'] ?? 'http://127.0.0.1:54321';
-export const anonKey = process.env['SUPABASE_ANON_KEY'] ?? '';
+export const url = process.env['PUBLIC_SUPABASE_URL'] ?? 'http://127.0.0.1:54321';
+export const anonKey = process.env['PUBLIC_SUPABASE_ANON_KEY'] ?? '';
 export const serviceRoleKey = process.env['SUPABASE_SERVICE_ROLE_KEY'] ?? '';
 
 const clientOptions = { auth: { persistSession: false, autoRefreshToken: false } };
@@ -14,8 +14,11 @@ const clientOptions = { auth: { persistSession: false, autoRefreshToken: false }
 export const serviceClient = (): SupabaseClient<Database> =>
   createClient<Database>(url, serviceRoleKey, clientOptions);
 
-export const anonClient = (): SupabaseClient<Database> =>
-  createClient<Database>(url, anonKey, clientOptions);
+export const anonClient = (fetch?: typeof globalThis.fetch): SupabaseClient<Database> =>
+  createClient<Database>(url, anonKey, {
+    ...clientOptions,
+    ...(fetch === undefined ? {} : { global: { fetch } }),
+  });
 
 export type TestSinger = {
   readonly id: string;
@@ -27,6 +30,8 @@ type NewSinger = {
   readonly email?: string;
   readonly emailVerified?: boolean;
   readonly metadata?: Readonly<Record<string, unknown>>;
+  /** How the Singer's own client reaches Supabase, so a test can make it fail. */
+  readonly fetch?: typeof globalThis.fetch;
 };
 
 /**
@@ -52,7 +57,7 @@ export const signInNewSinger = async (options: NewSinger = {}): Promise<TestSing
   const link = await admin.auth.admin.generateLink({ type: 'magiclink', email });
   if (link.error) throw link.error;
 
-  const client = anonClient();
+  const client = anonClient(options.fetch);
   const session = await client.auth.verifyOtp({
     token_hash: link.data.properties.hashed_token,
     type: 'magiclink',

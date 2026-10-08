@@ -1,5 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { safeNextPath } from '../../lib/core/gate';
+import { nextParam, pathWithNext, safeNextPath } from '../../lib/core/gate';
 import { signInProblemFrom, startGoogleSignIn, type SignInProblem } from '../../lib/shell/auth';
 import { destinationCookie, destinationCookieOptions } from '../../lib/shell/destination-cookie';
 import { valueOrNull } from '../../lib/shell/run';
@@ -13,10 +13,10 @@ const signInProblemMessages: Readonly<Record<SignInProblem, string>> = {
 };
 
 export const load: PageServerLoad = ({ url }) => {
-  const problem = signInProblemFrom(url.searchParams.get('error'));
+  const problem = signInProblemFrom(url.searchParams);
   return {
     problem: problem === null ? null : signInProblemMessages[problem],
-    next: safeNextPath(url.searchParams.get('next')),
+    googleAction: pathWithNext('?/google', safeNextPath(url.searchParams.get(nextParam))),
   };
 };
 
@@ -24,7 +24,7 @@ export const actions: Actions = {
   google: async ({ locals, url, cookies }) => {
     cookies.set(
       destinationCookie,
-      safeNextPath(url.searchParams.get('next')),
+      safeNextPath(url.searchParams.get(nextParam)),
       destinationCookieOptions,
     );
 
