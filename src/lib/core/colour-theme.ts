@@ -18,10 +18,6 @@ export const colourThemeLabels: Readonly<Record<ColourTheme, string>> = {
 export const isColourTheme = (value: unknown): value is ColourTheme =>
   colourThemes.some((theme) => theme === value);
 
-/** The theme a value names, or Forest when it names none. */
-export const colourThemeOrDefault = (value: unknown): ColourTheme =>
-  isColourTheme(value) ? value : defaultColourTheme;
-
 /** The theme a value names, or null when it names none. */
 export const parseColourTheme = (value: unknown): ColourTheme | null =>
   isColourTheme(value) ? value : null;

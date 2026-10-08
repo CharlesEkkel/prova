@@ -1,7 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
-  colourThemeOrDefault,
   colourThemes,
   defaultColourTheme,
   isColourTheme,
@@ -77,12 +76,9 @@ describe('colourThemes', () => {
     );
   });
 
-  it('parses a name to a theme or null, and falls back to Forest', () => {
+  it('parses a name to a theme or null', () => {
     expect(parseColourTheme('ocean')).toBe('ocean');
     expect(parseColourTheme('neon')).toBeNull();
-    expect(colourThemeOrDefault('sunset')).toBe('sunset');
-    expect(colourThemeOrDefault('neon')).toBe('forest');
-    expect(colourThemeOrDefault(undefined)).toBe('forest');
   });
 });
 

@@ -8,6 +8,7 @@
     colourThemeLabels,
     colourThemes,
     defaultColourTheme,
+    type ColourTheme,
     themeColours,
   } from '../../../../lib/core/colour-theme';
   import { actionPath, formActions } from '../../../../lib/core/paths';
@@ -15,7 +16,7 @@
 
   const { data, form }: { readonly data: PageData; readonly form: ActionData } = $props();
 
-  const gradientOf = (theme: (typeof colourThemes)[number]): string => {
+  const gradientOf = (theme: ColourTheme): string => {
     const { background_color, theme_color } = themeColours(theme);
     return `linear-gradient(135deg, ${background_color}, ${theme_color})`;
   };

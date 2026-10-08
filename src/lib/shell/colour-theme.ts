@@ -94,7 +94,7 @@ export const colourThemeFor = async (
 const ThemeForm = Schema.Struct({ theme: Schema.Literals(colourThemes) });
 
 /** Saves the theme, then sets this Admin's own cookie so they see it at once. */
-const changeTo =
+const saveAndRemember =
   (supabase: Supabase, cookies: Cookies) =>
   (theme: ColourTheme): Effect.Effect<void, AdminProblem> =>
     saveColourTheme(supabase, theme).pipe(
@@ -115,11 +115,11 @@ export const chooseColourTheme = (
   Effect.tryPromise(() => request.formData()).pipe(
     Effect.flatMap((form) => Schema.decodeUnknownEffect(ThemeForm)(Object.fromEntries(form))),
     Effect.mapError((): AdminProblem => 'invalid'),
-    Effect.flatMap(({ theme }) => changeTo(supabase, cookies)(theme)),
+    Effect.flatMap(({ theme }) => saveAndRemember(supabase, cookies)(theme)),
   );
 
 /** Reset to the default: Forest becomes the site's theme. */
 export const resetColourTheme = (
   supabase: Supabase,
   cookies: Cookies,
-): Effect.Effect<void, AdminProblem> => changeTo(supabase, cookies)(defaultColourTheme);
+): Effect.Effect<void, AdminProblem> => saveAndRemember(supabase, cookies)(defaultColourTheme);
