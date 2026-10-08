@@ -10,7 +10,7 @@
   ] as const;
 </script>
 
-<main class="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-6">
+<div class="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-6">
   <h1 class="text-2xl font-semibold">Admin</h1>
 
   <nav class="flex gap-2 border-b" aria-label="Admin sections">
@@ -24,4 +24,4 @@
   </nav>
 
   {@render children()}
-</main>
+</div>

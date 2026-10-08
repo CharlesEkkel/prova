@@ -60,6 +60,37 @@ test.describe('the app shell', () => {
     await expect(page.getByRole('dialog', { name: 'Menu' })).toBeHidden();
   });
 
+  test('following a link to the page you are already on closes the drawer too', async ({
+    page,
+    context,
+  }) => {
+    test.skip(isDesktopLayout(page), 'the drawer is only on phones');
+    await signInAsApprovedSinger(context);
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+
+    const nav = await openNavigation(page);
+    await nav.getByRole('link', { name: 'Home' }).click();
+
+    await expect(page.getByRole('dialog', { name: 'Menu' })).toBeHidden();
+  });
+
+  test('the drawer does not linger when the window grows to the desktop layout', async ({
+    page,
+    context,
+  }) => {
+    test.skip(isDesktopLayout(page), 'the drawer is only on phones');
+    await signInAsApprovedSinger(context);
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await openNavigation(page);
+
+    await page.setViewportSize({ width: 1280, height: 800 });
+
+    await expect(page.getByRole('dialog', { name: 'Menu' })).toBeHidden();
+    await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible();
+  });
+
   test('the drawer can be closed without navigating', async ({ page, context }) => {
     test.skip(isDesktopLayout(page), 'the drawer is only on phones');
     await signInAsApprovedSinger(context);

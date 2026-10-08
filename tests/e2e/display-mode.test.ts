@@ -79,6 +79,63 @@ test.describe('Display Mode', () => {
     await expect(page.locator('html')).not.toHaveClass(/dark/);
   });
 
+  test('native controls follow the chosen mode, even against the device setting', async ({
+    page,
+    context,
+  }) => {
+    await signInAsApprovedSinger(context);
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await openNavigation(page);
+
+    await page
+      .getByRole('group', { name: 'Display Mode' })
+      .getByRole('button', { name: 'Dark' })
+      .click();
+
+    expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe(
+      'dark',
+    );
+  });
+
+  test('the choice still applies when the device will not remember it', async ({
+    page,
+    context,
+  }) => {
+    await signInAsApprovedSinger(context);
+    await page.addInitScript(() => {
+      Storage.prototype.setItem = () => {
+        throw new Error('storage is blocked');
+      };
+    });
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await openNavigation(page);
+
+    await page
+      .getByRole('group', { name: 'Display Mode' })
+      .getByRole('button', { name: 'Dark' })
+      .click();
+
+    await expect(page.locator('html')).toHaveClass(/dark/);
+  });
+
+  test('an unreadable saved value means System, before first paint too', async ({
+    page,
+    context,
+  }) => {
+    await signInAsApprovedSinger(context);
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.goto('/');
+    await page.evaluate(() => {
+      localStorage.setItem('prova-display-mode', 'sepia');
+    });
+    await page.route('**/_app/**', (route) => route.abort());
+    await page.reload();
+    await expect(page.locator('html')).toHaveClass(/dark/);
+  });
+
   test('the saved Display Mode is applied before first paint', async ({ page, context }) => {
     await signInAsApprovedSinger(context);
     await page.goto('/');

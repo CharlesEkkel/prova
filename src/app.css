@@ -23,6 +23,14 @@
   --color-primary-950: var(--color-green-950);
 }
 
+/* Native controls (scrollbars, inputs) follow the Display Mode class, not just the device setting. */
+html.dark {
+  color-scheme: dark;
+}
+html:not(.dark) {
+  color-scheme: light;
+}
+
 body {
   @apply bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100;
 }

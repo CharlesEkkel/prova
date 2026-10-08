@@ -74,6 +74,7 @@
                   <Star
                     size={16}
                     class="fill-amber-400 text-amber-500"
+                    role="img"
                     aria-label="Major Performance"
                   />
                 {:else}

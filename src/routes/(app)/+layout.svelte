@@ -18,6 +18,12 @@
   });
 
   let drawerOpen = $state(false);
+  let width = $state(0);
+
+  // The drawer only exists below `lg`; growing past it must not leave a hidden overlay behind.
+  $effect(() => {
+    if (width >= 1024) drawerOpen = false;
+  });
 
   // A followed link closes the drawer.
   afterNavigate(() => {
@@ -33,6 +39,8 @@
     };
   });
 </script>
+
+<svelte:window bind:innerWidth={width} />
 
 <div class="flex h-dvh">
   <aside class="hidden w-64 shrink-0 border-r bg-slate-100/60 lg:block dark:bg-slate-900/40">

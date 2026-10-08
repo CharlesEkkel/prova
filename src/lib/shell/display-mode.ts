@@ -29,10 +29,13 @@ export const applyDisplayMode = (mode: DisplayMode): boolean => {
 };
 
 export const saveDisplayMode = (mode: DisplayMode): Effect.Effect<boolean> =>
-  Effect.sync(() => {
+  // Remembering is best effort (storage can be blocked); the choice still applies for this visit.
+  Effect.try(() => {
     localStorage.setItem(displayModeStorageKey, mode);
-    return applyDisplayMode(mode);
-  });
+  }).pipe(
+    Effect.ignore,
+    Effect.map(() => applyDisplayMode(mode)),
+  );
 
 /** Calls `onChange` whenever the device switches between light and dark. Returns how to stop. */
 export const watchSystemPreference = (onChange: () => void): (() => void) => {
