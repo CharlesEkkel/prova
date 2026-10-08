@@ -2,8 +2,8 @@ import { error } from '@sveltejs/kit';
 import { formActions } from '../../../../lib/core/paths';
 import {
   addVoicePart,
-  moveVoicePart,
   removeVoicePart,
+  reorderVoiceParts,
   runVoicePartAction,
   updateVoicePart,
 } from '../../../../lib/shell/voice-part-commands';
@@ -24,8 +24,8 @@ export const actions: Actions = {
     runVoicePartAction(addVoicePart, locals.supabase, request),
   [formActions.voiceParts.update]: ({ locals, request }) =>
     runVoicePartAction(updateVoicePart, locals.supabase, request),
-  [formActions.voiceParts.move]: ({ locals, request }) =>
-    runVoicePartAction(moveVoicePart, locals.supabase, request),
+  [formActions.voiceParts.reorder]: ({ locals, request }) =>
+    runVoicePartAction(reorderVoiceParts, locals.supabase, request),
   [formActions.voiceParts.remove]: ({ locals, request }) =>
     runVoicePartAction(removeVoicePart, locals.supabase, request),
 };

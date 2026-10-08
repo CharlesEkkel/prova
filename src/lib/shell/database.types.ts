@@ -206,9 +206,9 @@ export type Database = {
         Returns: string;
       };
       admin_delete_role: { Args: { target: string }; Returns: undefined };
-      admin_move_voice_part: { Args: { direction: string; target: string }; Returns: undefined };
       admin_remove_singer: { Args: { target: string }; Returns: undefined };
       admin_remove_voice_part: { Args: { target: string }; Returns: undefined };
+      admin_reorder_voice_parts: { Args: { ordered: string[] }; Returns: undefined };
       admin_roles: { Args: Record<PropertyKey, never>; Returns: Json };
       admin_set_singer_roles: { Args: { role_ids: string[]; target: string }; Returns: undefined };
       admin_singers: { Args: Record<PropertyKey, never>; Returns: Json };

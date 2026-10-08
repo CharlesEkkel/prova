@@ -1,7 +1,10 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
   import { AlertDialog } from 'bits-ui';
-  import { ArrowDown, ArrowUp, Pencil, Plus, Trash } from '@lucide/svelte';
+  import { Pencil, Plus, Trash } from '@lucide/svelte';
+  import { tick } from 'svelte';
+  import { flip } from 'svelte/animate';
+  import { dragHandle, dragHandleZone, type DndEvent } from 'svelte-dnd-action';
   import AlertMessage from '../../../../lib/components/AlertMessage.svelte';
   import { createDialogState } from '../../../../lib/components/dialog-state.svelte';
   import Btn from '../../../../lib/components/ui/Btn.svelte';
@@ -82,8 +85,22 @@
     },
   ];
 
-  const mover =
-    'grid size-11 shrink-0 place-items-center rounded-full text-zinc-500 transition hover:bg-zinc-200/70 disabled:opacity-30 disabled:hover:bg-transparent dark:hover:bg-zinc-800';
+  // The order shown follows the server's, except while the Admin is dragging and until the new
+  // order has been saved; saving (or a refusal) brings the server's order back.
+  let items = $derived(data.voiceParts);
+  const flipDurationMs = 150;
+  let reorderForm = $state<HTMLFormElement | null>(null);
+
+  const onConsider = (event: CustomEvent<DndEvent<AdminVoicePart>>) => {
+    items = event.detail.items;
+  };
+
+  const onFinalize = async (event: CustomEvent<DndEvent<AdminVoicePart>>) => {
+    items = event.detail.items;
+    // Wait for the form's hidden fields to show the dropped order before sending them.
+    await tick();
+    reorderForm?.requestSubmit();
+  };
 </script>
 
 {#if problem !== undefined && current === null}
@@ -105,17 +122,47 @@
     >
   </div>
 
-  <ul class="flex flex-col gap-2">
-    {#each data.voiceParts as part, index (part.id)}
-      <li data-testid="voice-part" class="flex items-center gap-1">
-        <div class="{card} min-w-0 flex-1 pr-1">
+  <form
+    bind:this={reorderForm}
+    method="POST"
+    action={actionPath(formActions.voiceParts.reorder)}
+    use:enhance
+    class="hidden"
+  >
+    {#each items as part (part.id)}
+      <input type="hidden" name="part" value={part.id} />
+    {/each}
+  </form>
+
+  <ul
+    class="flex flex-col gap-2"
+    aria-label="Voice Parts"
+    use:dragHandleZone={{ items: [...items], flipDurationMs, dropTargetStyle: {} }}
+    onconsider={onConsider}
+    onfinalize={onFinalize}
+  >
+    {#each items as part (part.id)}
+      <li data-testid="voice-part" animate:flip={{ duration: flipDurationMs }}>
+        <div class="{card} pr-1">
           <ManageMenu actions={actionsOf(part)} label="Actions for {part.name}">
-            <div class="flex items-center gap-3 px-3 py-2">
+            <div class="flex items-center gap-1 pr-3">
+              <span
+                use:dragHandle
+                aria-label="Drag to reorder {part.name}"
+                class="grid size-11 shrink-0 cursor-grab touch-none place-items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+              >
+                <svg viewBox="0 0 16 16" class="size-4" fill="currentColor" aria-hidden="true">
+                  <circle cx="5" cy="5" r="1.6" />
+                  <circle cx="11" cy="5" r="1.6" />
+                  <circle cx="5" cy="11" r="1.6" />
+                  <circle cx="11" cy="11" r="1.6" />
+                </svg>
+              </span>
               <span
                 class="grid min-w-10 place-items-center rounded-lg bg-primary-100 px-2 py-1 text-sm font-semibold text-primary-800 dark:bg-primary-500/15 dark:text-primary-200"
                 >{part.shortLabel}</span
               >
-              <span class="min-w-0">
+              <span class="min-w-0 py-2">
                 <span class="block truncate font-medium">{part.name}</span>
                 <span class="block text-xs text-zinc-500">
                   {part.singerCount === 1 ? '1 Singer' : `${part.singerCount.toString()} Singers`}
@@ -124,20 +171,6 @@
             </div>
           </ManageMenu>
         </div>
-        {#each [{ direction: 'up', label: 'up', icon: ArrowUp, disabled: index === 0 }, { direction: 'down', label: 'down', icon: ArrowDown, disabled: index === data.voiceParts.length - 1 }] as move (move.direction)}
-          <form method="POST" action={actionPath(formActions.voiceParts.move)} use:enhance>
-            <input type="hidden" name="part" value={part.id} />
-            <input type="hidden" name="direction" value={move.direction} />
-            <button
-              type="submit"
-              class={mover}
-              disabled={move.disabled}
-              aria-label="Move {part.name} {move.label}"
-            >
-              <move.icon class="size-5" />
-            </button>
-          </form>
-        {/each}
       </li>
     {/each}
   </ul>

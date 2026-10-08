@@ -54,7 +54,7 @@ const callableBeforeApproval: ReadonlyMap<string, string> = new Map([
     'admin_voice_parts',
     'admin_add_voice_part',
     'admin_update_voice_part',
-    'admin_move_voice_part',
+    'admin_reorder_voice_parts',
     'admin_remove_voice_part',
   ].map((name): readonly [string, string] => [name, voicePartsRefuseWithoutManageUsers]),
   ...[

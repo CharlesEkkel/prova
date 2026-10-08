@@ -121,34 +121,26 @@ begin
 end;
 $$;
 
--- Swaps a Voice Part with the one above or below it, then numbers the whole list afresh. Moving the
--- first part up or the last part down changes nothing.
-create function public.admin_move_voice_part(target uuid, direction text)
+-- Sets the whole list to this order: the ids of every Voice Part, once each, first to last. A list
+-- that is missing a part, repeats one or names one that is gone was made from an out-of-date page,
+-- so it is refused rather than guessed at (hint: stale-list). Locked so two changes cannot interleave.
+create function public.admin_reorder_voice_parts(ordered uuid[])
 returns void
 language plpgsql
 security definer
 set search_path = ''
 as $$
-declare
-  ordered uuid[];
-  here integer;
-  there integer;
-  held uuid;
 begin
   perform public.require_permission('manage-users');
-  if direction not in ('up', 'down') then
-    raise exception 'direction is up or down' using errcode = '22023';
-  end if;
-  select array_agg(id order by position, name) into ordered from public.voice_parts;
-  here := array_position(ordered, target);
-  if here is null then
-    raise exception 'unknown Voice Part' using errcode = 'P0002';
-  end if;
-  there := case direction when 'up' then here - 1 else here + 1 end;
-  if there >= 1 and there <= cardinality(ordered) then
-    held := ordered[here];
-    ordered[here] := ordered[there];
-    ordered[there] := held;
+  lock table public.voice_parts in share row exclusive mode;
+  if cardinality(ordered) is distinct from (select count(*) from public.voice_parts)
+    or (
+      select count(distinct listed.part)
+      from unnest(ordered) as listed(part)
+      join public.voice_parts vp on vp.id = listed.part
+    ) <> cardinality(ordered)
+  then
+    raise exception 'the list of Voice Parts has changed' using errcode = '22023', hint = 'stale-list';
   end if;
 
   update public.voice_parts vp
@@ -168,6 +160,8 @@ set search_path = ''
 as $$
 begin
   perform public.require_permission('manage-users');
+  -- Locked so two removals cannot each see the other's part still there and take the last two.
+  lock table public.voice_parts in share row exclusive mode;
   if not exists (select 1 from public.voice_parts where id = target) then
     raise exception 'unknown Voice Part' using errcode = 'P0002';
   end if;
@@ -181,8 +175,8 @@ end;
 $$;
 
 revoke execute on function public.admin_voice_parts() from public, anon;
-revoke execute on function public.admin_move_voice_part(uuid, text) from public, anon;
+revoke execute on function public.admin_reorder_voice_parts(uuid[]) from public, anon;
 revoke execute on function public.admin_remove_voice_part(uuid) from public, anon;
 grant execute on function public.admin_voice_parts() to authenticated;
-grant execute on function public.admin_move_voice_part(uuid, text) to authenticated;
+grant execute on function public.admin_reorder_voice_parts(uuid[]) to authenticated;
 grant execute on function public.admin_remove_voice_part(uuid) to authenticated;

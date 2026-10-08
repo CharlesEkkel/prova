@@ -28,7 +28,14 @@ export const suggestShortLabel = (name: string): string => {
 
 /** Why a change to the Voice Part list was not made. */
 export type VoicePartEditProblem =
-  'not-allowed' | 'name-taken' | 'label-taken' | 'reserved' | 'last-one' | 'invalid' | 'failed';
+  | 'not-allowed'
+  | 'name-taken'
+  | 'label-taken'
+  | 'reserved'
+  | 'last-one'
+  | 'list-changed'
+  | 'invalid'
+  | 'failed';
 
 export const voicePartEditMessages: Readonly<Record<VoicePartEditProblem, string>> = {
   'not-allowed': 'You do not have permission to do that.',
@@ -36,6 +43,8 @@ export const voicePartEditMessages: Readonly<Record<VoicePartEditProblem, string
   'label-taken': 'Another Voice Part already has that short label. Choose a different one.',
   reserved: `${combinedTrackLabel} is reserved for the Combined Track. Choose a different name or short label.`,
   'last-one': 'The last Voice Part cannot be removed.',
+  'list-changed':
+    'The list of Voice Parts changed while you were looking at it. It has been refreshed. Try again.',
   invalid: `A name is 1 to ${voicePartNameMaxLength.toString()} characters, and a short label is 1 to ${shortLabelMaxLength.toString()} letters or digits.`,
   failed: 'That did not work. Try again in a moment.',
 };
@@ -49,5 +58,6 @@ export const voicePartProblemOf = ({ code, hint }: DatabaseRefusal): VoicePartEd
   if (code === '23505') return hint === 'label-taken' ? 'label-taken' : 'name-taken';
   if (code === '22023' && hint === 'reserved') return 'reserved';
   if (code === '22023' && hint === 'last-voice-part') return 'last-one';
+  if (code === '22023' && hint === 'stale-list') return 'list-changed';
   return code === '22023' || code === 'P0002' ? 'invalid' : 'failed';
 };

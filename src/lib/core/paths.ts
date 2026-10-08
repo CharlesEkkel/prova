@@ -39,7 +39,7 @@ export const formActions = {
   signIn: { google: 'google' },
   singers: { setRoles: 'setRoles', remove: 'remove' },
   roles: { create: 'create', update: 'update', delete: 'delete' },
-  voiceParts: { add: 'add', update: 'update', move: 'move', remove: 'remove' },
+  voiceParts: { add: 'add', update: 'update', reorder: 'reorder', remove: 'remove' },
   appearance: { set: 'set', reset: 'reset' },
 } as const;
 

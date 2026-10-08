@@ -14,10 +14,8 @@ import { VoicePartId } from './voice-parts';
 const Text = Schema.String;
 const NewPartForm = Schema.Struct({ name: Text, label: Text });
 const EditPartForm = Schema.Struct({ ...NewPartForm.fields, part: VoicePartId });
-const MovePartForm = Schema.Struct({
-  part: VoicePartId,
-  direction: Schema.Literals(['up', 'down']),
-});
+/** The Voice Parts in the order the Admin dropped them, as one `part` field per Voice Part. */
+const ReorderForm = Schema.Struct({ parts: Schema.Array(VoicePartId) });
 const PartForm = Schema.Struct({ part: VoicePartId });
 
 const HasCode = Schema.Struct({ code: Schema.String });
@@ -32,6 +30,12 @@ const problemOf = (cause: unknown): VoicePartEditProblem =>
     ...(isHasHint(cause) ? { hint: cause.hint } : {}),
   });
 
+/** A form's fields, with the repeated `part` ones (a new order) gathered into `parts`. */
+const fieldsOf = (form: FormData): Readonly<Record<string, unknown>> => ({
+  ...Object.fromEntries(form),
+  parts: form.getAll('part'),
+});
+
 type RpcReply = PromiseLike<{ readonly data?: unknown; readonly error: unknown }>;
 
 /** A command: decode the submitted form, then make one RPC call with what it said. */
@@ -39,7 +43,7 @@ const command =
   <A, I>(schema: Schema.Codec<A, I>, call: (supabase: Supabase, input: A) => RpcReply) =>
   (supabase: Supabase, request: Request): Effect.Effect<void, VoicePartEditProblem> =>
     Effect.tryPromise(() => request.formData()).pipe(
-      Effect.flatMap((form) => Schema.decodeUnknownEffect(schema)(Object.fromEntries(form))),
+      Effect.flatMap((form) => Schema.decodeUnknownEffect(schema)(fieldsOf(form))),
       Effect.mapError((): VoicePartEditProblem => 'invalid'),
       Effect.flatMap((input) =>
         callSupabase(() => call(supabase, input)).pipe(
@@ -57,8 +61,8 @@ export const updateVoicePart = command(EditPartForm, (supabase, { part, name, la
   supabase.rpc('admin_update_voice_part', { target: part, part_name: name, part_label: label }),
 );
 
-export const moveVoicePart = command(MovePartForm, (supabase, { part, direction }) =>
-  supabase.rpc('admin_move_voice_part', { target: part, direction }),
+export const reorderVoiceParts = command(ReorderForm, (supabase, { parts }) =>
+  supabase.rpc('admin_reorder_voice_parts', { ordered: [...parts] }),
 );
 
 export const removeVoicePart = command(PartForm, (supabase, { part }) =>

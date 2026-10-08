@@ -248,68 +248,79 @@ describe('editing a Voice Part', () => {
 
 const positionOf = async (id: string): Promise<number> => (await stored(id))?.position ?? -1;
 
-describe('moving a Voice Part', () => {
-  it('moves it up and down past its neighbour, and every picker follows', async () => {
+/** Every Voice Part id in list order, as the admin portal reads it. */
+const orderedIds = async (singer: Pick<TestSinger, 'client'>): Promise<readonly string[]> => {
+  const { data } = await singer.client.rpc('admin_voice_parts');
+  return (data ?? []).map(({ id }) => id);
+};
+
+describe('reordering the Voice Parts', () => {
+  it('sets the whole list to the order it is given, and every picker follows', async () => {
     const manager = await signInNewManager();
     const first = await addPart(manager);
     const second = await addPart(manager);
-    expect(await positionOf(first)).toBeLessThan(await positionOf(second));
+    const before = await orderedIds(manager);
+    const swapped = before.map((id) => (id === first ? second : id === second ? first : id));
 
-    const up = await manager.client.rpc('admin_move_voice_part', {
-      target: second,
-      direction: 'up',
+    const { error } = await manager.client.rpc('admin_reorder_voice_parts', {
+      ordered: [...swapped],
     });
-    expect(up.error).toBeNull();
-    expect(await positionOf(second)).toBeLessThan(await positionOf(first));
+
+    expect(error).toBeNull();
+    expect(await orderedIds(manager)).toEqual(swapped);
     const listed = await manager.client.from('voice_parts').select('id').order('position');
-    const ids = (listed.data ?? []).map(({ id }) => id);
-    expect(ids.indexOf(second)).toBeLessThan(ids.indexOf(first));
-
-    const down = await manager.client.rpc('admin_move_voice_part', {
-      target: second,
-      direction: 'down',
-    });
-    expect(down.error).toBeNull();
-    expect(await positionOf(first)).toBeLessThan(await positionOf(second));
+    expect((listed.data ?? []).map(({ id }) => id)).toEqual(swapped);
   });
 
-  it('leaves the seeded parts in their order when a new part moves up', async () => {
+  it('leaves the seeded parts in their order when a new part moves to the front', async () => {
     const manager = await signInNewManager();
     const id = await addPart(manager);
+    const before = await orderedIds(manager);
 
-    await manager.client.rpc('admin_move_voice_part', { target: id, direction: 'up' });
+    await manager.client.rpc('admin_reorder_voice_parts', {
+      ordered: [id, ...before.filter((other) => other !== id)],
+    });
 
     const names = await serviceClient().from('voice_parts').select('name').order('position');
     const seededInOrder = (names.data ?? [])
       .map(({ name }) => name)
       .filter((name) => ['Soprano', 'Alto', 'Tenor', 'Bass'].includes(name));
     expect(seededInOrder).toEqual(['Soprano', 'Alto', 'Tenor', 'Bass']);
+    expect(await positionOf(id)).toBe(1);
   });
 
-  it('refuses a direction that is not up or down, an unknown part, and a Singer without manage-users', async () => {
+  it.each([
+    ['leaves a part out', (ids: readonly string[]) => ids.slice(1)],
+    ['repeats a part', (ids: readonly string[]) => [...ids, ids[0] ?? '']],
+    [
+      'names a part that does not exist',
+      (ids: readonly string[]) => [...ids.slice(1), randomUUID()],
+    ],
+    ['is empty', () => []],
+  ])('refuses a list that %s, as out of date', async (_what, spoil) => {
     const manager = await signInNewManager();
-    const id = await addPart(manager);
+    const current = await orderedIds(manager);
+
+    const { error } = await manager.client.rpc('admin_reorder_voice_parts', {
+      ordered: [...spoil(current)],
+    });
+
+    expect(error).toMatchObject({ code: '22023', hint: 'stale-list' });
+    expect(await orderedIds(manager)).toEqual(current);
+  });
+
+  it('is refused to a Singer without manage-users', async () => {
+    const manager = await signInNewManager();
     const singer = await signInNewSinger();
     await grantRole(singer, ['read', 'update']);
-    const before = await positionOf(id);
+    const current = await orderedIds(manager);
 
-    const sideways = await manager.client.rpc('admin_move_voice_part', {
-      target: id,
-      direction: 'sideways',
-    });
-    const ghost = await manager.client.rpc('admin_move_voice_part', {
-      target: randomUUID(),
-      direction: 'up',
-    });
-    const refused = await singer.client.rpc('admin_move_voice_part', {
-      target: id,
-      direction: 'up',
+    const { error } = await singer.client.rpc('admin_reorder_voice_parts', {
+      ordered: [...current].reverse(),
     });
 
-    expect(sideways.error?.code).toBe('22023');
-    expect(ghost.error?.code).toBe('P0002');
-    expect(refused.error?.code).toBe('42501');
-    expect(await positionOf(id)).toBe(before);
+    expect(error?.code).toBe('42501');
+    expect(await orderedIds(manager)).toEqual(current);
   });
 });
 
@@ -330,12 +341,10 @@ describe('the Voice Part list as the admin portal reads it', () => {
     expect(error).toBeNull();
     const ours = (data ?? []).find((part) => part.id === id);
     expect(ours).toMatchObject({ id, singer_count: 2 });
-    expect((data ?? []).map(({ name }) => name).slice(0, 4)).toEqual([
-      'Soprano',
-      'Alto',
-      'Tenor',
-      'Bass',
-    ]);
+    const seededInOrder = (data ?? [])
+      .map(({ name }) => name)
+      .filter((name) => ['Soprano', 'Alto', 'Tenor', 'Bass'].includes(name));
+    expect(seededInOrder).toEqual(['Soprano', 'Alto', 'Tenor', 'Bass']);
   });
 
   it('is refused to a Singer without manage-users', async () => {
