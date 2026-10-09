@@ -49,7 +49,13 @@ const refusesWithoutManageUsers = 'refuses anyone without manage-users (roles.te
 const voicePartsRefuseWithoutManageUsers =
   'refuses anyone without manage-users (voice-part-admin.test.ts proves it)';
 
+const piecesRefuseWithoutPermission =
+  'refuses anyone without the Permission it needs (pieces.test.ts proves it)';
+
 const callableBeforeApproval: ReadonlyMap<string, string> = new Map([
+  ...['repertoire', 'add_piece', 'update_piece', 'delete_piece'].map(
+    (name): readonly [string, string] => [name, piecesRefuseWithoutPermission],
+  ),
   ...[
     'admin_voice_parts',
     'admin_add_voice_part',
@@ -124,6 +130,10 @@ const accessTokenOf = async (singer: TestSinger): Promise<string> => {
 const arrangeSampleRows = async (): Promise<void> => {
   const other = await signInNewSinger();
   await grantRole(other, ['read']);
+  const piece = await serviceClient()
+    .from('pieces')
+    .insert({ title: `Sample ${other.id}` });
+  if (piece.error) throw piece.error;
 };
 
 const pendingSinger = (): Promise<TestSinger> => signInNewSinger();

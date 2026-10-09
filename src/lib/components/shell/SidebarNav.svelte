@@ -1,8 +1,8 @@
 <script lang="ts">
   import { page } from '$app/state';
   import { Collapsible } from 'bits-ui';
-  import { Calendar, ChevronDown, House, ShieldCheck, Star } from '@lucide/svelte';
-  import { isActive, mainNavigation } from '../../core/navigation';
+  import { Calendar, ChevronDown, House, Library, ShieldCheck, Star } from '@lucide/svelte';
+  import { isActive, mainNavigation, type NavItem } from '../../core/navigation';
   import { overviewLink } from '../../core/paths';
   import type { ShellData } from '../../core/shell';
   import Logo from '../ui/Logo.svelte';
@@ -18,6 +18,11 @@
         : 'text-zinc-600 hover:bg-zinc-200/60 dark:text-zinc-400 dark:hover:bg-zinc-800/70'
     }`;
 
+  const iconFor = (key: NavItem['key']) => {
+    if (key === 'admin') return ShieldCheck;
+    return key === 'repertoire' ? Library : House;
+  };
+
   const path = $derived(page.url.pathname);
 </script>
 
@@ -29,7 +34,7 @@
 
   <nav class="mt-2 flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto" aria-label="Main">
     {#each mainNavigation(shell.showAdminLink) as item (item.key)}
-      {@const Icon = item.key === 'admin' ? ShieldCheck : House}
+      {@const Icon = iconFor(item.key)}
       <a
         href={item.path}
         class={link(isActive(item, path))}

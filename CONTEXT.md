@@ -5,12 +5,16 @@ A mobile-first web app where choir singers find and play practice audio for the 
 ## Language
 
 **Piece**:
-A single musical work the choir is learning or performing.
+A single musical work the choir is learning or performing. Has a title, an optional composer and optional Conductor's Notes. Two Pieces may share a title, but not a title and composer together, ignoring case and extra spaces; a Piece with no composer counts as having an empty one. Deleting a Piece takes its Practice Tracks and Scores with it and removes it from every Performance.
 _Avoid_: Song, track, number
 
 **Voice Part**:
 The section a singer sings in for a Piece (e.g. Soprano, Alto, Tenor, Bass). A label can carry a number, such as Alto 1 and Alto 2, for a divisi split. Each also has a short label for compact screens, by default its first letter plus any number (A1, T2, and A for a plain Alto), and the Combined Track is labelled All. The list is the choir's own, edited by a Singer with `manage-users`, in an order they set that every picker follows. Short labels are unique within the choir ignoring case, and All is reserved for the Combined Track, so no Voice Part can take it as a label or a name. Removing a Voice Part sends the Singers whose default it was back to choose again, and the last one cannot be removed.
 _Avoid_: Part (ambiguous with Practice Track), section, voice
+
+**Conductor's Notes**:
+Optional free text on a Piece giving general directions to every Singer, such as "sing brightly". One block per Piece, plain text, not specific to a Voice Part. Written by a Singer with `append` when first adding the Piece, and edited afterwards by one with `update`.
+_Avoid_: Comments, annotations, instructions
 
 **Practice Track**:
 An audio file attached to a Piece for rehearsal, either for one Voice Part or the full choir combined. A per-Voice-Part track is marked **part-only** (just that line) or **part-predominant** (that line louder over the rest); a Piece normally has only one of the two.
@@ -41,7 +45,7 @@ The first screen after signing in: a timeline of Performances showing what is co
 _Avoid_: Dashboard, landing page
 
 **Repertoire**:
-The list of every Piece the choir has, including those in no Performance and those with no Practice Tracks yet. Has its own page.
+The list of every Piece the choir has, including those in no Performance and those with no Practice Tracks yet, which are visibly marked. Sorted A to Z. Has its own page.
 _Avoid_: Library, catalogue, song list
 
 **Play-through**:
