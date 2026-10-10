@@ -50,6 +50,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      performance_pieces: {
+        Row: {
+          performance_id: string;
+          piece_id: string;
+          position: number;
+        };
+        Insert: {
+          performance_id: string;
+          piece_id: string;
+          position: number;
+        };
+        Update: {
+          performance_id?: string;
+          piece_id?: string;
+          position?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'performance_pieces_performance_id_fkey';
+            columns: ['performance_id'];
+            isOneToOne: false;
+            referencedRelation: 'performances';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'performance_pieces_piece_id_fkey';
+            columns: ['piece_id'];
+            isOneToOne: false;
+            referencedRelation: 'pieces';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       performances: {
         Row: {
           created_at: string;
@@ -339,6 +372,7 @@ export type Database = {
     Functions: {
       add_performance: {
         Args: {
+          first_piece_ids: string[];
           performance_ends_at: string;
           performance_is_major: boolean;
           performance_name: string;
@@ -350,6 +384,10 @@ export type Database = {
       add_piece: {
         Args: { piece_composer: string; piece_notes: string; piece_title: string };
         Returns: string;
+      };
+      add_piece_to_performances: {
+        Args: { performance_ids: string[]; target_piece: string };
+        Returns: undefined;
       };
       add_practice_track: {
         Args: {
@@ -434,6 +472,7 @@ export type Database = {
         Args: { except_part: string; part_label: string; part_name: string };
         Returns: undefined;
       };
+      delete_performance: { Args: { target: string }; Returns: undefined };
       delete_piece: { Args: { target: string }; Returns: undefined };
       delete_practice_track: { Args: { target: string }; Returns: string };
       delete_score: { Args: { target: string }; Returns: string };
@@ -453,8 +492,13 @@ export type Database = {
         Args: { singer: string };
         Returns: Database['public']['Enums']['permission'][];
       };
+      remove_piece_from_performance: {
+        Args: { target_performance: string; target_piece: string };
+        Returns: undefined;
+      };
       rename_practice_track: { Args: { target: string; track_label: string }; Returns: undefined };
       rename_score: { Args: { score_label: string; target: string }; Returns: undefined };
+      reorder_performance: { Args: { ordered: string[]; target: string }; Returns: undefined };
       repertoire: {
         Args: { only_piece?: string };
         Returns: {
@@ -476,6 +520,16 @@ export type Database = {
       set_my_default_voice_part: { Args: { chosen: string }; Returns: undefined };
       set_owner_emails: { Args: { emails: string[] }; Returns: undefined };
       tidy_text: { Args: { raw: string }; Returns: string };
+      update_performance: {
+        Args: {
+          performance_ends_at: string;
+          performance_name: string;
+          performance_starts_at: string;
+          performance_venue: string;
+          target: string;
+        };
+        Returns: undefined;
+      };
       update_piece: {
         Args: { piece_composer: string; piece_notes: string; piece_title: string; target: string };
         Returns: undefined;
