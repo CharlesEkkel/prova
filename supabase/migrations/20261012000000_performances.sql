@@ -230,6 +230,34 @@ begin
 end;
 $$;
 
+-- The Repertoire now counts the Performances each Piece is in (replacing the version from #19).
+create or replace function public.repertoire(only_piece uuid default null)
+returns table (
+  id uuid,
+  title text,
+  composer text,
+  notes text,
+  practice_tracks bigint,
+  scores bigint,
+  performances bigint
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  perform public.require_permission('read');
+  return query
+    select p.id, p.title, p.composer, p.notes,
+      (select count(*) from public.practice_tracks t where t.piece_id = p.id),
+      (select count(*) from public.scores s where s.piece_id = p.id),
+      (select count(*) from public.performance_pieces pp where pp.piece_id = p.id)
+    from public.pieces p
+    where only_piece is null or p.id = only_piece;
+end;
+$$;
+
 revoke execute on function public.check_performance(text, timestamptz, timestamptz, uuid) from public, anon, authenticated;
 revoke execute on function public.add_performance(text, timestamptz, timestamptz, text, boolean, uuid[]) from public, anon;
 grant execute on function public.add_performance(text, timestamptz, timestamptz, text, boolean, uuid[]) to authenticated;

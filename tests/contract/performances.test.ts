@@ -582,3 +582,16 @@ describe('reading Performances', () => {
     expect(update.data ?? []).toEqual([]);
   });
 });
+
+describe('the Repertoire', () => {
+  it('counts the Performances each Piece is in', async () => {
+    const reader = await singerHolding('read');
+    const piece = await existingPiece();
+    await performanceHolding(piece);
+    await performanceHolding(piece);
+
+    const { data } = await reader.client.rpc('repertoire', { only_piece: piece });
+
+    expect(data?.map(({ performances }) => performances)).toEqual([2]);
+  });
+});

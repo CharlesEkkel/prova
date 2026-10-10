@@ -33,8 +33,10 @@ const readableBeforeApproval: ReadonlyMap<string, CarveOut> = new Map([
   [
     'site_settings',
     {
-      reason: 'the Colour Theme is shown to everyone, including a visitor who has not signed in',
-      columns: ['colour_theme'],
+      reason:
+        'the Colour Theme is shown to everyone, including a visitor who has not signed in; ' +
+        'the Choir Time Zone sits in the same row and says nothing about the choir beyond a zone',
+      columns: ['colour_theme', 'choir_time_zone'],
     },
   ],
   ['app_info', { reason: 'scaffold ping row, holds no choir data', columns: ['key', 'value'] }],
@@ -52,7 +54,18 @@ const voicePartsRefuseWithoutManageUsers =
 const piecesRefuseWithoutPermission =
   'refuses anyone without the Permission it needs (pieces.test.ts, practice-tracks.test.ts and scores.test.ts prove it)';
 
+const performancesRefuseWithoutPermission =
+  'refuses anyone without the Permission it needs (performances.test.ts proves it)';
+
 const callableBeforeApproval: ReadonlyMap<string, string> = new Map([
+  ...[
+    'add_performance',
+    'update_performance',
+    'delete_performance',
+    'add_piece_to_performances',
+    'remove_piece_from_performance',
+    'reorder_performance',
+  ].map((name): readonly [string, string] => [name, performancesRefuseWithoutPermission]),
   ...[
     'repertoire',
     'add_piece',
@@ -158,6 +171,20 @@ const arrangeSampleRows = async (): Promise<void> => {
       object_path: `${piece.data.id}/${other.id}.pdf`,
     });
   if (score.error) throw score.error;
+  const performance = await serviceClient()
+    .from('performances')
+    .insert({
+      name: `Sample ${other.id}`,
+      starts_at: '2027-01-01T18:00:00Z',
+      ends_at: '2027-01-01T20:00:00Z',
+    })
+    .select('id')
+    .single();
+  if (performance.error) throw performance.error;
+  const entry = await serviceClient()
+    .from('performance_pieces')
+    .insert({ performance_id: performance.data.id, piece_id: piece.data.id, position: 1 });
+  if (entry.error) throw entry.error;
 };
 
 const pendingSinger = (): Promise<TestSinger> => signInNewSinger();

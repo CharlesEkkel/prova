@@ -334,12 +334,15 @@ export type Database = {
       };
       site_settings: {
         Row: {
+          choir_time_zone: string;
           colour_theme: string;
         };
         Insert: {
+          choir_time_zone?: string;
           colour_theme?: string;
         };
         Update: {
+          choir_time_zone?: string;
           colour_theme?: string;
         };
         Relationships: [];
