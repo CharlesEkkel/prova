@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   acceptedExtensions,
+  acceptedScoreExtensions,
+  defaultScoreUploadLimitMiB,
   defaultUploadLimitMiB,
   isAudioExtension,
+  scoreFilePath,
+  scoreUploadRules,
   trackFilePath,
   uploadLimitBytes,
   uploadLimitFrom,
@@ -115,5 +119,60 @@ describe('uploadProblemOfStatus', () => {
     [500, 'failed'],
   ])('reads status %i as %s', (status, problem) => {
     expect(uploadProblemOfStatus(status)).toBe(problem);
+  });
+});
+
+describe('scoreUploadRules(…).check', () => {
+  const scoreRules = scoreUploadRules(20);
+
+  it.each(['Requiem.pdf', 'Requiem.PDF', 'full score.final.pdf'])('accepts %s', (name) => {
+    expect(scoreRules.check({ name, size: 1000 })).toEqual({
+      ok: true,
+      accepted: { extension: 'pdf', contentType: 'application/pdf' },
+    });
+  });
+
+  it.each(['take.mp3', 'score.pdf.exe', 'score', 'pdf', 'score.docx', ''])(
+    'refuses %j by type',
+    (name) => {
+      expect(scoreRules.check({ name, size: 1000 })).toEqual({ ok: false, problem: 'wrong-type' });
+    },
+  );
+
+  it('accepts a file of exactly the limit and refuses one byte more and an empty one', () => {
+    const limit = uploadLimitBytes(20);
+
+    expect(scoreRules.check({ name: 'a.pdf', size: limit }).ok).toBe(true);
+    expect(scoreRules.check({ name: 'a.pdf', size: limit + 1 })).toEqual({
+      ok: false,
+      problem: 'too-large',
+    });
+    expect(scoreRules.check({ name: 'a.pdf', size: 0 })).toEqual({ ok: false, problem: 'empty' });
+  });
+
+  it('says what is wrong, with its own limit', () => {
+    const { messages, limitText } = scoreUploadRules(30);
+
+    expect(limitText).toBe('30 MB');
+    expect(messages['too-large']).toContain('30 MB');
+    expect(messages['wrong-type']).toContain('PDF');
+  });
+});
+
+describe('the Score upload limit', () => {
+  it('is 20 MiB unless the deployment says otherwise, separate from the audio limit', () => {
+    expect(defaultScoreUploadLimitMiB).toBe(20);
+    expect(defaultScoreUploadLimitMiB).not.toBe(defaultUploadLimitMiB);
+  });
+
+  it('falls back to its own default for a missing or bad setting', () => {
+    expect(uploadLimitFrom('40', defaultScoreUploadLimitMiB)).toBe(40);
+    expect(uploadLimitFrom(undefined, defaultScoreUploadLimitMiB)).toBe(20);
+    expect(uploadLimitFrom('lots', defaultScoreUploadLimitMiB)).toBe(20);
+  });
+
+  it('names the picker type and puts the file under its Piece, named by the Score', () => {
+    expect(acceptedScoreExtensions).toBe('.pdf');
+    expect(scoreFilePath('piece', 'score')).toBe('piece/score.pdf');
   });
 });

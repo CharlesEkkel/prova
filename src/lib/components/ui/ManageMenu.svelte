@@ -12,15 +12,18 @@
   const {
     actions,
     label,
+    align = 'center',
     children,
   }: {
     readonly actions: readonly ManageAction[];
     readonly label: string;
+    /** Where the ⋯ button sits beside tall content: centred, or level with its first line (a 2rem heading). */
+    readonly align?: 'center' | 'first-line';
     readonly children: Snippet;
   } = $props();
 </script>
 
-<div class="flex items-center gap-1">
+<div class="flex gap-1 {align === 'first-line' ? 'items-start' : 'items-center'}">
   <ContextMenu.Root>
     <ContextMenu.Trigger class="block min-w-0 flex-1">{@render children()}</ContextMenu.Trigger>
     <ContextMenu.Portal>
@@ -32,7 +35,10 @@
   <DropdownMenu.Root>
     <DropdownMenu.Trigger
       aria-label={label}
-      class="grid size-11 shrink-0 place-items-center rounded-full text-zinc-500 transition hover:bg-zinc-200/70 dark:hover:bg-zinc-800"
+      class="grid size-11 shrink-0 place-items-center rounded-full text-zinc-500 transition hover:bg-zinc-200/70 dark:hover:bg-zinc-800 {align ===
+      'first-line'
+        ? '-mt-1.5'
+        : ''}"
     >
       <Ellipsis class="size-5" />
     </DropdownMenu.Trigger>

@@ -1,4 +1,6 @@
-# Audio is served through an authenticated same-origin endpoint, not signed links
+# Audio and Scores are served through an authenticated same-origin endpoint, not signed links
+
+Scores follow the same decision: a PDF is read from `/repertoire/<piece>/scores/<score>/file`, with the same session check, `Range` pass-through and cache lifetime, and pdf.js loads that path rather than a signed link. Scores live in their own private bucket that accepts `application/pdf`, with their own limit, `PUBLIC_SCORE_UPLOAD_LIMIT_MIB` (default 20), applied the same way as the audio one. It is separate because scanned scores are much larger than audio.
 
 The original spec (#11, stories 77 and 78) gave each Singer a per-track signed link lasting about a day, reused until close to expiry so the browser could cache it. That needs somewhere to keep the link between requests, and the app runs on Cloudflare Pages without bindings, so the only home is the browser. It also yields a link that works for anyone who is sent it until it expires.
 

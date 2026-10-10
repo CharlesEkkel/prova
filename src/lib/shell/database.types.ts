@@ -166,6 +166,41 @@ export type Database = {
         };
         Relationships: [];
       };
+      scores: {
+        Row: {
+          created_at: string;
+          id: string;
+          is_choir_score: boolean;
+          label: string;
+          object_path: string;
+          piece_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          is_choir_score?: boolean;
+          label: string;
+          object_path: string;
+          piece_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          is_choir_score?: boolean;
+          label?: string;
+          object_path?: string;
+          piece_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'scores_piece_id_fkey';
+            columns: ['piece_id'];
+            isOneToOne: false;
+            referencedRelation: 'pieces';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       singer_roles: {
         Row: {
           role_id: string;
@@ -287,6 +322,15 @@ export type Database = {
         };
         Returns: string;
       };
+      add_score: {
+        Args: {
+          file_path: string;
+          make_choir?: boolean;
+          score_label: string;
+          target_piece: string;
+        };
+        Returns: string;
+      };
       admin_add_voice_part: { Args: { part_label: string; part_name: string }; Returns: string };
       admin_create_role: {
         Args: { perms: Database['public']['Enums']['permission'][]; role_name: string };
@@ -343,12 +387,14 @@ export type Database = {
       };
       delete_piece: { Args: { target: string }; Returns: undefined };
       delete_practice_track: { Args: { target: string }; Returns: string };
+      delete_score: { Args: { target: string }; Returns: string };
       grant_admin_to_owners: { Args: Record<PropertyKey, never>; Returns: undefined };
       has_permission: {
         Args: { required: Database['public']['Enums']['permission'] };
         Returns: boolean;
       };
       is_owner: { Args: { singer: string }; Returns: boolean };
+      make_choir_score: { Args: { target: string }; Returns: undefined };
       my_default_voice_part: { Args: Record<PropertyKey, never>; Returns: Json };
       my_permissions: {
         Args: Record<PropertyKey, never>;
@@ -359,6 +405,7 @@ export type Database = {
         Returns: Database['public']['Enums']['permission'][];
       };
       rename_practice_track: { Args: { target: string; track_label: string }; Returns: undefined };
+      rename_score: { Args: { score_label: string; target: string }; Returns: undefined };
       repertoire: {
         Args: { only_piece?: string };
         Returns: {
