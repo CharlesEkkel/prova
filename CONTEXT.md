@@ -29,8 +29,12 @@ A PDF of the written music for a Piece, uploaded alongside its Practice Tracks, 
 _Avoid_: Sheet music, chart
 
 **Performance**:
-An event with a start and an end (each a date and time) that the choir works toward, holding an ordered list of Pieces. A Piece may belong to several Performances and may have no Practice Tracks yet. A Performance is upcoming until it has ended and past after that; past ones are archived and the default view lists upcoming ones.
+An event with a name, a start and an end (each a date and time, the end after the start) and an optional venue, that the choir works toward, holding an ordered list of Pieces. A Piece may belong to several Performances, appears at most once in each, and may have no Practice Tracks yet. A Performance is upcoming until it has ended and past after that; past ones are archived, the default view lists upcoming ones, and a past Performance can still be edited. Names need not be unique, but two Performances may not share a name and a start together, ignoring case and extra spaces. Created by a Singer with `append` (who may add its first Pieces and mark it major); its name, times, venue and Pieces are changed afterwards by one with `update`.
 _Avoid_: Milestone, event, gig, concert
+
+**Choir Time Zone**:
+The one time zone the whole choir's Performance times are entered and shown in, whatever a Singer's device says. Chosen by a Singer with `manage-users`, a site setting like the Colour Theme.
+_Avoid_: Local time, device time zone
 
 **Major Performance**:
 A Performance the choir singles out. Any number can be major. Each is highlighted wherever Performances appear, and a banner on every screen shows the closest upcoming one (the earliest start among those not yet ended), so it is always one tap away. A Singer with `update` marks it, or a Singer with `append` when first creating the Performance.
