@@ -432,6 +432,26 @@ test.describe('uploading a Score', () => {
     await expect(upload).toBeEnabled();
   });
 
+  test('darkens the Browse button when the mouse is over it', async ({ page, context }) => {
+    const piece = await newPiece();
+    await signInAsSingerWith(context, ['append']);
+    await openPiece(page, piece.id);
+    const dialog = await openUpload(page);
+    const field = dialog.getByLabel('PDF file');
+    const background = () =>
+      field.evaluate(
+        (element) => getComputedStyle(element, '::file-selector-button').backgroundColor,
+      );
+    // Park the mouse away from the field first, then over the button at its left end.
+    await page.mouse.move(0, 0);
+    await expect.poll(background).not.toBe('');
+    const resting = await background();
+
+    await field.hover({ position: { x: 12, y: 12 } });
+
+    await expect.poll(background).not.toBe(resting);
+  });
+
   test('shows a focus ring on the Browse button when the file field has keyboard focus', async ({
     page,
     context,
