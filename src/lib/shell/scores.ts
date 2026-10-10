@@ -86,7 +86,7 @@ export const issueScoreTicket: ScoreCommand<UploadTicket> = (supabase, request) 
     ),
   );
 
-// The browser sends every field as text. "make-choir" is present only when the box was ticked.
+// The browser sends every field as text. `choir` is "on" only when the box was ticked.
 const AddForm = Schema.Struct({
   piece: PieceIdSchema,
   path: Schema.String,
