@@ -44,7 +44,7 @@
   </a>
 
   {#if data.mayEditPiece}
-    <ManageMenu actions={pieceActions} label="Actions for {piece.title}">
+    <ManageMenu actions={pieceActions} label="Actions for {piece.title}" align="first-line">
       <PieceDetails {piece} />
     </ManageMenu>
   {:else}

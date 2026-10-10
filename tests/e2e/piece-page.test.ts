@@ -82,6 +82,33 @@ test.describe('editing a Piece from its own page', () => {
     }
   });
 
+  test('puts the menu button level with the title, even with Conductor’s Notes below', async ({
+    page,
+    context,
+  }) => {
+    const title = `Level ${unique()}`;
+    try {
+      const { data, error } = await serviceClient()
+        .from('pieces')
+        .insert({ title, composer: 'Anon', notes: 'Sing brightly.\n\nWatch the conductor.' })
+        .select('id')
+        .single();
+      if (error) throw error;
+      await signInAsSingerWith(context, ['update']);
+      await openPiece(page, data.id);
+
+      const heading = await page.getByRole('heading', { level: 1 }).boundingBox();
+      const button = await page.getByRole('button', { name: `Actions for ${title}` }).boundingBox();
+      if (heading === null || button === null) throw new Error('the title or the menu is missing');
+
+      const centreOf = ({ y, height }: { readonly y: number; readonly height: number }) =>
+        y + height / 2;
+      expect(Math.abs(centreOf(button) - centreOf(heading))).toBeLessThanOrEqual(2);
+    } finally {
+      await removePiecesTitled([title]);
+    }
+  });
+
   test('offers no edit menu to a Singer without update', async ({ page, context }) => {
     const title = `Plain ${unique()}`;
     try {

@@ -432,6 +432,28 @@ test.describe('uploading a Score', () => {
     await expect(upload).toBeEnabled();
   });
 
+  test('shows a focus ring on the Browse button when the file field has keyboard focus', async ({
+    page,
+    context,
+  }) => {
+    const piece = await newPiece();
+    await signInAsSingerWith(context, ['append']);
+    await openPiece(page, piece.id);
+    const dialog = await openUpload(page);
+    const field = dialog.getByLabel('PDF file');
+
+    await field.focus();
+    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Tab');
+
+    await expect(field).toBeFocused();
+    const ring = await field.evaluate((element) => {
+      const button = getComputedStyle(element, '::file-selector-button');
+      return { style: button.outlineStyle, width: button.outlineWidth };
+    });
+    expect(ring).toEqual({ style: 'solid', width: '2px' });
+  });
+
   test('shows a Singer holding only read no upload button and no row actions', async ({
     page,
     context,

@@ -21,7 +21,7 @@
   import AlertMessage from '../AlertMessage.svelte';
   import Btn from '../ui/Btn.svelte';
   import Modal from '../ui/Modal.svelte';
-  import { fieldLabel, hint, input } from '../ui/styles';
+  import { fieldLabel, fileInput, hint, input } from '../ui/styles';
 
   const {
     open,
@@ -189,7 +189,7 @@
         type="file"
         accept={acceptedExtensions}
         disabled={phase !== 'idle'}
-        class="block w-full text-sm file:mr-3 file:min-h-11 file:rounded-full file:border-0 file:bg-primary-100 file:px-4 file:font-medium file:text-primary-700 dark:file:bg-primary-500/15 dark:file:text-primary-300"
+        class={fileInput}
         onchange={(event) => {
           file = event.currentTarget.files?.[0] ?? null;
           failure = '';
