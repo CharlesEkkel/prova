@@ -1,6 +1,6 @@
--- Pieces (#17): the Repertoire. A Piece has a title, an optional composer and optional Conductor's
--- Notes. Titles may repeat, but not a title and composer together, ignoring case and extra spaces;
--- no composer counts as an empty one. Reading needs `read`. Writing goes only through the functions
+-- Pieces (#17): the Repertoire. A Piece has a title, a composer (both required) and optional
+-- Conductor's Notes. Titles may repeat, but not a title and composer together, ignoring case and
+-- extra spaces. Reading needs `read`. Writing goes only through the functions
 -- below: `append` adds (and may set the notes), `update` edits, `delete` removes.
 --
 -- The limits (title 120, composer 120, notes 2,000) are also in src/lib/core/pieces.ts;
@@ -8,12 +8,13 @@
 create table public.pieces (
   id uuid primary key default gen_random_uuid(),
   title text not null,
-  composer text not null default '',
+  composer text not null,
   notes text not null default '',
   created_at timestamptz not null default now(),
   constraint pieces_title_shape
     check (title = btrim(title) and char_length(title) between 1 and 120),
-  constraint pieces_composer_shape check (composer = btrim(composer) and char_length(composer) <= 120),
+  constraint pieces_composer_shape
+    check (composer = btrim(composer) and char_length(composer) between 1 and 120),
   constraint pieces_notes_shape check (notes = btrim(notes) and char_length(notes) <= 2000)
 );
 
@@ -47,10 +48,10 @@ set search_path = ''
 as $$
 begin
   if char_length(public.tidy_text(piece_title)) not between 1 and 120
-    or char_length(public.tidy_text(piece_composer)) > 120
+    or char_length(public.tidy_text(piece_composer)) not between 1 and 120
     or char_length(btrim(coalesce(piece_notes, ''))) > 2000
   then
-    raise exception 'a Piece needs a title of 1 to 120 characters' using errcode = '22023', hint = 'invalid';
+    raise exception 'a Piece needs a title and a composer of 1 to 120 characters each' using errcode = '22023', hint = 'invalid';
   end if;
   if exists (
     select 1 from public.pieces

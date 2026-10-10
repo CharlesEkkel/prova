@@ -140,10 +140,11 @@
         />
       </div>
       <div>
-        <label for="piece-composer" class={fieldLabel}>Composer (optional)</label>
+        <label for="piece-composer" class={fieldLabel}>Composer</label>
         <input
           id="piece-composer"
           name="composer"
+          required
           maxlength={composerMaxLength}
           class={input}
           value={piece?.composer ?? ''}

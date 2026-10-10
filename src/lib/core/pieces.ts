@@ -17,7 +17,7 @@ export const isPieceId = (value: unknown): value is PieceId =>
 /** `raw` as a Piece id if it is a UUID, otherwise null. */
 export const pieceIdOf = (raw: string): PieceId | null => (isPieceId(raw) ? raw : null);
 
-/** Title and composer may be up to 120 characters, Conductor's Notes up to 2,000. */
+/** Title and composer are each 1 to 120 characters, Conductor's Notes up to 2,000. */
 export const titleMaxLength = 120;
 export const composerMaxLength = 120;
 export const notesMaxLength = 2000;
@@ -77,7 +77,7 @@ export type PieceProblem = 'not-allowed' | 'duplicate' | 'invalid' | 'gone' | 'f
 export const pieceMessages: Readonly<Record<PieceProblem, string>> = {
   'not-allowed': 'You do not have permission to do that.',
   duplicate: 'The Repertoire already has a Piece with that title and composer.',
-  invalid: `A title is 1 to ${titleMaxLength.toString()} characters, a composer up to ${composerMaxLength.toString()} and the Conductor’s Notes up to ${notesMaxLength.toLocaleString('en')}.`,
+  invalid: `A title and a composer are each 1 to ${titleMaxLength.toString()} characters and the Conductor’s Notes up to ${notesMaxLength.toLocaleString('en')}.`,
   gone: 'That Piece no longer exists. The Repertoire has been refreshed.',
   failed: 'That did not work. Try again in a moment.',
 };

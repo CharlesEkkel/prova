@@ -41,6 +41,15 @@ Google is the only way in: email sign-up and anonymous sign-ins are switched off
 3. On Supabase cloud, in the dashboard: enable the Google provider with the same client; under Authentication → Sign In / Providers turn the **Email** provider off and **Allow anonymous sign-ins** off; under URL Configuration set the Site URL to the app's URL and add `https://<your-app>/auth/callback` to the redirect URLs.
 4. On Cloudflare Pages, set `PUBLIC_SUPABASE_URL` and `PUBLIC_SUPABASE_ANON_KEY` for the build. They are build-time variables (Vite bakes them into the app), and the build fails without them. Never set `SUPABASE_SERVICE_ROLE_KEY` anywhere the app runs; only the tests use it, against the local stack.
 
+## Practice Tracks
+
+A Practice Track is an MP3 or M4A file stored in the private `practice-tracks` bucket (created by a migration). Uploads are append-only: `append` can add a file, never replace or remove one; `update` renames a label; `delete` removes a track and its file.
+
+- **Upload limit.** 10 MiB by default (shown to Singers as "10 MB"). Set `PUBLIC_UPLOAD_LIMIT_MIB` (a whole number of MiB) as a build variable so the screens say the right number, and run `node scripts/apply-upload-limit.mjs` on every deploy (`PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and the same `PUBLIC_UPLOAD_LIMIT_MIB` set; locally `just set-upload-limit 25`) so the bucket enforces it too. The project's own global file size limit (Supabase cloud: Storage > Settings, 50 MB on the free plan) caps it. The accepted types are fixed in the migration; the bucket checks the declared type, not the file's contents.
+- **Playing.** A track plays from `/repertoire/<piece>/tracks/<track>/audio`, which needs a signed-in Singer with `read`, passes `Range` through so seeking works and sets `Cache-Control: private, max-age=3600`. There are no signed links; see `docs/adr/0003-audio-served-through-an-authenticated-endpoint.md`. Every audio request, `Range` requests included, runs a Cloudflare Pages Function, so check the plan's request allowance if the choir grows.
+- **Stray files.** Deleting a track or a Piece removes its row first and its file after, so a failure in between can leave an unreferenced file in the bucket but never a track with no file. There is no cleanup job.
+- **Encoding.** About 128 kbps keeps a track small and the free tier's egress in reach.
+
 ## Colour Theme
 
 The Colour Theme (Forest, Violet, Ocean, Sunset or Graphite) is one site-wide setting: a single row in the `site_settings` table, seeded as Forest. A Singer holding `manage-users` changes it in Admin > Appearance; anyone, signed in or not, can read it.

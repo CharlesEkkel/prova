@@ -41,6 +41,7 @@ export type VoicePartEditProblem =
   | 'label-taken'
   | 'reserved'
   | 'last-one'
+  | 'has-tracks'
   | 'list-changed'
   | 'invalid'
   | 'failed';
@@ -51,6 +52,8 @@ export const voicePartEditMessages: Readonly<Record<VoicePartEditProblem, string
   'label-taken': 'Another Voice Part already has that short label. Choose a different one.',
   reserved: `${combinedTrackLabel} is reserved for the Combined Track. Choose a different name or short label.`,
   'last-one': 'The last Voice Part cannot be removed.',
+  'has-tracks':
+    'That Voice Part has Practice Tracks, so it cannot be removed. Delete its tracks first.',
   'list-changed':
     'The list of Voice Parts changed while you were looking at it. It has been refreshed. Try again.',
   invalid: `A name is 1 to ${voicePartNameMaxLength.toString()} characters, and a short label is 1 to ${shortLabelMaxLength.toString()} letters or digits.`,
@@ -66,6 +69,7 @@ export const voicePartProblemOf = ({ code, hint }: DatabaseRefusal): VoicePartEd
   if (code === '23505') return hint === 'label-taken' ? 'label-taken' : 'name-taken';
   if (code === '22023' && hint === 'reserved') return 'reserved';
   if (code === '22023' && hint === 'last-voice-part') return 'last-one';
+  if (code === '22023' && hint === 'has-tracks') return 'has-tracks';
   if (code === '22023' && hint === 'stale-list') return 'list-changed';
   return code === '22023' || code === 'P0002' ? 'invalid' : 'failed';
 };

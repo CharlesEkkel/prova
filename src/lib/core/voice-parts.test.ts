@@ -37,6 +37,7 @@ describe('voicePartProblemOf', () => {
     [{ code: '23505', hint: 'label-taken' }, 'label-taken'],
     [{ code: '22023', hint: 'reserved' }, 'reserved'],
     [{ code: '22023', hint: 'last-voice-part' }, 'last-one'],
+    [{ code: '22023', hint: 'has-tracks' }, 'has-tracks'],
     [{ code: '22023', hint: 'stale-list' }, 'list-changed'],
     [{ code: '22023', hint: 'invalid' }, 'invalid'],
     [{ code: 'P0002', hint: null }, 'invalid'],

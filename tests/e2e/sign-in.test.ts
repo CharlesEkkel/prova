@@ -1,7 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { destinationCookie } from '../../src/lib/shell/destination-cookie';
 import { grantRole } from '../contract/support';
-import { signInAsApprovedSinger, signInAsNewSinger, signOutFromMenu } from './support';
+import {
+  chooseVoicePart,
+  signInAsApprovedSinger,
+  signInAsNewSinger,
+  signOutFromMenu,
+} from './support';
 
 test.describe('signed out', () => {
   test('a visitor to any page is sent to sign-in, remembering where they were headed', async ({
@@ -132,9 +137,7 @@ test.describe('a Pending Singer', () => {
     context,
   }) => {
     const singer = await signInAsNewSinger(context);
-    await page.goto('/choose-part');
-    await page.getByRole('radio', { name: /Bass/ }).click();
-    await page.getByRole('button', { name: 'Continue' }).click();
+    await chooseVoicePart(page, /Bass/);
 
     await expect(page).toHaveURL('/waiting');
     await expect(page.getByRole('heading', { name: 'Waiting for approval' })).toBeVisible();
@@ -155,9 +158,7 @@ test.describe('a Pending Singer', () => {
     context,
   }) => {
     const singer = await signInAsNewSinger(context);
-    await page.goto('/choose-part');
-    await page.getByRole('radio', { name: /Alto/ }).click();
-    await page.getByRole('button', { name: 'Continue' }).click();
+    await chooseVoicePart(page, /Alto/);
     await expect(page).toHaveURL('/waiting');
 
     await page.getByRole('button', { name: 'Check again' }).click();
@@ -174,9 +175,7 @@ test.describe('a Pending Singer', () => {
 
   test('re-checks by itself when the Singer comes back to the tab', async ({ page, context }) => {
     const singer = await signInAsNewSinger(context);
-    await page.goto('/choose-part');
-    await page.getByRole('radio', { name: /Alto/ }).click();
-    await page.getByRole('button', { name: 'Continue' }).click();
+    await chooseVoicePart(page, /Alto/);
     await expect(page).toHaveURL('/waiting');
     await expect(page.getByRole('button', { name: 'Check again' })).toBeEnabled();
 
@@ -191,9 +190,7 @@ test.describe('a Pending Singer', () => {
     context,
   }) => {
     const singer = await signInAsNewSinger(context);
-    await page.goto('/choose-part');
-    await page.getByRole('radio', { name: /Alto/ }).click();
-    await page.getByRole('button', { name: 'Continue' }).click();
+    await chooseVoicePart(page, /Alto/);
     await expect(page).toHaveURL('/waiting');
     await expect(page.getByRole('button', { name: 'Check again' })).toBeEnabled();
 
@@ -208,9 +205,7 @@ test.describe('a Pending Singer', () => {
     context,
   }) => {
     await signInAsNewSinger(context);
-    await page.goto('/choose-part');
-    await page.getByRole('radio', { name: /Soprano/ }).click();
-    await page.getByRole('button', { name: 'Continue' }).click();
+    await chooseVoicePart(page, /Soprano/);
 
     await page.getByRole('button', { name: 'Sign out' }).click();
     await expect(page).toHaveURL('/sign-in');

@@ -51,7 +51,7 @@ test.describe('the Repertoire', () => {
   }) => {
     const title = `Readonly ${unique()}`;
     try {
-      await serviceClient().from('pieces').insert({ title });
+      await serviceClient().from('pieces').insert({ title, composer: 'Anon' });
       await signInAsApprovedSinger(context);
       await openRepertoire(page);
 
@@ -69,7 +69,7 @@ test.describe('the Repertoire', () => {
   }) => {
     const title = `Actions ${unique()}`;
     try {
-      await serviceClient().from('pieces').insert({ title });
+      await serviceClient().from('pieces').insert({ title, composer: 'Anon' });
       await signInAsSingerWith(context, ['update']);
       await openRepertoire(page);
 
@@ -132,7 +132,7 @@ test.describe('the Repertoire', () => {
     const title = `Before ${unique()}`;
     const renamed = `After ${unique()}`;
     try {
-      await serviceClient().from('pieces').insert({ title });
+      await serviceClient().from('pieces').insert({ title, composer: 'Anon' });
       await signInAsSingerWith(context, ['update']);
       await openRepertoire(page);
 
@@ -153,7 +153,7 @@ test.describe('the Repertoire', () => {
   test('asks before deleting and says what goes with the Piece', async ({ page, context }) => {
     const title = `Doomed ${unique()}`;
     try {
-      await serviceClient().from('pieces').insert({ title });
+      await serviceClient().from('pieces').insert({ title, composer: 'Anon' });
       await signInAsSingerWith(context, ['delete']);
       await openRepertoire(page);
 

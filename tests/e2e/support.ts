@@ -75,3 +75,14 @@ export const signOutFromMenu = async (page: Page): Promise<void> => {
   await page.getByRole('button', { name: /^User menu for/ }).click();
   await page.getByRole('menuitem', { name: 'Sign out' }).click();
 };
+
+/**
+ * Picks a Voice Part on the choose-part screen and continues. It waits for the page to hydrate
+ * first: before that the radio does nothing, so Continue would submit with no part chosen.
+ */
+export const chooseVoicePart = async (page: Page, name: RegExp): Promise<void> => {
+  await page.goto('/choose-part');
+  await page.waitForLoadState('networkidle');
+  await page.getByRole('radio', { name }).click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+};
