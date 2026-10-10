@@ -4,7 +4,7 @@ import { defaultScoreUploadLimitMiB, uploadLimitBytes } from '../../src/lib/core
 import { silentMp3 } from '../audio-fixtures';
 import { pdfOfSize, samplePdf } from '../pdf-fixtures';
 import { serviceClient } from '../contract/support';
-import { signInAsApprovedSinger, signInAsSingerWith } from './support';
+import { isDesktopLayout, signInAsApprovedSinger, signInAsSingerWith } from './support';
 
 const bucket = 'scores';
 
@@ -79,12 +79,10 @@ const openPiece = async (page: Page, id: string): Promise<void> => {
   await page.waitForLoadState('networkidle');
 };
 
-/** Opens the Scores panel and chooses a Score by its label. */
-const choose = async (page: Page, label: string): Promise<void> => {
-  await page.getByRole('button', { name: label, exact: true }).click();
+/** Taps a Score's row in the open panel, which opens it full screen. */
+const tapScore = async (page: Page, label: string): Promise<void> => {
+  await page.getByRole('button', { name: new RegExp(`^${label}`) }).click();
 };
-
-const pageText = (page: Page, testId: 'page-label' | 'page-indicator') => page.getByTestId(testId);
 
 test.describe('a Score is opt-in', () => {
   test('is never opened on its own: the panel is collapsed, then lists the Scores, and a page appears only when one is chosen', async ({
@@ -113,18 +111,37 @@ test.describe('a Score is opt-in', () => {
     await expect(rows.first()).toContainText('Full score');
     await expect(rows.first().getByTestId('choir-badge')).toHaveText('Choir score');
     await expect(rows.last().getByTestId('choir-badge')).toHaveCount(0);
-    // Still nothing is shown or fetched.
+    // Still nothing is shown or fetched, and there is no inline preview or separate open button.
     await expect(page.getByTestId('score-page')).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Open full screen' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Open full screen' })).toHaveCount(0);
     expect(pdfRequests).toEqual([]);
 
-    await choose(page, 'Piano reduction');
-    await expect(page.getByTestId('score-page')).toHaveAttribute('data-drawn', /\|1$/);
-    await expect(pageText(page, 'page-label')).toHaveText('Page 1 of 3');
+    // Tapping a row opens that Score full screen straight away.
+    await tapScore(page, 'Piano reduction');
+    const viewer = page.getByTestId('score-viewer');
+    await expect(viewer).toBeVisible();
+    await expect(viewer).toContainText('Piano reduction');
+    await expect(viewer.getByTestId('score-page')).toHaveAttribute('data-drawn', /\|1$/);
+    await expect(viewer.getByTestId('page-indicator')).toHaveText('Page 1 of 3');
     expect(pdfRequests.length).toBeGreaterThan(0);
   });
 
-  test('shows a Piece without Scores no preview and no full-screen button', async ({
+  test('opens the choir score from its row too, even though it carries a badge', async ({
+    page,
+    context,
+  }) => {
+    const piece = await newPiece();
+    await addScore(piece.id, { label: 'Full score', choir: true });
+    await signInAsApprovedSinger(context);
+    await openPiece(page, piece.id);
+    await page.getByTestId('scores-panel-trigger').click();
+
+    await tapScore(page, 'Full score');
+
+    await expect(page.getByTestId('score-viewer')).toContainText('Full score');
+  });
+
+  test('shows a Piece without Scores no list rows and no upload button to a reader', async ({
     page,
     context,
   }) => {
@@ -135,36 +152,14 @@ test.describe('a Score is opt-in', () => {
     await page.getByTestId('scores-panel-trigger').click();
 
     await expect(page.getByText('No Scores yet.')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Open full screen' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Upload Score' })).toHaveCount(0);
-  });
-
-  test('turns pages in the preview with its arrows', async ({ page, context }) => {
-    const piece = await newPiece();
-    await addScore(piece.id, { label: 'Full score', pages: 3 });
-    await signInAsApprovedSinger(context);
-    await openPiece(page, piece.id);
-    await page.getByTestId('scores-panel-trigger').click();
-    await choose(page, 'Full score');
-    const preview = page.getByTestId('score-preview');
-    await expect(pageText(page, 'page-label')).toHaveText('Page 1 of 3');
-
-    await expect(preview.getByRole('button', { name: 'Previous page' })).toBeDisabled();
-    await preview.getByRole('button', { name: 'Next page' }).click();
-    await expect(pageText(page, 'page-label')).toHaveText('Page 2 of 3');
-    await expect(page.getByTestId('score-page')).toHaveAttribute('data-drawn', /\|2$/);
-    await preview.getByRole('button', { name: 'Next page' }).click();
-    await expect(preview.getByRole('button', { name: 'Next page' })).toBeDisabled();
-    await preview.getByRole('button', { name: 'Previous page' }).click();
-    await expect(pageText(page, 'page-label')).toHaveText('Page 2 of 3');
   });
 });
 
 test.describe('the full-screen viewer', () => {
   const openViewer = async (page: Page, label = 'Full score') => {
     await page.getByTestId('scores-panel-trigger').click();
-    await choose(page, label);
-    await page.getByRole('button', { name: 'Open full screen' }).click();
+    await tapScore(page, label);
     const viewer = page.getByTestId('score-viewer');
     await expect(viewer).toBeVisible();
     await expect(viewer.getByTestId('score-page')).toHaveAttribute('data-drawn', /\|1$/);
@@ -240,7 +235,7 @@ test.describe('the full-screen viewer', () => {
     await expect(indicator).toHaveText('Page 1 of 4');
   });
 
-  test('remembers the page for each Score, shared with the preview, and closes on Esc and the close button', async ({
+  test('remembers the page for each Score when it is reopened, and closes on Esc and the close button', async ({
     page,
     context,
   }) => {
@@ -256,20 +251,21 @@ test.describe('the full-screen viewer', () => {
 
     await page.keyboard.press('Escape');
     await expect(viewer).toBeHidden();
-    // The panel's preview shares the page.
-    await expect(pageText(page, 'page-label')).toHaveText('Page 3 of 4');
 
-    await page.getByRole('button', { name: 'Open full screen' }).click();
+    // Reopening the Score returns to the page it was on.
+    await tapScore(page, 'Full score');
     viewer = page.getByTestId('score-viewer');
     await expect(viewer.getByTestId('page-indicator')).toHaveText('Page 3 of 4');
     await viewer.getByRole('button', { name: 'Close' }).click();
     await expect(viewer).toBeHidden();
 
     // Another Score has its own page.
-    await choose(page, 'Piano reduction');
-    await expect(pageText(page, 'page-label')).toHaveText('Page 1 of 4');
-    await choose(page, 'Full score');
-    await expect(pageText(page, 'page-label')).toHaveText('Page 3 of 4');
+    await tapScore(page, 'Piano reduction');
+    await expect(viewer.getByTestId('page-indicator')).toHaveText('Page 1 of 4');
+    await page.keyboard.press('Escape');
+    await expect(viewer).toBeHidden();
+    await tapScore(page, 'Full score');
+    await expect(viewer.getByTestId('page-indicator')).toHaveText('Page 3 of 4');
   });
 
   test('has the playback controls beneath, offers Start when nothing plays, and leaves when the song ends', async ({
@@ -289,7 +285,7 @@ test.describe('the full-screen viewer', () => {
 
     // The 2-second track ends and the viewer goes with it.
     await expect(viewer).toBeHidden({ timeout: 15_000 });
-    await expect(page.getByRole('button', { name: 'Open full screen' })).toBeVisible();
+    await expect(page.getByTestId('score').first()).toBeVisible();
   });
 
   test('stays when the Singer reopens it after the song has ended', async ({ page, context }) => {
@@ -433,6 +429,7 @@ test.describe('uploading a Score', () => {
   });
 
   test('darkens the Browse button when the mouse is over it', async ({ page, context }) => {
+    test.skip(!isDesktopLayout(page), 'a touch screen has no hover');
     const piece = await newPiece();
     await signInAsSingerWith(context, ['append']);
     await openPiece(page, piece.id);

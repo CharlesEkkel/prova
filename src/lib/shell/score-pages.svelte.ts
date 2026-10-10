@@ -1,6 +1,6 @@
 // View model: the page each Score was last on, for the playback session. It lives as long as the app
-// stays open, so closing and reopening a Score returns to its page, and the panel's preview and the
-// full-screen viewer share it. `$state` is the one deliberate exception to immutability.
+// stays open, so closing and reopening a Score returns to its page.
+// `$state` is the one deliberate exception to immutability.
 import { rememberPage, rememberedPage, type RememberedPages, type ScoreId } from '../core/scores';
 
 let pages = $state<RememberedPages>({});

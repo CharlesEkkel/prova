@@ -12,8 +12,8 @@ export const loadPdf = async (src: string): Promise<PDFDocumentProxy> => {
   return pdfjs.getDocument({ url: src, wasmUrl: pdfjsWasmPath }).promise;
 };
 
-// The panel's preview and the full-screen viewer show the same Score, so a document is loaded once and
-// shared until the Singer leaves the Piece (`closePdfs`).
+// A Score the Singer closes and reopens is not downloaded again: a document is loaded once and kept
+// until the Singer leaves the Piece (`closePdfs`).
 const opened = new Map<string, Promise<PDFDocumentProxy>>();
 
 /** The document at `src`, loaded the first time it is asked for and shared after that. */

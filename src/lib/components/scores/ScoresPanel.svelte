@@ -1,12 +1,12 @@
 <script lang="ts">
   // The Piece's Scores, as a collapsed panel the Singer opens: many use their own music, so a Score is
-  // never opened for them. It lists the Scores (the choir score first and marked), shows a page preview
-  // of the one the Singer taps, and has an Open full screen button. Each row has the actions the
+  // never opened for them. It lists the Scores (the choir score first and marked); tapping a row opens
+  // that Score in the full-screen viewer straight away. Each row has the actions the
   // Singer's Permissions allow (a right-click or long-press menu and a visible ⋯ button); a Singer with
   // `append` also sees Upload Score.
   import { enhance } from '$app/forms';
   import { AlertDialog, Collapsible } from 'bits-ui';
-  import { ChevronDown, FileMusic, Maximize, Pencil, Star, Trash, Upload } from '@lucide/svelte';
+  import { ChevronDown, FileMusic, Pencil, Star, Trash, Upload } from '@lucide/svelte';
   import { actionPath, formActions } from '../../core/paths';
   import type { PieceId } from '../../core/pieces';
   import {
@@ -25,7 +25,6 @@
   import ManageMenu from '../ui/ManageMenu.svelte';
   import Modal from '../ui/Modal.svelte';
   import { fieldLabel, input } from '../ui/styles';
-  import ScorePreview from './ScorePreview.svelte';
   import ScoreRow from './ScoreRow.svelte';
   import ScoreViewer from './ScoreViewer.svelte';
 
@@ -60,10 +59,9 @@
   const ordered = $derived(scoreOrder(scores));
   const choir = $derived(choirScoreOf(scores));
 
-  // Nothing is chosen until the Singer taps a Score, and a Score that has gone is no longer chosen.
-  let chosenId = $state<ScoreId | null>(null);
-  const chosen = $derived(scores.find(({ id }) => id === chosenId) ?? null);
-  let viewing = $state(false);
+  // Nothing is opened until the Singer taps a Score's row, and a Score that has gone closes its viewer.
+  let viewingId = $state<ScoreId | null>(null);
+  const viewingScore = $derived(scores.find(({ id }) => id === viewingId) ?? null);
 
   // A refusal is shown inside the open dialog; reopening a dialog does not bring back the last one's.
   let dismissed = $state<string | undefined>(undefined);
@@ -137,18 +135,16 @@
           {#if rowActions.length === 0}
             <ScoreRow
               {score}
-              selected={score.id === chosenId}
-              onChoose={() => {
-                chosenId = score.id;
+              onOpen={() => {
+                viewingId = score.id;
               }}
             />
           {:else}
             <ManageMenu actions={rowActions} label="Actions for {score.label}">
               <ScoreRow
                 {score}
-                selected={score.id === chosenId}
-                onChoose={() => {
-                  chosenId = score.id;
+                onOpen={() => {
+                  viewingId = score.id;
                 }}
               />
             </ManageMenu>
@@ -159,43 +155,21 @@
       {/each}
     </ul>
 
-    {#if chosen !== null}
-      {#key chosen.id}
-        <ScorePreview {pieceId} score={chosen} />
-      {/key}
-    {:else if scores.length > 0}
-      <p class="px-2 text-sm text-zinc-500">Tap a Score to look at it.</p>
+    {#if mayUpload}
+      <Btn variant="outline" size="sm" class="self-start" onclick={onUpload}>
+        <Upload class="size-4" aria-hidden="true" /> Upload Score
+      </Btn>
     {/if}
-
-    <div class="flex flex-wrap gap-2">
-      {#if scores.length > 0}
-        <Btn
-          variant="soft"
-          size="sm"
-          disabled={chosen === null}
-          onclick={() => {
-            viewing = true;
-          }}
-        >
-          <Maximize class="size-4" aria-hidden="true" /> Open full screen
-        </Btn>
-      {/if}
-      {#if mayUpload}
-        <Btn variant="outline" size="sm" onclick={onUpload}>
-          <Upload class="size-4" aria-hidden="true" /> Upload Score
-        </Btn>
-      {/if}
-    </div>
   </Collapsible.Content>
 </Collapsible.Root>
 
 <ScoreViewer
-  open={viewing && chosen !== null}
+  open={viewingScore !== null}
   onClose={() => {
-    viewing = false;
+    viewingId = null;
   }}
   {pieceId}
-  score={chosen}
+  score={viewingScore}
   {player}
   {canStart}
   {onStart}
