@@ -9,6 +9,8 @@ export const createAudioPlayer = () => {
   let element: HTMLAudioElement | null = null;
   let started = $state(false);
   let playing = $state(false);
+  // True from the moment the track finishes until it plays or is moved again.
+  let ended = $state(false);
   let position = $state(0);
   let length = $state(0);
   let failed = $state(false);
@@ -20,12 +22,17 @@ export const createAudioPlayer = () => {
     created.preload = 'metadata';
     created.addEventListener('play', () => {
       playing = true;
+      ended = false;
     });
     created.addEventListener('pause', () => {
       playing = false;
     });
     created.addEventListener('ended', () => {
       playing = false;
+      ended = true;
+    });
+    created.addEventListener('seeked', () => {
+      if (created.currentTime < created.duration) ended = false;
     });
     created.addEventListener('timeupdate', () => {
       position = created.currentTime;
@@ -57,6 +64,7 @@ export const createAudioPlayer = () => {
     length = knownLength;
     position = 0;
     failed = false;
+    ended = false;
     target.src = src;
   };
 
@@ -66,6 +74,10 @@ export const createAudioPlayer = () => {
     },
     get playing() {
       return playing;
+    },
+    /** Whether the track has just played to its end. A Score viewer that follows the song leaves on it. */
+    get ended() {
+      return ended;
     },
     get position() {
       return position;
@@ -112,6 +124,7 @@ export const createAudioPlayer = () => {
       element = null;
       started = false;
       playing = false;
+      ended = false;
       position = 0;
     },
   };

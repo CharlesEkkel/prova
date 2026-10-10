@@ -50,7 +50,7 @@ const voicePartsRefuseWithoutManageUsers =
   'refuses anyone without manage-users (voice-part-admin.test.ts proves it)';
 
 const piecesRefuseWithoutPermission =
-  'refuses anyone without the Permission it needs (pieces.test.ts and practice-tracks.test.ts prove it)';
+  'refuses anyone without the Permission it needs (pieces.test.ts, practice-tracks.test.ts and scores.test.ts prove it)';
 
 const callableBeforeApproval: ReadonlyMap<string, string> = new Map([
   ...[
@@ -61,6 +61,10 @@ const callableBeforeApproval: ReadonlyMap<string, string> = new Map([
     'add_practice_track',
     'rename_practice_track',
     'delete_practice_track',
+    'add_score',
+    'rename_score',
+    'make_choir_score',
+    'delete_score',
   ].map((name): readonly [string, string] => [name, piecesRefuseWithoutPermission]),
   ...[
     'admin_voice_parts',
@@ -146,6 +150,14 @@ const arrangeSampleRows = async (): Promise<void> => {
     .from('practice_tracks')
     .insert({ piece_id: piece.data.id, object_path: `${piece.data.id}/${other.id}.mp3` });
   if (track.error) throw track.error;
+  const score = await serviceClient()
+    .from('scores')
+    .insert({
+      piece_id: piece.data.id,
+      label: 'Sample',
+      object_path: `${piece.data.id}/${other.id}.pdf`,
+    });
+  if (score.error) throw score.error;
 };
 
 const pendingSinger = (): Promise<TestSinger> => signInNewSinger();

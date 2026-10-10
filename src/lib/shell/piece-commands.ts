@@ -8,6 +8,7 @@ import { decodeForm } from './form';
 import { PieceIdSchema } from './pieces';
 import { loadPieceFiles } from './practice-tracks';
 import { removeFiles } from './storage';
+import { loadPieceScoreFiles, removeScoreFiles } from './scores';
 import { failureOrNull } from './run';
 import { callSupabase, callSupabaseAs, type Supabase } from './supabase';
 
@@ -70,13 +71,19 @@ export const deletePiece = (
       // The files are listed first, because the delete takes their rows with it, and the Piece is
       // kept if they cannot be listed. They go afterwards: a failure in between leaves stray files,
       // never a track whose file is missing.
-      loadPieceFiles(supabase, piece).pipe(
+      Effect.all([loadPieceFiles(supabase, piece), loadPieceScoreFiles(supabase, piece)]).pipe(
         Effect.mapError((): PieceProblem => 'failed'),
-        Effect.flatMap((files) =>
+        Effect.flatMap(([trackFiles, scoreFiles]) =>
           callSupabase(() => supabase.rpc('delete_piece', { target: piece })).pipe(
             Effect.mapError(({ cause }) => problemOf(cause)),
             Effect.andThen(
-              removeFiles(supabase, files).pipe(Effect.orElseSucceed(() => undefined)),
+              // Each set goes on its own, so a failure removing one does not strand the other.
+              Effect.all([
+                removeFiles(supabase, 'practice-tracks', trackFiles).pipe(
+                  Effect.orElseSucceed(() => undefined),
+                ),
+                removeScoreFiles(supabase, scoreFiles).pipe(Effect.orElseSucceed(() => undefined)),
+              ]),
             ),
           ),
         ),

@@ -1,14 +1,8 @@
-// Shell: the one module that touches the stored files. Everything that uploads, plays or removes an
-// audio file goes through here, so storage can move later (for example to Cloudflare R2) without
+// Shell: the one module that touches the stored files. Everything that uploads, serves or removes a
+// stored file goes through here, so storage can move later (for example to Cloudflare R2) without
 // touching the rest of the app. Files are private; the bucket's policies decide who may do what.
 import { Effect, Schema } from 'effect';
-import type { PieceId } from '../core/pieces';
-import {
-  trackFilePath,
-  uploadProblemOfResponse,
-  type AudioExtension,
-  type UploadFileProblem,
-} from '../core/upload-rules';
+import { uploadProblemOfResponse, type UploadFileProblem } from '../core/upload-rules';
 import {
   callSupabase,
   callSupabaseAs,
@@ -18,7 +12,8 @@ import {
   type SupabaseCallFailed,
 } from './supabase';
 
-const bucket = 'practice-tracks';
+/** The private buckets: Practice Tracks and Scores each have their own, with their own type and size limit. */
+export type Bucket = 'practice-tracks' | 'scores';
 
 /** Where and how a browser may put one new file: a one-use address for a path chosen here. */
 export type UploadTicket = {
@@ -31,28 +26,31 @@ export type UploadTicket = {
 const SignedUpload = Schema.Struct({ signedUrl: Schema.String, path: Schema.String });
 const SignedDownload = Schema.Struct({ signedUrl: Schema.String });
 
-/** A ticket to upload a track's file for this Piece; it works only if the Singer may `append`. */
+/**
+ * A ticket to upload a file to `bucket` at the path `pathFor` chooses from a fresh id; it works only
+ * if the Singer may `append`. The path is chosen here, never by the Singer.
+ */
 export const startUpload = (
   supabase: Supabase,
-  pieceId: PieceId,
-  extension: AudioExtension,
+  bucket: Bucket,
+  pathFor: (fileId: string) => string,
 ): Effect.Effect<UploadTicket, SupabaseCallFailed> =>
-  Effect.suspend(() => {
-    const wanted = trackFilePath(pieceId, crypto.randomUUID(), extension);
-    return callSupabaseAs(SignedUpload, () =>
-      supabase.storage.from(bucket).createSignedUploadUrl(wanted),
+  Effect.suspend(() =>
+    callSupabaseAs(SignedUpload, () =>
+      supabase.storage.from(bucket).createSignedUploadUrl(pathFor(crypto.randomUUID())),
     ).pipe(
       Effect.map(({ signedUrl, path }) => ({ path, url: signedUrl, apiKey: supabaseAnonKey })),
-    );
-  });
+    ),
+  );
 
 /**
- * A track's file, as the storage service answers for these bytes (`range` is the browser's `Range`
+ * A stored file, as the storage service answers for these bytes (`range` is the browser's `Range`
  * header, passed straight through so seeking works). It is read as the Singer, so only a Singer with
  * `read` gets it; the short-lived address it is fetched from never leaves the server.
  */
 export const openFile = (
   supabase: Supabase,
+  bucket: Bucket,
   path: string,
   range: string | null,
 ): Effect.Effect<Response, SupabaseCallFailed> =>
@@ -67,6 +65,7 @@ export const openFile = (
 /** Removes stored files. Needs `delete`; a missing file is not an error. */
 export const removeFiles = (
   supabase: Supabase,
+  bucket: Bucket,
   paths: readonly string[],
 ): Effect.Effect<void, SupabaseCallFailed> =>
   paths.length === 0

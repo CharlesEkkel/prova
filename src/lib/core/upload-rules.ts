@@ -21,8 +21,11 @@ export const acceptedExtensions: string = acceptedAudio
 
 export const acceptedTypesText = 'MP3 or M4A';
 
-/** The upload limit when the deployment sets none. */
+/** The upload limit for audio when the deployment sets none. */
 export const defaultUploadLimitMiB = 10;
+
+/** The upload limit for Scores when the deployment sets none: scanned scores are much larger than audio. */
+export const defaultScoreUploadLimitMiB = 20;
 
 const bytesPerMiB = 1024 * 1024;
 
@@ -32,47 +35,81 @@ export const uploadLimitBytes = (limitMiB: number): number => limitMiB * bytesPe
 /** The limit as the screens say it: "10 MB". */
 export const uploadLimitText = (limitMiB: number): string => `${limitMiB.toString()} MB`;
 
-/** The upload limit from the deployment's setting, or the default when it is missing or not a number of whole MB. */
-export const uploadLimitFrom = (setting: string | undefined): number => {
+/** The upload limit from the deployment's setting, or `fallback` when it is missing or not a number of whole MB. */
+export const uploadLimitFrom = (
+  setting: string | undefined,
+  fallback: number = defaultUploadLimitMiB,
+): number => {
   const parsed = Number(setting?.trim());
-  return Number.isInteger(parsed) && parsed >= 1 ? parsed : defaultUploadLimitMiB;
+  return Number.isInteger(parsed) && parsed >= 1 ? parsed : fallback;
 };
 
 export type UploadFileProblem = 'wrong-type' | 'too-large' | 'empty';
 
-export type FileCheck =
-  | { readonly ok: true; readonly accepted: AcceptedAudio }
+export type FileCheck<Accepted = AcceptedAudio> =
+  | { readonly ok: true; readonly accepted: Accepted }
   | { readonly ok: false; readonly problem: UploadFileProblem };
 
 /** The rules for this deployment's limit, kept together: what it says, and how a chosen file is checked. */
-export type UploadRules = {
+export type UploadRules<Accepted = AcceptedAudio> = {
   readonly limitMiB: number;
   /** "10 MB". */
   readonly limitText: string;
   readonly messages: Readonly<Record<UploadFileProblem, string>>;
   /** Whether a chosen file may be uploaded: right type by its extension, not empty, within the limit. */
-  readonly check: (file: { readonly name: string; readonly size: number }) => FileCheck;
+  readonly check: (file: { readonly name: string; readonly size: number }) => FileCheck<Accepted>;
 };
 
 const extensionOf = (fileName: string): string =>
   fileName.includes('.') ? (fileName.split('.').at(-1) ?? '').toLowerCase() : '';
 
-export const uploadRules = (limitMiB: number): UploadRules => ({
+type AcceptedFile = { readonly extension: string; readonly contentType: string };
+
+/** The rules for one kind of file: what it may be, how that is said, and the limit. */
+const rulesFor = <Accepted extends AcceptedFile>(
+  accepted: readonly Accepted[],
+  wrongTypeMessage: string,
+  limitMiB: number,
+): UploadRules<Accepted> => ({
   limitMiB,
   limitText: uploadLimitText(limitMiB),
   messages: {
-    'wrong-type': `That file is not an ${acceptedTypesText} file. Choose an .mp3 or .m4a file.`,
+    'wrong-type': wrongTypeMessage,
     'too-large': `That file is over ${uploadLimitText(limitMiB)}. Choose a smaller file, or compress it.`,
     empty: 'That file is empty. Choose another.',
   },
   check: (file) => {
-    const accepted = acceptedAudio.find(({ extension }) => extension === extensionOf(file.name));
-    if (accepted === undefined) return { ok: false, problem: 'wrong-type' };
+    const found = accepted.find(({ extension }) => extension === extensionOf(file.name));
+    if (found === undefined) return { ok: false, problem: 'wrong-type' };
     if (file.size === 0) return { ok: false, problem: 'empty' };
     if (file.size > uploadLimitBytes(limitMiB)) return { ok: false, problem: 'too-large' };
-    return { ok: true, accepted };
+    return { ok: true, accepted: found };
   },
 });
+
+export const uploadRules = (limitMiB: number): UploadRules =>
+  rulesFor(
+    acceptedAudio,
+    `That file is not an ${acceptedTypesText} file. Choose an .mp3 or .m4a file.`,
+    limitMiB,
+  );
+
+/** The one type a Score may be: a PDF, and the type a browser sends for it (the bucket allows exactly this). */
+export const acceptedScores = [{ extension: 'pdf', contentType: 'application/pdf' }] as const;
+
+export type AcceptedScore = (typeof acceptedScores)[number];
+
+/** For the Score file picker's `accept`. */
+export const acceptedScoreExtensions = '.pdf';
+
+export const acceptedScoreTypesText = 'PDF';
+
+export const scoreUploadRules = (limitMiB: number): UploadRules<AcceptedScore> =>
+  rulesFor(
+    acceptedScores,
+    `That file is not a ${acceptedScoreTypesText}. Choose a .pdf file.`,
+    limitMiB,
+  );
 
 /** Where a track's file lives in the bucket: under its Piece, named by the track's own id. */
 export const trackFilePath = (
@@ -80,6 +117,10 @@ export const trackFilePath = (
   trackId: string,
   extension: AudioExtension,
 ): string => `${pieceId}/${trackId}.${extension}`;
+
+/** Where a Score's file lives in the bucket: under its Piece, named by the Score's own id. */
+export const scoreFilePath = (pieceId: string, scoreId: string): string =>
+  `${pieceId}/${scoreId}.pdf`;
 
 /** What the status the storage service reports for an upload means: the bucket turned the file down, or it failed. */
 export const uploadProblemOfStatus = (status: number): UploadFileProblem | 'failed' => {
