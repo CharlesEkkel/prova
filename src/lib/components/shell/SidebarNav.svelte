@@ -75,7 +75,7 @@
                 {:else}
                   <Calendar size={16} aria-hidden="true" />
                 {/if}
-                <span class="flex-1 truncate">{performance.title}</span>
+                <span class="flex-1 truncate">{performance.name}</span>
                 {#if performance.archived}<span class="text-xs">archived</span>{/if}
               </a>
             </li>
