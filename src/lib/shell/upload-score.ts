@@ -7,9 +7,7 @@ import { formActions } from '../core/paths';
 import type { PieceId } from '../core/pieces';
 import { scoreMessages } from '../core/score-problems';
 import type { AcceptedScore, UploadRules } from '../core/upload-rules';
-import { callAction, requestTicket } from './page-action';
-import { uploadFile } from './storage';
-import type { UploadOutcome } from './upload-track';
+import { callAction, requestTicket, runUpload, sendFile, type UploadOutcome } from './page-action';
 
 export type ScoreUpload = {
   readonly pieceId: PieceId;
@@ -32,14 +30,7 @@ const upload = (
       scoreMessages.failed,
     );
 
-    const sent = yield* Effect.promise(() =>
-      uploadFile(ticket, file, accepted.contentType, onProgress),
-    );
-    if (!sent.ok) {
-      return yield* Effect.fail(
-        sent.problem === 'failed' ? scoreMessages.failed : rules.messages[sent.problem],
-      );
-    }
+    yield* sendFile(ticket, file, accepted.contentType, onProgress, rules, scoreMessages.failed);
 
     yield* callAction(
       formActions.scores.add,
@@ -58,12 +49,4 @@ const upload = (
 export const uploadScore = (
   request: ScoreUpload,
   onProgress: (fraction: number) => void,
-): Promise<UploadOutcome> =>
-  Effect.runPromise(
-    upload(request, onProgress).pipe(
-      Effect.match({
-        onFailure: (message): UploadOutcome => ({ ok: false, message }),
-        onSuccess: (): UploadOutcome => ({ ok: true }),
-      }),
-    ),
-  );
+): Promise<UploadOutcome> => runUpload(upload(request, onProgress));

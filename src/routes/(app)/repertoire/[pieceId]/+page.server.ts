@@ -8,20 +8,20 @@ import { loadPiece } from '../../../../lib/shell/pieces';
 import {
   addTrack,
   deleteTrack,
+  issueTicket,
   loadTracks,
   renameTrack,
-  runIssueTicket,
-  runTrackAction,
+  trackForm,
 } from '../../../../lib/shell/practice-tracks';
 import { valueOrNull } from '../../../../lib/shell/run';
 import {
   addScore,
   deleteScore,
+  issueScoreTicket,
   loadScores,
   makeChoirScore,
   renameScore,
-  runIssueScoreTicket,
-  runScoreAction,
+  scoreForm,
 } from '../../../../lib/shell/scores';
 import { scoreUploadLimitMiB, uploadLimitMiB } from '../../../../lib/shell/upload-limit';
 import { loadVoiceParts } from '../../../../lib/shell/voice-parts';
@@ -65,21 +65,22 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 export const actions: Actions = {
   [formActions.pieces.update]: ({ locals, request }) =>
     runPieceAction(updatePiece, locals.supabase, request),
-  [formActions.tracks.ticket]: ({ locals, request }) => runIssueTicket(locals.supabase, request),
+  [formActions.tracks.ticket]: ({ locals, request }) =>
+    trackForm.ticket(issueTicket, locals.supabase, request),
   [formActions.tracks.add]: ({ locals, request }) =>
-    runTrackAction(addTrack, locals.supabase, request),
+    trackForm.command(addTrack, locals.supabase, request),
   [formActions.tracks.rename]: ({ locals, request }) =>
-    runTrackAction(renameTrack, locals.supabase, request),
+    trackForm.command(renameTrack, locals.supabase, request),
   [formActions.tracks.delete]: ({ locals, request }) =>
-    runTrackAction(deleteTrack, locals.supabase, request),
+    trackForm.command(deleteTrack, locals.supabase, request),
   [formActions.scores.ticket]: ({ locals, request }) =>
-    runIssueScoreTicket(locals.supabase, request),
+    scoreForm.ticket(issueScoreTicket, locals.supabase, request),
   [formActions.scores.add]: ({ locals, request }) =>
-    runScoreAction(addScore, locals.supabase, request),
+    scoreForm.command(addScore, locals.supabase, request),
   [formActions.scores.rename]: ({ locals, request }) =>
-    runScoreAction(renameScore, locals.supabase, request),
+    scoreForm.command(renameScore, locals.supabase, request),
   [formActions.scores.makeChoir]: ({ locals, request }) =>
-    runScoreAction(makeChoirScore, locals.supabase, request),
+    scoreForm.command(makeChoirScore, locals.supabase, request),
   [formActions.scores.delete]: ({ locals, request }) =>
-    runScoreAction(deleteScore, locals.supabase, request),
+    scoreForm.command(deleteScore, locals.supabase, request),
 };

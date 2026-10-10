@@ -8,8 +8,7 @@ import type { TrackKind } from '../core/practice-tracks';
 import { trackMessages } from '../core/track-problems';
 import type { AcceptedAudio, UploadRules } from '../core/upload-rules';
 import { readDurationSeconds } from './audio-duration';
-import { callAction, requestTicket } from './page-action';
-import { uploadFile } from './storage';
+import { callAction, requestTicket, runUpload, sendFile, type UploadOutcome } from './page-action';
 
 export type TrackUpload = {
   readonly pieceId: PieceId;
@@ -21,9 +20,6 @@ export type TrackUpload = {
   readonly label: string;
   readonly rules: UploadRules;
 };
-
-export type UploadOutcome =
-  { readonly ok: true } | { readonly ok: false; readonly message: string };
 
 const secondsText = (seconds: number | null): string =>
   seconds === null ? '' : seconds.toString();
@@ -40,14 +36,7 @@ const upload = (
       trackMessages.failed,
     );
 
-    const sent = yield* Effect.promise(() =>
-      uploadFile(ticket, file, accepted.contentType, onProgress),
-    );
-    if (!sent.ok) {
-      return yield* Effect.fail(
-        sent.problem === 'failed' ? trackMessages.failed : rules.messages[sent.problem],
-      );
-    }
+    yield* sendFile(ticket, file, accepted.contentType, onProgress, rules, trackMessages.failed);
 
     yield* callAction(
       formActions.tracks.add,
@@ -67,12 +56,4 @@ const upload = (
 export const uploadPracticeTrack = (
   request: TrackUpload,
   onProgress: (fraction: number) => void,
-): Promise<UploadOutcome> =>
-  Effect.runPromise(
-    upload(request, onProgress).pipe(
-      Effect.match({
-        onFailure: (message): UploadOutcome => ({ ok: false, message }),
-        onSuccess: (): UploadOutcome => ({ ok: true }),
-      }),
-    ),
-  );
+): Promise<UploadOutcome> => runUpload(upload(request, onProgress));

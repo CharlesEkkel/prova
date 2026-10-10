@@ -2,9 +2,9 @@
 import { error } from '@sveltejs/kit';
 import { pieceIdOf } from '../../../../../../../lib/core/pieces';
 import { trackIdOf } from '../../../../../../../lib/core/practice-tracks';
-import { loadTrackFile } from '../../../../../../../lib/shell/practice-tracks';
 import { valueOrNull } from '../../../../../../../lib/shell/run';
 import { serveStoredFile } from '../../../../../../../lib/shell/serve-file';
+import { loadObjectPath } from '../../../../../../../lib/shell/stored-files';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ locals, params, request }) => {
@@ -12,7 +12,7 @@ export const GET: RequestHandler = async ({ locals, params, request }) => {
   const track = trackIdOf(params.trackId);
   if (piece === null || track === null) error(404, 'There is no such Practice Track.');
 
-  const path = await valueOrNull(loadTrackFile(locals.supabase, piece, track));
+  const path = await valueOrNull(loadObjectPath(locals.supabase, 'practice_tracks', piece, track));
   if (path === null) error(404, 'There is no such Practice Track.');
 
   return serveStoredFile(locals.supabase, 'practice-tracks', path, request, {

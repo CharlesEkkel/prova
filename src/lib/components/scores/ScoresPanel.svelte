@@ -5,7 +5,7 @@
   // Singer's Permissions allow (a right-click or long-press menu and a visible ⋯ button); a Singer with
   // `append` also sees Upload Score.
   import { enhance } from '$app/forms';
-  import { AlertDialog, Collapsible } from 'bits-ui';
+  import { Collapsible } from 'bits-ui';
   import { ChevronDown, FileMusic, Pencil, Star, Trash, Upload } from '@lucide/svelte';
   import { actionPath, formActions } from '../../core/paths';
   import type { PieceId } from '../../core/pieces';
@@ -23,8 +23,9 @@
   import { createDialogState } from '../dialog-state.svelte';
   import Btn from '../ui/Btn.svelte';
   import ManageMenu from '../ui/ManageMenu.svelte';
+  import DeleteDialog from '../ui/DeleteDialog.svelte';
   import Modal from '../ui/Modal.svelte';
-  import { fieldLabel, input } from '../ui/styles';
+  import RenameLabelDialog from '../ui/RenameLabelDialog.svelte';
   import ScoreRow from './ScoreRow.svelte';
   import ScoreViewer from './ScoreViewer.svelte';
 
@@ -175,42 +176,17 @@
   {onStart}
 />
 
-<Modal
+<RenameLabelDialog
   open={current?.kind === 'rename'}
   onClose={dialog.close}
-  title="Rename label"
   description="Change the label of this Score. The file itself never changes."
->
-  {#if current?.kind === 'rename'}
-    <form
-      id="rename-score-form"
-      method="POST"
-      action={actionPath(formActions.scores.rename)}
-      use:enhance={closeIfDone}
-      class="flex flex-col gap-4"
-    >
-      <input type="hidden" name="score" value={current.score.id} />
-      <div>
-        <label for="rename-score-label" class={fieldLabel}>Label</label>
-        <input
-          id="rename-score-label"
-          name="label"
-          required
-          maxlength={scoreLabelMaxLength}
-          class={input}
-          value={current.score.label}
-        />
-      </div>
-      {#if shownProblem !== undefined}
-        <AlertMessage>{shownProblem}</AlertMessage>
-      {/if}
-    </form>
-  {/if}
-  {#snippet footer()}
-    <Btn variant="ghost" onclick={dialog.close}>Cancel</Btn>
-    <Btn type="submit" form="rename-score-form">Save label</Btn>
-  {/snippet}
-</Modal>
+  action={formActions.scores.rename}
+  idField="score"
+  target={current?.kind === 'rename' ? current.score : null}
+  maxLength={scoreLabelMaxLength}
+  required
+  problem={shownProblem}
+/>
 
 <Modal
   open={current?.kind === 'choir'}
@@ -239,34 +215,16 @@
   {/snippet}
 </Modal>
 
-<Modal
-  alert
+<DeleteDialog
   open={current?.kind === 'delete'}
   onClose={dialog.close}
   title={current === null ? '' : `Delete ${current.score.label}?`}
   description={current?.score.isChoirScore === true
     ? 'The Score and its file are removed, and the Piece is left without a choir score. This cannot be undone.'
     : 'The Score and its file are removed. This cannot be undone.'}
->
-  {#if current?.kind === 'delete'}
-    <form
-      id="delete-score-form"
-      method="POST"
-      action={actionPath(formActions.scores.delete)}
-      use:enhance={closeIfDone}
-    >
-      <input type="hidden" name="score" value={current.score.id} />
-    </form>
-    {#if shownProblem !== undefined}
-      <div class="mt-3"><AlertMessage>{shownProblem}</AlertMessage></div>
-    {/if}
-  {/if}
-  {#snippet footer()}
-    <AlertDialog.Cancel>
-      {#snippet child({ props })}
-        <Btn variant="ghost" {...props}>Cancel</Btn>
-      {/snippet}
-    </AlertDialog.Cancel>
-    <Btn variant="danger" type="submit" form="delete-score-form">Delete Score</Btn>
-  {/snippet}
-</Modal>
+  submitLabel="Delete Score"
+  action={formActions.scores.delete}
+  idField="score"
+  id={current?.kind === 'delete' ? current.score.id : null}
+  problem={shownProblem}
+/>

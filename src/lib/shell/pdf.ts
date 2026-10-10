@@ -3,9 +3,9 @@
 // (copied there by scripts/copy-pdfjs-wasm.mjs) so scanned scores (JBIG2 / JPEG2000) render.
 import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 import { pdfjsWasmPath } from '../core/paths';
-import { fitScale } from '../core/scores';
+import { fitScale, type Size } from '../core/scores';
 
-export const loadPdf = async (src: string): Promise<PDFDocumentProxy> => {
+const loadPdf = async (src: string): Promise<PDFDocumentProxy> => {
   const pdfjs = await import('pdfjs-dist');
   const worker = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default;
   pdfjs.GlobalWorkerOptions.workerSrc = worker;
@@ -44,14 +44,12 @@ export type PageDrawing = {
   readonly cancel: () => void;
 };
 
-type Space = { readonly width: number; readonly height: number };
-
 /** Draws one page, fitted whole inside `space` (in CSS pixels), sharp on high-density screens. */
 export const drawPage = (
   document: PDFDocumentProxy,
   pageNumber: number,
   canvas: HTMLCanvasElement,
-  space: Space,
+  space: Size,
 ): PageDrawing => {
   const state: { cancelled: boolean; task: RenderTask | null } = { cancelled: false, task: null };
   // Read through a function: it can change during any `await`, which narrowing would not see.

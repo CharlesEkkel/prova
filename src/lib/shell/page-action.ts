@@ -3,7 +3,8 @@
 import { deserialize } from '$app/forms';
 import { Effect, Schema } from 'effect';
 import { actionPath } from '../core/paths';
-import type { UploadTicket } from './storage';
+import type { UploadFileProblem } from '../core/upload-rules';
+import { uploadFile, type UploadTicket } from './storage';
 
 const Ticket = Schema.Struct({
   ticket: Schema.Struct({ path: Schema.String, url: Schema.String, apiKey: Schema.String }),
@@ -49,5 +50,40 @@ export const requestTicket = (
   callAction(ticketAction, fields, failedMessage).pipe(
     Effect.flatMap((issued) =>
       isTicket(issued) ? Effect.succeed(issued.ticket) : Effect.fail(failedMessage),
+    ),
+  );
+
+/**
+ * Sends the file to its ticket, reporting progress from 0 to 1. Fails with the message to show: the
+ * rules' wording when the bucket turned the file down, `failedMessage` for anything else.
+ */
+export const sendFile = (
+  ticket: UploadTicket,
+  file: File,
+  contentType: string,
+  onProgress: (fraction: number) => void,
+  rules: { readonly messages: Readonly<Record<UploadFileProblem, string>> },
+  failedMessage: string,
+): Effect.Effect<void, string> =>
+  Effect.promise(() => uploadFile(ticket, file, contentType, onProgress)).pipe(
+    Effect.flatMap((sent) =>
+      sent.ok
+        ? Effect.void
+        : Effect.fail(sent.problem === 'failed' ? failedMessage : rules.messages[sent.problem]),
+    ),
+  );
+
+/** How an upload ended: it worked, or the message to show. */
+export type UploadOutcome =
+  { readonly ok: true } | { readonly ok: false; readonly message: string };
+
+/** Runs an upload's steps and answers with how it ended. */
+export const runUpload = (steps: Effect.Effect<void, string>): Promise<UploadOutcome> =>
+  Effect.runPromise(
+    steps.pipe(
+      Effect.match({
+        onFailure: (message): UploadOutcome => ({ ok: false, message }),
+        onSuccess: (): UploadOutcome => ({ ok: true }),
+      }),
     ),
   );

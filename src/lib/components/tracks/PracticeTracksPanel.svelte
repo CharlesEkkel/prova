@@ -2,10 +2,9 @@
   // Every track on the Piece, as a reference list in the order uploaded: kind badge, label, length.
   // Each row has the actions the Singer's Permissions allow (a right-click or long-press menu and a
   // visible ⋯ button); a Singer with `append` also sees Upload Practice Track.
-  import { enhance } from '$app/forms';
-  import { AlertDialog, Collapsible } from 'bits-ui';
+  import { Collapsible } from 'bits-ui';
   import { AudioLines, ChevronDown, Pencil, Trash, Upload } from '@lucide/svelte';
-  import { actionPath, formActions } from '../../core/paths';
+  import { formActions } from '../../core/paths';
   import {
     sourceName,
     trackLabelMaxLength,
@@ -13,14 +12,12 @@
     type PracticeTrack,
     type TrackAction,
   } from '../../core/practice-tracks';
-  import { closeOnSuccess } from '../../shell/enhance';
   import type { VoicePart } from '../../shell/voice-parts';
-  import AlertMessage from '../AlertMessage.svelte';
   import { createDialogState } from '../dialog-state.svelte';
   import Btn from '../ui/Btn.svelte';
   import ManageMenu from '../ui/ManageMenu.svelte';
-  import Modal from '../ui/Modal.svelte';
-  import { fieldLabel, input } from '../ui/styles';
+  import DeleteDialog from '../ui/DeleteDialog.svelte';
+  import RenameLabelDialog from '../ui/RenameLabelDialog.svelte';
   import TrackRow from './TrackRow.svelte';
 
   const {
@@ -43,7 +40,6 @@
   type Dialog = { readonly kind: 'rename' | 'delete'; readonly track: PracticeTrack };
   const dialog = createDialogState<Dialog>();
   const current = $derived(dialog.current);
-  const closeIfDone = closeOnSuccess(dialog.close);
 
   const nameOf = (id: string): string => voiceParts.find((part) => part.id === id)?.name ?? '';
   const titleOf = (track: PracticeTrack): string => trackTitle(track, nameOf);
@@ -128,68 +124,26 @@
   </Collapsible.Content>
 </Collapsible.Root>
 
-<Modal
+<RenameLabelDialog
   open={current?.kind === 'rename'}
   onClose={dialog.close}
-  title="Rename label"
   description="Change the label of this Practice Track. The file itself never changes."
->
-  {#if current?.kind === 'rename'}
-    <form
-      id="rename-track-form"
-      method="POST"
-      action={actionPath(formActions.tracks.rename)}
-      use:enhance={closeIfDone}
-      class="flex flex-col gap-4"
-    >
-      <input type="hidden" name="track" value={current.track.id} />
-      <div>
-        <label for="rename-label" class={fieldLabel}>Label</label>
-        <input
-          id="rename-label"
-          name="label"
-          maxlength={trackLabelMaxLength}
-          class={input}
-          value={current.track.label}
-        />
-      </div>
-      {#if shownProblem !== undefined}
-        <AlertMessage>{shownProblem}</AlertMessage>
-      {/if}
-    </form>
-  {/if}
-  {#snippet footer()}
-    <Btn variant="ghost" onclick={dialog.close}>Cancel</Btn>
-    <Btn type="submit" form="rename-track-form">Save label</Btn>
-  {/snippet}
-</Modal>
+  action={formActions.tracks.rename}
+  idField="track"
+  target={current?.kind === 'rename' ? current.track : null}
+  maxLength={trackLabelMaxLength}
+  required={false}
+  problem={shownProblem}
+/>
 
-<Modal
-  alert
+<DeleteDialog
   open={current?.kind === 'delete'}
   onClose={dialog.close}
   title={current === null ? '' : `Delete ${titleOf(current.track)}?`}
   description="The track and its file are removed. This cannot be undone."
->
-  {#if current?.kind === 'delete'}
-    <form
-      id="delete-track-form"
-      method="POST"
-      action={actionPath(formActions.tracks.delete)}
-      use:enhance={closeIfDone}
-    >
-      <input type="hidden" name="track" value={current.track.id} />
-    </form>
-    {#if shownProblem !== undefined}
-      <div class="mt-3"><AlertMessage>{shownProblem}</AlertMessage></div>
-    {/if}
-  {/if}
-  {#snippet footer()}
-    <AlertDialog.Cancel>
-      {#snippet child({ props })}
-        <Btn variant="ghost" {...props}>Cancel</Btn>
-      {/snippet}
-    </AlertDialog.Cancel>
-    <Btn variant="danger" type="submit" form="delete-track-form">Delete track</Btn>
-  {/snippet}
-</Modal>
+  submitLabel="Delete track"
+  action={formActions.tracks.delete}
+  idField="track"
+  id={current?.kind === 'delete' ? current.track.id : null}
+  problem={shownProblem}
+/>

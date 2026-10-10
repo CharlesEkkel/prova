@@ -4,8 +4,8 @@ import { error } from '@sveltejs/kit';
 import { pieceIdOf } from '../../../../../../../lib/core/pieces';
 import { scoreIdOf } from '../../../../../../../lib/core/scores';
 import { valueOrNull } from '../../../../../../../lib/shell/run';
-import { loadScoreFile } from '../../../../../../../lib/shell/scores';
 import { serveStoredFile } from '../../../../../../../lib/shell/serve-file';
+import { loadObjectPath } from '../../../../../../../lib/shell/stored-files';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ locals, params, request }) => {
@@ -13,7 +13,7 @@ export const GET: RequestHandler = async ({ locals, params, request }) => {
   const score = scoreIdOf(params.scoreId);
   if (piece === null || score === null) error(404, 'There is no such Score.');
 
-  const path = await valueOrNull(loadScoreFile(locals.supabase, piece, score));
+  const path = await valueOrNull(loadObjectPath(locals.supabase, 'scores', piece, score));
   if (path === null) error(404, 'There is no such Score.');
 
   return serveStoredFile(locals.supabase, 'scores', path, request, {

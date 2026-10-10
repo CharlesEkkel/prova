@@ -4,9 +4,9 @@
 import { Effect, Schema } from 'effect';
 import type { PieceId } from '../core/pieces';
 import { scoreMessages, scoreProblemOf, type ScoreProblem } from '../core/score-problems';
-import { isScoreId, type Score, type ScoreId } from '../core/scores';
+import { isScoreId, type Score } from '../core/scores';
 import { scoreFilePath } from '../core/upload-rules';
-import { decodeForm, refusalOf, runAction, type Refusal } from './form';
+import { decodeForm, formRunner, refusalOf } from './form';
 import { PieceIdSchema } from './pieces';
 import { removeFiles, startUpload, type UploadTicket } from './storage';
 import { callSupabase, callSupabaseAs, type Supabase, type SupabaseCallFailed } from './supabase';
@@ -36,33 +36,6 @@ export const loadScores = (
       .order('created_at')
       .order('id'),
   );
-
-const StoredFile = Schema.Struct({ object_path: Schema.String });
-
-/** Where a Score's file is stored, or null when the Piece has no such Score (or it may not be read). */
-export const loadScoreFile = (
-  supabase: Supabase,
-  piece: PieceId,
-  score: ScoreId,
-): Effect.Effect<string | null, SupabaseCallFailed> =>
-  callSupabaseAs(Schema.Array(StoredFile), () =>
-    supabase.from('scores').select('object_path').eq('piece_id', piece).eq('id', score),
-  ).pipe(Effect.map(([row]) => row?.object_path ?? null));
-
-/** Where each of a Piece's Score files is stored. */
-export const loadPieceScoreFiles = (
-  supabase: Supabase,
-  piece: PieceId,
-): Effect.Effect<readonly string[], SupabaseCallFailed> =>
-  callSupabaseAs(Schema.Array(StoredFile), () =>
-    supabase.from('scores').select('object_path').eq('piece_id', piece),
-  ).pipe(Effect.map((rows) => rows.map(({ object_path }) => object_path)));
-
-/** Removes a Piece's Score files, once the Piece is gone. A failure leaves stray files, never a Score with no file. */
-export const removeScoreFiles = (
-  supabase: Supabase,
-  paths: readonly string[],
-): Effect.Effect<void, SupabaseCallFailed> => removeFiles(supabase, bucket, paths);
 
 const problemOf = (cause: unknown): ScoreProblem => scoreProblemOf(refusalOf(cause));
 
@@ -147,19 +120,5 @@ export const deleteScore: ScoreCommand = (supabase, request) =>
     ),
   );
 
-const runScore = runAction(scoreMessages);
-
-/** The form action that changes a Score: success, or a refusal carrying the message to show. */
-export const runScoreAction = (
-  command: ScoreCommand,
-  supabase: Supabase,
-  request: Request,
-): Promise<{ readonly ok: true } | Refusal> =>
-  runScore(command(supabase, request).pipe(Effect.as({ ok: true } as const)));
-
-/** The form action that answers an upload ticket, or a refusal carrying the message to show. */
-export const runIssueScoreTicket = (
-  supabase: Supabase,
-  request: Request,
-): Promise<{ readonly ticket: UploadTicket } | Refusal> =>
-  runScore(issueScoreTicket(supabase, request).pipe(Effect.map((ticket) => ({ ticket }))));
+/** Runs the Score commands as the Piece page's form actions. */
+export const scoreForm = formRunner(scoreMessages);

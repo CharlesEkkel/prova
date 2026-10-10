@@ -115,7 +115,8 @@ export const rememberPage = (
   page: number,
 ): RememberedPages => ({ ...pages, [score]: page });
 
-type Size = { readonly width: number; readonly height: number };
+/** A width and a height, in CSS pixels or PDF points. */
+export type Size = { readonly width: number; readonly height: number };
 
 /** The scale that fits a whole page inside the space, by the tighter side. Always above zero. */
 export const fitScale = (page: Size, space: Size): number => {

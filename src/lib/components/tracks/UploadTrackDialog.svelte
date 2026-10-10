@@ -4,8 +4,7 @@
   // accepted types and the limit before a file is chosen, checks the file before sending, and shows
   // progress. The file goes to the bucket first; then the track is registered (see ADR 0003).
   import { refreshAll } from '$app/navigation';
-  import { Progress, RadioGroup, ToggleGroup } from 'bits-ui';
-  import { Check } from '@lucide/svelte';
+  import { RadioGroup, ToggleGroup } from 'bits-ui';
   import type { PieceId } from '../../core/pieces';
   import {
     kindDescription,
@@ -20,8 +19,10 @@
   import type { VoicePart } from '../../shell/voice-parts';
   import AlertMessage from '../AlertMessage.svelte';
   import Btn from '../ui/Btn.svelte';
+  import FilePicker from '../ui/FilePicker.svelte';
   import Modal from '../ui/Modal.svelte';
-  import { fieldLabel, fileInput, hint, input } from '../ui/styles';
+  import { fieldLabel, hint, input } from '../ui/styles';
+  import UploadProgress from '../ui/UploadProgress.svelte';
 
   const {
     open,
@@ -182,57 +183,21 @@
       />
     </div>
 
-    <div>
-      <label for="track-file" class={fieldLabel}>Audio file</label>
-      <input
-        id="track-file"
-        type="file"
-        accept={acceptedExtensions}
-        disabled={phase !== 'idle'}
-        class={fileInput}
-        onchange={(event) => {
-          file = event.currentTarget.files?.[0] ?? null;
-          failure = '';
-        }}
-      />
-      {#if fileProblem !== ''}
-        <p
-          class="mt-1.5 text-sm text-red-600 dark:text-red-400"
-          role="alert"
-          data-testid="file-problem"
-        >
-          {fileProblem}
-        </p>
-      {:else}
-        <p class={hint} data-testid="upload-rules">
-          {acceptedTypesText}, up to {rules.limitText}.
-        </p>
-      {/if}
-    </div>
+    <FilePicker
+      id="track-file"
+      label="Audio file"
+      accept={acceptedExtensions}
+      disabled={phase !== 'idle'}
+      problem={fileProblem}
+      rulesText="{acceptedTypesText}, up to {rules.limitText}."
+      onPick={(picked: File | null) => {
+        file = picked;
+        failure = '';
+      }}
+    />
 
     {#if phase !== 'idle'}
-      <div aria-live="polite">
-        <Progress.Root
-          value={Math.round(fraction * 100)}
-          max={100}
-          class="h-2 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800"
-        >
-          <div
-            class="h-full bg-primary-600 transition-all"
-            style:width="{Math.round(fraction * 100)}%"
-          ></div>
-        </Progress.Root>
-        <p
-          class="mt-1.5 flex items-center gap-1 text-sm text-zinc-500"
-          data-testid="upload-progress"
-        >
-          {#if phase === 'done'}
-            <Check class="size-4 text-emerald-600" aria-hidden="true" /> Uploaded
-          {:else}
-            Uploading… {Math.round(fraction * 100)}%
-          {/if}
-        </p>
-      </div>
+      <UploadProgress {fraction} done={phase === 'done'} />
     {/if}
 
     {#if failure !== ''}

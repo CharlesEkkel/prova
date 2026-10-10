@@ -4,8 +4,6 @@
   // file before sending, and shows progress. The file goes to the bucket first; then the Score is
   // registered (see ADR 0003).
   import { refreshAll } from '$app/navigation';
-  import { Progress } from 'bits-ui';
-  import { Check } from '@lucide/svelte';
   import type { PieceId } from '../../core/pieces';
   import { defaultScoreLabel, scoreLabelMaxLength, type ChoirChoice } from '../../core/scores';
   import {
@@ -17,8 +15,10 @@
   import AlertMessage from '../AlertMessage.svelte';
   import Btn from '../ui/Btn.svelte';
   import CheckRow from '../ui/CheckRow.svelte';
+  import FilePicker from '../ui/FilePicker.svelte';
   import Modal from '../ui/Modal.svelte';
-  import { fieldLabel, fileInput, hint, input } from '../ui/styles';
+  import { fieldLabel, hint, input } from '../ui/styles';
+  import UploadProgress from '../ui/UploadProgress.svelte';
 
   const {
     open,
@@ -103,34 +103,19 @@
   description="For {pieceTitle}. An upload adds a new Score; it never changes an existing one."
 >
   <form id="upload-score-form" class="flex flex-col gap-5" onsubmit={submit}>
-    <div>
-      <label for="score-file" class={fieldLabel}>PDF file</label>
-      <input
-        id="score-file"
-        type="file"
-        accept={acceptedScoreExtensions}
-        disabled={phase !== 'idle'}
-        class={fileInput}
-        onchange={(event) => {
-          file = event.currentTarget.files?.[0] ?? null;
-          failure = '';
-          if (!labelEdited && file !== null) label = defaultScoreLabel(file.name);
-        }}
-      />
-      {#if fileProblem !== ''}
-        <p
-          class="mt-1.5 text-sm text-red-600 dark:text-red-400"
-          role="alert"
-          data-testid="file-problem"
-        >
-          {fileProblem}
-        </p>
-      {:else}
-        <p class={hint} data-testid="upload-rules">
-          {acceptedScoreTypesText}, up to {rules.limitText}.
-        </p>
-      {/if}
-    </div>
+    <FilePicker
+      id="score-file"
+      label="PDF file"
+      accept={acceptedScoreExtensions}
+      disabled={phase !== 'idle'}
+      problem={fileProblem}
+      rulesText="{acceptedScoreTypesText}, up to {rules.limitText}."
+      onPick={(picked: File | null) => {
+        file = picked;
+        failure = '';
+        if (!labelEdited && picked !== null) label = defaultScoreLabel(picked.name);
+      }}
+    />
 
     <div>
       <label for="score-label" class={fieldLabel}>Label</label>
@@ -166,28 +151,7 @@
     {/if}
 
     {#if phase !== 'idle'}
-      <div aria-live="polite">
-        <Progress.Root
-          value={Math.round(fraction * 100)}
-          max={100}
-          class="h-2 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800"
-        >
-          <div
-            class="h-full bg-primary-600 transition-all"
-            style:width="{Math.round(fraction * 100)}%"
-          ></div>
-        </Progress.Root>
-        <p
-          class="mt-1.5 flex items-center gap-1 text-sm text-zinc-500"
-          data-testid="upload-progress"
-        >
-          {#if phase === 'done'}
-            <Check class="size-4 text-emerald-600" aria-hidden="true" /> Uploaded
-          {:else}
-            Uploading… {Math.round(fraction * 100)}%
-          {/if}
-        </p>
-      </div>
+      <UploadProgress {fraction} done={phase === 'done'} />
     {/if}
 
     {#if failure !== ''}

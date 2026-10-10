@@ -3,6 +3,8 @@
 import { fail, type ActionFailure } from '@sveltejs/kit';
 import { Effect, Schema } from 'effect';
 import type { DatabaseRefusal } from '../core/voice-parts';
+import type { UploadTicket } from './storage';
+import type { Supabase } from './supabase';
 
 /** Decodes the form in `request` with `schema`, or fails with `invalid`. */
 export const decodeForm =
@@ -24,18 +26,37 @@ export const refusalOf = (cause: unknown): DatabaseRefusal => (isDatabaseError(c
 
 export type Refusal = ActionFailure<{ readonly problem: string }>;
 
+/** A command: reads its form, asks the database, and says why if it was refused. */
+type Command<A, Problem> = (supabase: Supabase, request: Request) => Effect.Effect<A, Problem>;
+
 /**
- * Runs a command as a form action: what it answers, or a refusal carrying the message to show for
- * the problem it failed with.
+ * Runs commands as form actions: what they answer, or a refusal carrying the message to show for
+ * the problem they failed with.
  */
-export const runAction =
-  <Problem extends string>(messages: Readonly<Record<Problem, string>>) =>
-  <A>(command: Effect.Effect<A, Problem>): Promise<A | Refusal> =>
+export const formRunner = <Problem extends string>(messages: Readonly<Record<Problem, string>>) => {
+  const run = <A>(effect: Effect.Effect<A, Problem>): Promise<A | Refusal> =>
     Effect.runPromise(
-      command.pipe(
+      effect.pipe(
         Effect.match({
           onFailure: (problem): Refusal => fail(400, { problem: messages[problem] }),
           onSuccess: (answer) => answer,
         }),
       ),
     );
+  return {
+    /** The form action that changes something: success, or a refusal. */
+    command: (
+      command: Command<unknown, Problem>,
+      supabase: Supabase,
+      request: Request,
+    ): Promise<{ readonly ok: true } | Refusal> =>
+      run(command(supabase, request).pipe(Effect.as({ ok: true } as const))),
+    /** The form action that answers an upload ticket, or a refusal. */
+    ticket: (
+      issue: Command<UploadTicket, Problem>,
+      supabase: Supabase,
+      request: Request,
+    ): Promise<{ readonly ticket: UploadTicket } | Refusal> =>
+      run(issue(supabase, request).pipe(Effect.map((ticket) => ({ ticket })))),
+  };
+};

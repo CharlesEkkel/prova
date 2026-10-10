@@ -9,11 +9,10 @@ import {
   isTrackKind,
   trackKinds,
   type PracticeTrack,
-  type TrackId,
 } from '../core/practice-tracks';
 import { trackMessages, trackProblemOf, type TrackProblem } from '../core/track-problems';
 import { isAudioExtension, trackFilePath } from '../core/upload-rules';
-import { decodeForm, refusalOf, runAction, type Refusal } from './form';
+import { decodeForm, formRunner, refusalOf } from './form';
 import { PieceIdSchema } from './pieces';
 import { removeFiles, startUpload, type UploadTicket } from './storage';
 import { callSupabase, callSupabaseAs, type Supabase, type SupabaseCallFailed } from './supabase';
@@ -54,27 +53,6 @@ export const loadTracks = (
   ).pipe(Effect.map((rows) => rows.map(trackOf)));
 
 const bucket = 'practice-tracks';
-
-const StoredFile = Schema.Struct({ object_path: Schema.String });
-
-/** Where a track's file is stored, or null when the Piece has no such track (or it may not be read). */
-export const loadTrackFile = (
-  supabase: Supabase,
-  piece: PieceId,
-  track: TrackId,
-): Effect.Effect<string | null, SupabaseCallFailed> =>
-  callSupabaseAs(Schema.Array(StoredFile), () =>
-    supabase.from('practice_tracks').select('object_path').eq('piece_id', piece).eq('id', track),
-  ).pipe(Effect.map(([row]) => row?.object_path ?? null));
-
-/** Where each of a Piece's track files is stored. */
-export const loadPieceFiles = (
-  supabase: Supabase,
-  piece: PieceId,
-): Effect.Effect<readonly string[], SupabaseCallFailed> =>
-  callSupabaseAs(Schema.Array(StoredFile), () =>
-    supabase.from('practice_tracks').select('object_path').eq('piece_id', piece),
-  ).pipe(Effect.map((rows) => rows.map(({ object_path }) => object_path)));
 
 const problemOf = (cause: unknown): TrackProblem => trackProblemOf(refusalOf(cause));
 
@@ -163,19 +141,5 @@ export const deleteTrack: TrackCommand = (supabase, request) =>
     ),
   );
 
-const runTrack = runAction(trackMessages);
-
-/** The form action that changes a track: success, or a refusal carrying the message to show. */
-export const runTrackAction = (
-  command: TrackCommand,
-  supabase: Supabase,
-  request: Request,
-): Promise<{ readonly ok: true } | Refusal> =>
-  runTrack(command(supabase, request).pipe(Effect.as({ ok: true } as const)));
-
-/** The form action that answers an upload ticket, or a refusal carrying the message to show. */
-export const runIssueTicket = (
-  supabase: Supabase,
-  request: Request,
-): Promise<{ readonly ticket: UploadTicket } | Refusal> =>
-  runTrack(issueTicket(supabase, request).pipe(Effect.map((ticket) => ({ ticket }))));
+/** Runs the track commands as the Piece page's form actions. */
+export const trackForm = formRunner(trackMessages);
