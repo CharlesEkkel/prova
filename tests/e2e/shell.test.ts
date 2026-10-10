@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import {
+  chooseVoicePart,
   isDesktopLayout,
   openNavigation,
   signInAsApprovedSinger,
@@ -154,9 +155,7 @@ test.describe('the app shell', () => {
 
   test('is not shown on the waiting-for-approval screen', async ({ page, context }) => {
     await signInAsNewSinger(context);
-    await page.goto('/choose-part');
-    await page.getByRole('radio', { name: /Soprano/ }).click();
-    await page.getByRole('button', { name: 'Continue' }).click();
+    await chooseVoicePart(page, /Soprano/);
 
     await expect(page).toHaveURL('/waiting');
     await expect(page.getByRole('navigation', { name: 'Main' })).toHaveCount(0);
