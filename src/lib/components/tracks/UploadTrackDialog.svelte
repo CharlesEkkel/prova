@@ -8,17 +8,13 @@
   import { Check } from '@lucide/svelte';
   import type { PieceId } from '../../core/pieces';
   import {
-    acceptedExtensions,
-    acceptedTypesText,
-    checkUploadFile,
     kindDescription,
     kindText,
     trackKinds,
     trackLabelMaxLength,
-    uploadFileMessages,
-    uploadLimitText,
     type TrackKind,
   } from '../../core/practice-tracks';
+  import { acceptedExtensions, acceptedTypesText, uploadRules } from '../../core/upload-rules';
   import { combinedTrackLabel } from '../../core/voice-parts';
   import { uploadPracticeTrack } from '../../shell/upload-track';
   import type { VoicePart } from '../../shell/voice-parts';
@@ -70,10 +66,9 @@
   });
 
   const combined = $derived(part === combinedKey);
-  const check = $derived(file === null ? null : checkUploadFile(file, limitMiB));
-  const fileProblem = $derived(
-    check === null || check.ok ? '' : uploadFileMessages(limitMiB)[check.problem],
-  );
+  const rules = $derived(uploadRules(limitMiB));
+  const check = $derived(file === null ? null : rules.check(file));
+  const fileProblem = $derived(check === null || check.ok ? '' : rules.messages[check.problem]);
   const ready = $derived(check?.ok === true && (combined || kind !== '') && phase === 'idle');
   const partName = $derived(voiceParts.find(({ id }) => id === part)?.name ?? '');
 
@@ -92,11 +87,11 @@
       {
         pieceId,
         file,
-        accepted: check,
+        accepted: check.accepted,
         voicePartId: combined ? null : part,
         kind,
         label,
-        limitMiB,
+        rules,
       },
       (value) => {
         fraction = value;
@@ -210,7 +205,7 @@
         </p>
       {:else}
         <p class={hint} data-testid="upload-rules">
-          {acceptedTypesText}, up to {uploadLimitText(limitMiB)}.
+          {acceptedTypesText}, up to {rules.limitText}.
         </p>
       {/if}
     </div>

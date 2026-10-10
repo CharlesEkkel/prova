@@ -12,7 +12,13 @@ import { openFile } from '../../../../../../../lib/shell/storage';
 import type { RequestHandler } from './$types';
 
 /** What the storage service says about the bytes, passed on as it said it. */
-const passedOn = ['content-type', 'content-length', 'content-range', 'etag', 'last-modified'];
+const forwardedHeaders = [
+  'content-type',
+  'content-length',
+  'content-range',
+  'etag',
+  'last-modified',
+];
 
 export const GET: RequestHandler = async ({ locals, params, request }) => {
   const piece = pieceIdOf(params.pieceId);
@@ -29,7 +35,7 @@ export const GET: RequestHandler = async ({ locals, params, request }) => {
 
   const headers = new Headers(
     Object.fromEntries(
-      passedOn.flatMap((name) => {
+      forwardedHeaders.flatMap((name) => {
         const value = stored.headers.get(name);
         return value === null ? [] : [[name, value]];
       }),

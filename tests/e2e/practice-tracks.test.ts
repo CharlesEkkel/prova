@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
-import { defaultUploadLimitMiB, uploadLimitBytes } from '../../src/lib/core/practice-tracks';
+import { defaultUploadLimitMiB, uploadLimitBytes } from '../../src/lib/core/upload-rules';
 import { bytesOfSize, silentMp3 } from '../audio-fixtures';
 import { serviceClient } from '../contract/support';
 import { signInAsApprovedSinger, signInAsSingerWith } from './support';

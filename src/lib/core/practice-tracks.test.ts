@@ -1,23 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
-  acceptedExtensions,
   badgeStyleOf,
-  checkUploadFile,
   combinedSource,
-  defaultUploadLimitMiB,
   durationText,
   indicatorText,
   kindText,
   trackActionsFor,
-  trackFilePath,
   trackIdOf,
   trackLabelMaxLength,
-  trackProblemOf,
   trackTitle,
-  uploadFileMessages,
-  uploadLimitBytes,
-  uploadLimitFrom,
-  uploadLimitText,
   type PracticeTrack,
   type TrackSource,
 } from './practice-tracks';
@@ -34,80 +25,7 @@ const track = (source: TrackSource, label = ''): PracticeTrack => {
   return { id, source, label, durationSeconds: null };
 };
 
-describe('checkUploadFile', () => {
-  it.each([
-    ['song.mp3', 'mp3', 'audio/mpeg'],
-    ['Song.MP3', 'mp3', 'audio/mpeg'],
-    ['take 2.final.m4a', 'm4a', 'audio/mp4'],
-  ])('accepts %s', (name, extension, contentType) => {
-    expect(checkUploadFile({ name, size: 1000 }, 10)).toEqual({ ok: true, extension, contentType });
-  });
-
-  it.each(['song.wav', 'song.mp3.exe', 'song', 'mp3', 'song.pdf', ''])(
-    'refuses %j by type',
-    (name) => {
-      expect(checkUploadFile({ name, size: 1000 }, 10)).toEqual({
-        ok: false,
-        problem: 'wrong-type',
-      });
-    },
-  );
-
-  it('accepts a file of exactly the limit and refuses one byte more', () => {
-    const limit = uploadLimitBytes(10);
-
-    expect(checkUploadFile({ name: 'a.mp3', size: limit }, 10).ok).toBe(true);
-    expect(checkUploadFile({ name: 'a.mp3', size: limit + 1 }, 10)).toEqual({
-      ok: false,
-      problem: 'too-large',
-    });
-  });
-
-  it('refuses an empty file', () => {
-    expect(checkUploadFile({ name: 'a.mp3', size: 0 }, 10)).toEqual({
-      ok: false,
-      problem: 'empty',
-    });
-  });
-
-  it('says what is wrong, with the limit', () => {
-    const messages = uploadFileMessages(25);
-
-    expect(messages['too-large']).toContain('25 MB');
-    expect(messages['wrong-type']).toContain('MP3 or M4A');
-  });
-});
-
-describe('the upload limit', () => {
-  it('is 10 MiB unless the deployment says otherwise, and is said as 10 MB', () => {
-    expect(defaultUploadLimitMiB).toBe(10);
-    expect(uploadLimitBytes(10)).toBe(10_485_760);
-    expect(uploadLimitText(10)).toBe('10 MB');
-  });
-
-  it.each([
-    ['25', 25],
-    [' 5 ', 5],
-    [undefined, 10],
-    ['', 10],
-    ['0', 10],
-    ['-3', 10],
-    ['2.5', 10],
-    ['ten', 10],
-  ])('reads the setting %j as %i', (setting, limit) => {
-    expect(uploadLimitFrom(setting)).toBe(limit);
-  });
-
-  it('names the picker types', () => {
-    expect(acceptedExtensions).toBe('.mp3,.m4a');
-  });
-});
-
-describe('where a track lives', () => {
-  it('is under its Piece, named by the track', () => {
-    expect(trackFilePath('piece', 'track', 'mp3')).toBe('piece/track.mp3');
-  });
-
+describe('trackIdOf', () => {
   it('takes only a UUID as a track id', () => {
     expect(trackIdOf('nope')).toBeNull();
     expect(trackIdOf('3f8c1a52-7d4e-4b8a-9c21-0e5f6a7b8c9d')).not.toBeNull();
@@ -160,21 +78,5 @@ describe('what a Singer may do', () => {
     expect(trackActionsFor(['read'])).toEqual([]);
     expect(trackActionsFor(['read', 'update'])).toEqual(['rename']);
     expect(trackActionsFor(['read', 'update', 'delete'])).toEqual(['rename', 'delete']);
-  });
-});
-
-describe('trackProblemOf', () => {
-  it.each([
-    [{ code: '42501' }, 'not-allowed'],
-    [{ code: 'P0002' }, 'gone'],
-    [{ code: '22023', hint: 'kind' }, 'no-kind'],
-    [{ code: '22023', hint: 'label' }, 'label-too-long'],
-    [{ code: '22023', hint: 'file' }, 'no-file'],
-    [{ code: '22023', hint: 'voice-part' }, 'invalid'],
-    [{ code: '23505', hint: 'file-used' }, 'invalid'],
-    [{ code: '08006' }, 'failed'],
-    [{}, 'failed'],
-  ])('reads %j as %s', (refusal, problem) => {
-    expect(trackProblemOf(refusal)).toBe(problem);
   });
 });

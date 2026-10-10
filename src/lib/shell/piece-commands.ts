@@ -4,6 +4,7 @@ import { fail, redirect, type ActionFailure } from '@sveltejs/kit';
 import { Effect, Schema } from 'effect';
 import { piecePath } from '../core/paths';
 import { pieceMessages, pieceProblemOf, type PieceId, type PieceProblem } from '../core/pieces';
+import { decodeForm } from './form';
 import { PieceIdSchema } from './pieces';
 import { loadPieceFiles } from './practice-tracks';
 import { removeFiles } from './storage';
@@ -22,20 +23,15 @@ const hasCode = Schema.is(ErrorWithCode);
 const problemOf = (cause: unknown): PieceProblem =>
   pieceProblemOf(hasCode(cause) ? { code: cause.code } : {});
 
-const decodeForm =
-  <A, I>(schema: Schema.Codec<A, I>) =>
-  (request: Request): Effect.Effect<A, PieceProblem> =>
-    Effect.tryPromise(() => request.formData()).pipe(
-      Effect.flatMap((form) => Schema.decodeUnknownEffect(schema)(Object.fromEntries(form))),
-      Effect.mapError((): PieceProblem => 'invalid'),
-    );
+const invalidForm: PieceProblem = 'invalid';
+const readForm = <A, I>(schema: Schema.Codec<A, I>) => decodeForm(schema, invalidForm);
 
 /** Adds a Piece and answers with its id. */
 export const addPiece = (
   supabase: Supabase,
   request: Request,
 ): Effect.Effect<PieceId, PieceProblem> =>
-  decodeForm(NewPieceForm)(request).pipe(
+  readForm(NewPieceForm)(request).pipe(
     Effect.flatMap(({ title, composer, notes }) =>
       callSupabaseAs(PieceIdSchema, () =>
         supabase.rpc('add_piece', {
@@ -51,7 +47,7 @@ export const updatePiece = (
   supabase: Supabase,
   request: Request,
 ): Effect.Effect<void, PieceProblem> =>
-  decodeForm(EditPieceForm)(request).pipe(
+  readForm(EditPieceForm)(request).pipe(
     Effect.flatMap(({ piece, title, composer, notes }) =>
       callSupabase(() =>
         supabase.rpc('update_piece', {
@@ -69,12 +65,13 @@ export const deletePiece = (
   supabase: Supabase,
   request: Request,
 ): Effect.Effect<void, PieceProblem> =>
-  decodeForm(PieceForm)(request).pipe(
+  readForm(PieceForm)(request).pipe(
     Effect.flatMap(({ piece }) =>
-      // The files are listed first, because the delete takes their rows with it. They go afterwards:
-      // a failure in between leaves stray files, never a track whose file is missing.
+      // The files are listed first, because the delete takes their rows with it, and the Piece is
+      // kept if they cannot be listed. They go afterwards: a failure in between leaves stray files,
+      // never a track whose file is missing.
       loadPieceFiles(supabase, piece).pipe(
-        Effect.orElseSucceed((): readonly string[] => []),
+        Effect.mapError((): PieceProblem => 'failed'),
         Effect.flatMap((files) =>
           callSupabase(() => supabase.rpc('delete_piece', { target: piece })).pipe(
             Effect.mapError(({ cause }) => problemOf(cause)),

@@ -9,14 +9,13 @@ import {
   isTrackId,
   isTrackKind,
   trackKinds,
-  trackMessages,
-  trackProblemOf,
   type PracticeTrack,
   type TrackId,
-  type TrackProblem,
 } from '../core/practice-tracks';
+import { trackMessages, trackProblemOf, type TrackProblem } from '../core/track-problems';
+import { isAudioExtension } from '../core/upload-rules';
+import { decodeForm } from './form';
 import { PieceIdSchema } from './pieces';
-import { failureOrNull } from './run';
 import { removeFiles, startUpload, type UploadTicket } from './storage';
 import { callSupabase, callSupabaseAs, type Supabase, type SupabaseCallFailed } from './supabase';
 
@@ -55,7 +54,7 @@ export const loadTracks = (
       .order('id'),
   ).pipe(Effect.map((rows) => rows.map(trackOf)));
 
-const FilePath = Schema.Struct({ object_path: Schema.String });
+const StoredFile = Schema.Struct({ object_path: Schema.String });
 
 /** Where a track's file is stored, or null when the Piece has no such track (or it may not be read). */
 export const loadTrackFile = (
@@ -63,7 +62,7 @@ export const loadTrackFile = (
   piece: PieceId,
   track: TrackId,
 ): Effect.Effect<string | null, SupabaseCallFailed> =>
-  callSupabaseAs(Schema.Array(FilePath), () =>
+  callSupabaseAs(Schema.Array(StoredFile), () =>
     supabase.from('practice_tracks').select('object_path').eq('piece_id', piece).eq('id', track),
   ).pipe(Effect.map(([row]) => row?.object_path ?? null));
 
@@ -72,37 +71,36 @@ export const loadPieceFiles = (
   supabase: Supabase,
   piece: PieceId,
 ): Effect.Effect<readonly string[], SupabaseCallFailed> =>
-  callSupabaseAs(Schema.Array(FilePath), () =>
+  callSupabaseAs(Schema.Array(StoredFile), () =>
     supabase.from('practice_tracks').select('object_path').eq('piece_id', piece),
   ).pipe(Effect.map((rows) => rows.map(({ object_path }) => object_path)));
 
-const ErrorWithRefusal = Schema.Struct({
+const DatabaseError = Schema.Struct({
   code: Schema.optionalKey(Schema.String),
   hint: Schema.optionalKey(Schema.NullOr(Schema.String)),
 });
-const isRefusal = Schema.is(ErrorWithRefusal);
+const isDatabaseError = Schema.is(DatabaseError);
 
-const problemOf = (cause: unknown): TrackProblem => trackProblemOf(isRefusal(cause) ? cause : {});
+const problemOf = (cause: unknown): TrackProblem =>
+  trackProblemOf(isDatabaseError(cause) ? cause : {});
 
-const decodeForm =
-  <A, I>(schema: Schema.Codec<A, I>) =>
-  (request: Request): Effect.Effect<A, TrackProblem> =>
-    Effect.tryPromise(() => request.formData()).pipe(
-      Effect.flatMap((form) => Schema.decodeUnknownEffect(schema)(Object.fromEntries(form))),
-      Effect.mapError((): TrackProblem => 'invalid'),
-    );
+const invalidForm: TrackProblem = 'invalid';
+const readForm = <A, I>(schema: Schema.Codec<A, I>) => decodeForm(schema, invalidForm);
+
+/** A command on a track: reads its form, asks the database, and says why if it was refused. */
+export type TrackCommand<A = void> = (
+  supabase: Supabase,
+  request: Request,
+) => Effect.Effect<A, TrackProblem>;
 
 const TicketForm = Schema.Struct({
   piece: PieceIdSchema,
-  extension: Schema.Literals(['mp3', 'm4a']),
+  extension: Schema.declare(isAudioExtension),
 });
 
 /** An address a browser may upload a new track's file to, if this Singer may append. */
-export const issueTicket = (
-  supabase: Supabase,
-  request: Request,
-): Effect.Effect<UploadTicket, TrackProblem> =>
-  decodeForm(TicketForm)(request).pipe(
+export const issueTicket: TrackCommand<UploadTicket> = (supabase, request) =>
+  readForm(TicketForm)(request).pipe(
     Effect.flatMap(({ piece, extension }) =>
       startUpload(supabase, piece, extension).pipe(
         Effect.mapError(({ cause }) => problemOf(cause)),
@@ -127,8 +125,8 @@ const secondsOf = (text: string): number | null => {
 };
 
 /** Registers an uploaded file as a Practice Track of the Piece. */
-export const addTrack = (supabase: Supabase, request: Request): Effect.Effect<void, TrackProblem> =>
-  decodeForm(AddForm)(request).pipe(
+export const addTrack: TrackCommand = (supabase, request) =>
+  readForm(AddForm)(request).pipe(
     Effect.flatMap(({ piece, path, part, kind, label, seconds }) => {
       const length = secondsOf(seconds);
       return callSupabase(() =>
@@ -148,11 +146,8 @@ export const addTrack = (supabase: Supabase, request: Request): Effect.Effect<vo
 const RenameForm = Schema.Struct({ track: TrackIdSchema, label: Schema.String });
 const TrackForm = Schema.Struct({ track: TrackIdSchema });
 
-export const renameTrack = (
-  supabase: Supabase,
-  request: Request,
-): Effect.Effect<void, TrackProblem> =>
-  decodeForm(RenameForm)(request).pipe(
+export const renameTrack: TrackCommand = (supabase, request) =>
+  readForm(RenameForm)(request).pipe(
     Effect.flatMap(({ track, label }) =>
       callSupabase(() =>
         supabase.rpc('rename_practice_track', { target: track, track_label: label }),
@@ -161,16 +156,11 @@ export const renameTrack = (
     Effect.asVoid,
   );
 
-const PathReply = Schema.String;
-
 /** Deletes a track: its row first, then its file. A failure in between leaves a stray file, never a track with no file. */
-export const deleteTrack = (
-  supabase: Supabase,
-  request: Request,
-): Effect.Effect<void, TrackProblem> =>
-  decodeForm(TrackForm)(request).pipe(
+export const deleteTrack: TrackCommand = (supabase, request) =>
+  readForm(TrackForm)(request).pipe(
     Effect.flatMap(({ track }) =>
-      callSupabaseAs(PathReply, () =>
+      callSupabaseAs(Schema.String, () =>
         supabase.rpc('delete_practice_track', { target: track }),
       ).pipe(Effect.mapError(({ cause }) => problemOf(cause))),
     ),
@@ -181,30 +171,28 @@ export const deleteTrack = (
 
 type Refusal = ActionFailure<{ readonly problem: string }>;
 
-const refusal = (problem: TrackProblem): Refusal => fail(400, { problem: trackMessages[problem] });
-
-/** The form action that changes a track: success, or a refusal carrying the message to show. */
-export const runTrackAction = async (
-  run: typeof addTrack,
-  supabase: Supabase,
-  request: Request,
-): Promise<{ readonly ok: true } | Refusal> => {
-  const problem = await failureOrNull(run(supabase, request));
-  return problem === null ? { ok: true } : refusal(problem);
-};
-
-/** The form action that answers an upload ticket, or a refusal carrying the message to show. */
-export const runIssueTicket = async (
-  supabase: Supabase,
-  request: Request,
-): Promise<{ readonly ticket: UploadTicket } | Refusal> => {
-  const outcome = await Effect.runPromise(
-    issueTicket(supabase, request).pipe(
+/** Runs a command as a form action: what it answers, or a refusal carrying the message to show. */
+const runAction = <A>(command: Effect.Effect<A, TrackProblem>): Promise<A | Refusal> =>
+  Effect.runPromise(
+    command.pipe(
       Effect.match({
-        onFailure: (problem) => ({ problem }) as const,
-        onSuccess: (ticket) => ({ ticket }) as const,
+        onFailure: (problem): Refusal => fail(400, { problem: trackMessages[problem] }),
+        onSuccess: (answer) => answer,
       }),
     ),
   );
-  return 'problem' in outcome ? refusal(outcome.problem) : outcome;
-};
+
+/** The form action that changes a track: success, or a refusal carrying the message to show. */
+export const runTrackAction = (
+  command: TrackCommand,
+  supabase: Supabase,
+  request: Request,
+): Promise<{ readonly ok: true } | Refusal> =>
+  runAction(command(supabase, request).pipe(Effect.as({ ok: true } as const)));
+
+/** The form action that answers an upload ticket, or a refusal carrying the message to show. */
+export const runIssueTicket = (
+  supabase: Supabase,
+  request: Request,
+): Promise<{ readonly ticket: UploadTicket } | Refusal> =>
+  runAction(issueTicket(supabase, request).pipe(Effect.map((ticket) => ({ ticket }))));

@@ -2,18 +2,21 @@
 // refuses, and that an upload can never replace or remove a file.
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { trackLabelMaxLength } from '../../src/lib/core/practice-tracks';
 import {
   defaultUploadLimitMiB,
   trackFilePath,
-  trackLabelMaxLength,
   uploadLimitBytes,
-} from '../../src/lib/core/practice-tracks';
+  uploadProblemOfResponse,
+  type AudioExtension,
+} from '../../src/lib/core/upload-rules';
 import { bytesOfSize, silentMp3 } from '../audio-fixtures';
 import {
   grantRole,
   serviceClient,
   signInNewAdmin,
   signInNewSinger,
+  anonKey,
   type TestSinger,
 } from './support';
 
@@ -69,7 +72,7 @@ const uploadAs = async (
   piece: string,
   body: Uint8Array = silentMp3(1),
   contentType = mp3,
-  extension = 'mp3',
+  extension: AudioExtension = 'mp3',
 ) => {
   const path = trackFilePath(piece, randomUUID(), extension);
   const ticket = await singer.client.storage.from(bucket).createSignedUploadUrl(path);
@@ -229,6 +232,59 @@ describe('uploading a Practice Track', () => {
         .upload(path, silentMp3(1), { contentType: mp3 });
       expect(error).not.toBeNull();
     }
+  });
+});
+
+describe('what the storage service answers to a browser upload', () => {
+  /** Sends a file the way the browser does: a multipart PUT to the signed address, by XHR in the app. */
+  const sendLikeTheBrowser = async (
+    piece: string,
+    body: Uint8Array<ArrayBuffer>,
+    contentType: string,
+  ) => {
+    const adder = await singerHolding('read', 'append');
+    const path = trackFilePath(piece, randomUUID(), 'mp3');
+    const ticket = await adder.client.storage.from(bucket).createSignedUploadUrl(path);
+    if (ticket.error) throw ticket.error;
+    files.push(path);
+    const form = new FormData();
+    form.append('cacheControl', '3600');
+    form.append('', new Blob([body], { type: contentType }), 'take.mp3');
+    return fetch(ticket.data.signedUrl, {
+      method: 'PUT',
+      headers: { apikey: anonKey, 'x-upsert': 'false' },
+      body: form,
+    });
+  };
+
+  it('is read as "too large" for a file over the limit', async () => {
+    const piece = await newPiece();
+
+    const response = await sendLikeTheBrowser(
+      piece,
+      bytesOfSize(uploadLimitBytes(defaultUploadLimitMiB) + 1),
+      mp3,
+    );
+
+    expect(response.ok).toBe(false);
+    expect(uploadProblemOfResponse(response.status, await response.text())).toBe('too-large');
+  });
+
+  it('is read as "wrong type" for a type the bucket does not accept', async () => {
+    const piece = await newPiece();
+
+    const response = await sendLikeTheBrowser(piece, silentMp3(1), 'audio/wav');
+
+    expect(response.ok).toBe(false);
+    expect(uploadProblemOfResponse(response.status, await response.text())).toBe('wrong-type');
+  });
+
+  it('succeeds for a good file', async () => {
+    const piece = await newPiece();
+
+    const response = await sendLikeTheBrowser(piece, silentMp3(1), mp3);
+
+    expect(response.ok).toBe(true);
   });
 });
 

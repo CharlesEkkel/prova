@@ -9,7 +9,7 @@ import {
   defaultUploadLimitMiB,
   trackFilePath,
   uploadLimitBytes,
-} from '../../src/lib/core/practice-tracks';
+} from '../../src/lib/core/upload-rules';
 import { bytesOfSize } from '../audio-fixtures';
 import {
   grantRole,

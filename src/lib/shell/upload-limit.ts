@@ -2,7 +2,7 @@
 // build time; scripts/apply-upload-limit.mjs sets the same number on the storage bucket, so what the
 // screens promise and what the backend enforces come from one setting.
 import { Schema } from 'effect';
-import { uploadLimitFrom } from '../core/practice-tracks';
+import { uploadLimitFrom } from '../core/upload-rules';
 
 const UploadLimitEnv = Schema.Struct({
   PUBLIC_UPLOAD_LIMIT_MIB: Schema.optionalKey(Schema.String),

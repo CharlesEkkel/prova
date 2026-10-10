@@ -2,11 +2,13 @@
 // audio file goes through here, so storage can move later (for example to Cloudflare R2) without
 // touching the rest of the app. Files are private; the bucket's policies decide who may do what.
 import { Effect, Schema } from 'effect';
+import type { PieceId } from '../core/pieces';
 import {
   trackFilePath,
-  uploadProblemOfStatus,
+  uploadProblemOfResponse,
+  type AudioExtension,
   type UploadFileProblem,
-} from '../core/practice-tracks';
+} from '../core/upload-rules';
 import {
   callSupabase,
   callSupabaseAs,
@@ -32,8 +34,8 @@ const SignedDownload = Schema.Struct({ signedUrl: Schema.String });
 /** A ticket to upload a track's file for this Piece; it works only if the Singer may `append`. */
 export const startUpload = (
   supabase: Supabase,
-  pieceId: string,
-  extension: string,
+  pieceId: PieceId,
+  extension: AudioExtension,
 ): Effect.Effect<UploadTicket, SupabaseCallFailed> =>
   Effect.suspend(() => {
     const wanted = trackFilePath(pieceId, crypto.randomUUID(), extension);
@@ -97,7 +99,7 @@ export const uploadFile = (
       resolve(
         request.status >= 200 && request.status < 300
           ? { ok: true }
-          : { ok: false, problem: uploadProblemOfStatus(request.status) },
+          : { ok: false, problem: uploadProblemOfResponse(request.status, request.responseText) },
       );
     });
     request.addEventListener('error', () => {

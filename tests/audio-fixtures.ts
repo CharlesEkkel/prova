@@ -6,7 +6,7 @@ const frameBytes = 417;
 const secondsPerFrame = 1152 / 44100;
 
 /** A silent MP3 about this long. The frames decode to silence, so a browser can play and seek it. */
-export const silentMp3 = (seconds: number): Uint8Array => {
+export const silentMp3 = (seconds: number): Uint8Array<ArrayBuffer> => {
   const frames = Math.max(1, Math.round(seconds / secondsPerFrame));
   const bytes = new Uint8Array(frames * frameBytes);
   for (let frame = 0; frame < frames; frame += 1) bytes.set(frameHeader, frame * frameBytes);
@@ -14,4 +14,4 @@ export const silentMp3 = (seconds: number): Uint8Array => {
 };
 
 /** Bytes of exactly this size, for testing a size limit. The content does not matter to the bucket. */
-export const bytesOfSize = (size: number): Uint8Array => new Uint8Array(size);
+export const bytesOfSize = (size: number): Uint8Array<ArrayBuffer> => new Uint8Array(size);

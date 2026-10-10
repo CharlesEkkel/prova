@@ -1,7 +1,8 @@
-// Practice Tracks: what a track is, what an upload may be, and the words the screens use for both.
-// See Practice Track, Combined Track and Part indicator in CONTEXT.md.
+// Practice Tracks: what a track is, how it is told apart on screen, and who may do what with it.
+// See Practice Track, Combined Track and Part indicator in CONTEXT.md. What an upload may be is in
+// upload-rules.ts, and why a change was refused is in track-problems.ts.
 import type { Permission } from './permissions';
-import { combinedTrackLabel, type DatabaseRefusal } from './voice-parts';
+import { combinedTrackLabel } from './voice-parts';
 
 declare const trackIdBrand: unique symbol;
 
@@ -16,10 +17,10 @@ export const isTrackId = (value: unknown): value is TrackId =>
 /** `raw` as a track id if it is a UUID, otherwise null. */
 export const trackIdOf = (raw: string): TrackId | null => (isTrackId(raw) ? raw : null);
 
+export const trackKinds = ['part-only', 'part-predominant'] as const;
+
 /** Part-only is just that line; part-predominant is that line louder over the rest. */
 export type TrackKind = (typeof trackKinds)[number];
-
-export const trackKinds = ['part-only', 'part-predominant'] as const;
 
 export const isTrackKind = (value: unknown): value is TrackKind =>
   trackKinds.some((kind) => kind === value);
@@ -43,94 +44,32 @@ export type PracticeTrack = {
 
 export const trackLabelMaxLength = 60;
 
-/** The upload limit when the deployment sets none. */
-export const defaultUploadLimitMiB = 10;
+/** The three looks of a kind badge: solid, outlined and tinted, so colour is never the only cue. */
+export type BadgeStyle = 'solid' | 'outlined' | 'tinted';
 
-const bytesPerMiB = 1024 * 1024;
+type Look = 'combined' | TrackKind;
 
-/** The limit in bytes, for checking a file before it is sent. */
-export const uploadLimitBytes = (limitMiB: number): number => limitMiB * bytesPerMiB;
-
-/** The limit as the screens say it: "10 MB". */
-export const uploadLimitText = (limitMiB: number): string => `${limitMiB.toString()} MB`;
-
-/** The upload limit from the deployment's setting, or the default when it is missing or not a number of whole MB. */
-export const uploadLimitFrom = (setting: string | undefined): number => {
-  const parsed = Number(setting?.trim());
-  return Number.isInteger(parsed) && parsed >= 1 ? parsed : defaultUploadLimitMiB;
+/** How each kind of track is worded and drawn, in one place. */
+const looks: Readonly<
+  Record<Look, { readonly badge: BadgeStyle; readonly text: string; readonly indicator: string }>
+> = {
+  combined: { badge: 'solid', text: 'Combined', indicator: '' },
+  'part-only': { badge: 'outlined', text: 'Part only', indicator: 'only' },
+  'part-predominant': { badge: 'tinted', text: 'Part + mix', indicator: '+ mix' },
 };
 
-/** The types a Practice Track may be: the extension, and the type sent for it (the bucket allows exactly these). */
-export const acceptedAudio = [
-  { extension: 'mp3', contentType: 'audio/mpeg' },
-  { extension: 'm4a', contentType: 'audio/mp4' },
-] as const;
-
-/** For the file picker's `accept`, and for saying which types are fine. */
-export const acceptedExtensions: string = acceptedAudio
-  .map(({ extension }) => `.${extension}`)
-  .join(',');
-
-export const acceptedTypesText = 'MP3 or M4A';
-
-export type UploadFileProblem = 'wrong-type' | 'too-large' | 'empty';
-
-export const uploadFileMessages = (
-  limitMiB: number,
-): Readonly<Record<UploadFileProblem, string>> => ({
-  'wrong-type': `That file is not an ${acceptedTypesText} file. Choose an .mp3 or .m4a file.`,
-  'too-large': `That file is over ${uploadLimitText(limitMiB)}. Choose a smaller file, or compress it.`,
-  empty: 'That file is empty. Choose another.',
-});
-
-export type FileCheck =
-  | { readonly ok: true; readonly extension: string; readonly contentType: string }
-  | { readonly ok: false; readonly problem: UploadFileProblem };
-
-const extensionOf = (fileName: string): string =>
-  fileName.includes('.') ? (fileName.split('.').at(-1) ?? '').toLowerCase() : '';
-
-/** Whether a chosen file may be uploaded: right type by its extension, not empty, within the limit. */
-export const checkUploadFile = (
-  file: { readonly name: string; readonly size: number },
-  limitMiB: number,
-): FileCheck => {
-  const accepted = acceptedAudio.find(({ extension }) => extension === extensionOf(file.name));
-  if (accepted === undefined) return { ok: false, problem: 'wrong-type' };
-  if (file.size === 0) return { ok: false, problem: 'empty' };
-  if (file.size > uploadLimitBytes(limitMiB)) return { ok: false, problem: 'too-large' };
-  return { ok: true, extension: accepted.extension, contentType: accepted.contentType };
-};
-
-/** Where a track's file lives in the bucket: under its Piece, named by the track's own id. */
-export const trackFilePath = (pieceId: string, trackId: string, extension: string): string =>
-  `${pieceId}/${trackId}.${extension}`;
-
-/** What the storage service's answer to an upload means: the bucket turned the file down, or it failed. */
-export const uploadProblemOfStatus = (status: number): UploadFileProblem | 'failed' => {
-  if (status === 413) return 'too-large';
-  if (status === 415) return 'wrong-type';
-  return 'failed';
-};
+const lookOf = (source: TrackSource): (typeof looks)[Look] =>
+  looks[source.type === 'combined' ? 'combined' : source.kind];
 
 /** The wording for a kind, in the badge. */
-export const kindText = (source: TrackSource): string => {
-  if (source.type === 'combined') return 'Combined';
-  return source.kind === 'part-only' ? 'Part only' : 'Part + mix';
-};
+export const kindText = (source: TrackSource): string => lookOf(source).text;
+
+export const badgeStyleOf = (source: TrackSource): BadgeStyle => lookOf(source).badge;
 
 /** What a kind means, in a sentence, for the upload dialog. */
 export const kindDescription: Readonly<Record<TrackKind, string>> = {
   'part-only': 'Just that line.',
   'part-predominant': 'That line louder, over the rest.',
-};
-
-/** The three looks of a kind badge: solid, outlined and tinted, so colour is never the only cue. */
-export type BadgeStyle = 'solid' | 'outlined' | 'tinted';
-
-export const badgeStyleOf = (source: TrackSource): BadgeStyle => {
-  if (source.type === 'combined') return 'solid';
-  return source.kind === 'part-only' ? 'outlined' : 'tinted';
 };
 
 /** A track's length as `m:ss`, or null when it is not known. */
@@ -148,39 +87,14 @@ export const sourceName = (source: TrackSource, nameOf: PartNames): string =>
   source.type === 'combined' ? combinedTrackLabel : nameOf(source.voicePartId);
 
 /** What the part indicator says is playing: `All`, `Alto only` or `Alto + mix`. */
-export const indicatorText = (source: TrackSource, nameOf: PartNames): string => {
-  if (source.type === 'combined') return combinedTrackLabel;
-  return `${nameOf(source.voicePartId)} ${source.kind === 'part-only' ? 'only' : '+ mix'}`;
-};
+export const indicatorText = (source: TrackSource, nameOf: PartNames): string =>
+  source.type === 'combined'
+    ? combinedTrackLabel
+    : `${nameOf(source.voicePartId)} ${lookOf(source).indicator}`;
 
 /** A track's row in the panel: its label, or what it is when it has none. */
 export const trackTitle = (track: PracticeTrack, nameOf: PartNames): string =>
   track.label === '' ? sourceName(track.source, nameOf) : track.label;
-
-/** Why a change to a Practice Track was not made. */
-export type TrackProblem =
-  'not-allowed' | 'no-kind' | 'label-too-long' | 'no-file' | 'gone' | 'invalid' | 'failed';
-
-export const trackMessages: Readonly<Record<TrackProblem, string>> = {
-  'not-allowed': 'You do not have permission to do that.',
-  'no-kind': 'Choose whether the track is part-only or part-predominant.',
-  'label-too-long': `A label is up to ${trackLabelMaxLength.toString()} characters.`,
-  'no-file': 'The file did not arrive. Try uploading it again.',
-  gone: 'That Practice Track no longer exists.',
-  invalid: 'That track could not be saved. Check the Voice Part, kind and label.',
-  failed: 'That did not work. Try again in a moment.',
-};
-
-/** Which problem a refusal from the Practice Track functions means. */
-export const trackProblemOf = ({ code, hint }: DatabaseRefusal): TrackProblem => {
-  if (code === '42501') return 'not-allowed';
-  if (code === 'P0002') return 'gone';
-  if (code === '22023' && hint === 'kind') return 'no-kind';
-  if (code === '22023' && hint === 'label') return 'label-too-long';
-  if (code === '22023' && hint === 'file') return 'no-file';
-  if (code === '22023' || code === '23505') return 'invalid';
-  return 'failed';
-};
 
 /** Whether New Practice Track is shown: adding one needs `append`. */
 export const mayUploadTrack = (held: readonly Permission[]): boolean => held.includes('append');
