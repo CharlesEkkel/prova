@@ -3,20 +3,15 @@
   import { AlertDialog } from 'bits-ui';
   import { Pencil, Plus, Trash } from '@lucide/svelte';
   import AlertMessage from '../../../lib/components/AlertMessage.svelte';
+  import PieceFormDialog from '../../../lib/components/PieceFormDialog.svelte';
   import PieceLink from '../../../lib/components/PieceLink.svelte';
   import { createDialogState } from '../../../lib/components/dialog-state.svelte';
   import Btn from '../../../lib/components/ui/Btn.svelte';
   import ManageMenu from '../../../lib/components/ui/ManageMenu.svelte';
   import Modal from '../../../lib/components/ui/Modal.svelte';
-  import { card, fieldLabel, hint, input } from '../../../lib/components/ui/styles';
+  import { card } from '../../../lib/components/ui/styles';
   import { actionPath, formActions } from '../../../lib/core/paths';
-  import {
-    composerMaxLength,
-    notesMaxLength,
-    pieceDialogCopy,
-    titleMaxLength,
-    type RepertoireEntry,
-  } from '../../../lib/core/pieces';
+  import { pieceDialogCopy, type RepertoireEntry } from '../../../lib/core/pieces';
   import { closeOnSuccess } from '../../../lib/shell/enhance';
   import type { ActionData, PageData } from './$types';
 
@@ -108,69 +103,12 @@
   </ul>
 </div>
 
-<Modal
+<PieceFormDialog
   open={current?.kind === 'new' || current?.kind === 'edit'}
   onClose={dialog.close}
-  title={copy?.title ?? ''}
-  description={copy?.description ?? ''}
->
-  {#if current?.kind === 'new' || current?.kind === 'edit'}
-    {@const piece = subjectOf(current)}
-    <form
-      id="piece-form"
-      method="POST"
-      action={actionPath(
-        current.kind === 'new' ? formActions.pieces.create : formActions.pieces.update,
-      )}
-      use:enhance={closeIfDone}
-      class="flex flex-col gap-5"
-    >
-      {#if piece !== null}
-        <input type="hidden" name="piece" value={piece.id} />
-      {/if}
-      <div>
-        <label for="piece-title" class={fieldLabel}>Title</label>
-        <input
-          id="piece-title"
-          name="title"
-          required
-          maxlength={titleMaxLength}
-          class={input}
-          value={piece?.title ?? ''}
-        />
-      </div>
-      <div>
-        <label for="piece-composer" class={fieldLabel}>Composer</label>
-        <input
-          id="piece-composer"
-          name="composer"
-          required
-          maxlength={composerMaxLength}
-          class={input}
-          value={piece?.composer ?? ''}
-        />
-      </div>
-      <div>
-        <label for="piece-notes" class={fieldLabel}>Conductor’s Notes (optional)</label>
-        <textarea
-          id="piece-notes"
-          name="notes"
-          rows="4"
-          maxlength={notesMaxLength}
-          class="{input} h-auto py-2">{piece?.notes ?? ''}</textarea
-        >
-        <p class={hint}>General directions for every Singer, such as “sing brightly”.</p>
-      </div>
-      {#if problem !== undefined}
-        <AlertMessage>{problem}</AlertMessage>
-      {/if}
-    </form>
-  {/if}
-  {#snippet footer()}
-    <Btn variant="ghost" onclick={dialog.close}>Cancel</Btn>
-    <Btn type="submit" form="piece-form">{copy?.submit ?? ''}</Btn>
-  {/snippet}
-</Modal>
+  piece={current === null ? null : subjectOf(current)}
+  {problem}
+/>
 
 <Modal
   alert

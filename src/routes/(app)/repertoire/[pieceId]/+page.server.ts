@@ -1,8 +1,9 @@
 import { error } from '@sveltejs/kit';
 import { formActions } from '../../../../lib/core/paths';
-import { pieceIdOf } from '../../../../lib/core/pieces';
+import { pieceActionsFor, pieceIdOf } from '../../../../lib/core/pieces';
 import { mayUploadTrack, trackActionsFor } from '../../../../lib/core/practice-tracks';
 import { choirChoiceAtUpload, mayUploadScore, scoreActionsFor } from '../../../../lib/core/scores';
+import { runPieceAction, updatePiece } from '../../../../lib/shell/piece-commands';
 import { loadPiece } from '../../../../lib/shell/pieces';
 import {
   addTrack,
@@ -49,6 +50,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
     // Which Voice Part is in effect on this Piece. A Preferred Part (#22) will replace it.
     voicePartId: visitor.stage === 'ready' ? visitor.voicePart.id : null,
     // The database enforces these; they only decide what to show.
+    // Editing the Piece's own details needs `update`, as in the Repertoire.
+    mayEditPiece: pieceActionsFor(held).includes('edit'),
     mayUpload: mayUploadTrack(held),
     trackActions: trackActionsFor(held),
     uploadLimitMiB,
@@ -60,6 +63,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 };
 
 export const actions: Actions = {
+  [formActions.pieces.update]: ({ locals, request }) =>
+    runPieceAction(updatePiece, locals.supabase, request),
   [formActions.tracks.ticket]: ({ locals, request }) => runIssueTicket(locals.supabase, request),
   [formActions.tracks.add]: ({ locals, request }) =>
     runTrackAction(addTrack, locals.supabase, request),
