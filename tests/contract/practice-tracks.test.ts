@@ -22,11 +22,14 @@ const bucket = 'practice-tracks';
 /** Every Piece a test adds (its tracks go with it) and every file it stores, removed at the end. */
 const pieces: string[] = [];
 const files: string[] = [];
+const voiceParts: string[] = [];
 
 afterAll(async () => {
   const admin = serviceClient();
   await admin.storage.from(bucket).remove(files);
   await admin.from('pieces').delete().in('id', pieces);
+  // After the Pieces, whose tracks keep a Voice Part from being deleted.
+  await admin.from('voice_parts').delete().in('id', voiceParts);
 });
 
 const unique = (): string => randomUUID().slice(0, 8);
@@ -461,6 +464,7 @@ describe('Voice Parts with Practice Tracks', () => {
       part_name: `Descant ${unique()}`,
       part_label: unique().slice(0, 3),
     });
+    if (added !== null) voiceParts.push(added);
     const upload = await uploadAs(adder, piece);
     await registerAs(adder, piece, upload.path, { part: added ?? '', kind: 'part-only' });
 

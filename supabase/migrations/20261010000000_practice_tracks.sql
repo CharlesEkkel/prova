@@ -6,7 +6,7 @@
 -- a delete policy for `delete`, and no update policy, so a file can never be replaced or overwritten.
 -- A track's row is written only by `add_practice_track`, after the file is in the bucket. `update`
 -- renames a label and nothing more. The size limit and the types the bucket accepts are set here;
--- scripts/apply-upload-limit.mjs sets the limit again from UPLOAD_LIMIT_MIB during a deployment.
+-- scripts/apply-upload-limit.mjs sets the limit again from PUBLIC_UPLOAD_LIMIT_MIB during a deployment.
 --
 -- The label limit (60 characters) is also in src/lib/core/practice-tracks.ts; the contract tests
 -- take their boundary from there, so they are kept in step.

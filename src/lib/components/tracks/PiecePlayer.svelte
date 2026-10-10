@@ -2,7 +2,6 @@
   // The player for one Piece: the part indicator, a Start button (nothing plays on its own), a seek
   // slider, back and forward 10 seconds, and play/pause. #24 shows the same screen for a Play-through.
   // Leaving the screen stops the audio.
-  import { Slider } from 'bits-ui';
   import { Pause, Play, RotateCcw, RotateCw } from '@lucide/svelte';
   import { onDestroy } from 'svelte';
   import { trackAudioPath } from '../../core/paths';
@@ -38,6 +37,8 @@
 
   // Picking a part in the indicator plays it once; it is forgotten when the Singer leaves.
   let choice = $state<PartChoice>(defaultChoice);
+  // Where the thumb is while the Singer drags it, before the audio has been asked to move.
+  let scrubbing = $state<number | null>(null);
   const track = $derived(trackForChoice(tracks, voicePartId, choice));
   const options = $derived(choiceOptions(tracks));
   const nameOf = (id: string): string => voiceParts.find((part) => part.id === id)?.name ?? '';
@@ -91,31 +92,25 @@
       <Btn onclick={start} class="self-start"><Play class="size-5 fill-current" /> Start</Btn>
     {:else}
       <div class="w-full">
-        <Slider.Root
-          type="single"
-          value={player.position}
-          onValueChange={player.seek}
+        <!-- A native range: it reports only what the Singer does, so the playing position never seeks itself. -->
+        <input
+          type="range"
+          aria-label="Seek"
+          min="0"
           max={Math.max(player.length, 1)}
-          step={1}
-          class="relative flex h-6 w-full touch-none items-center select-none"
-        >
-          {#snippet children({ thumbItems })}
-            <span
-              class="relative h-1.5 w-full grow overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700"
-            >
-              <Slider.Range class="absolute h-full bg-primary-600" />
-            </span>
-            {#each thumbItems as thumb (thumb.index)}
-              <Slider.Thumb
-                index={thumb.index}
-                aria-label="Seek"
-                class="block size-4 rounded-full bg-primary-600 shadow ring-4 ring-primary-600/20 transition hover:scale-110"
-              />
-            {/each}
-          {/snippet}
-        </Slider.Root>
+          step="1"
+          value={scrubbing ?? player.position}
+          oninput={(event) => {
+            scrubbing = event.currentTarget.valueAsNumber;
+          }}
+          onchange={(event) => {
+            player.seek(event.currentTarget.valueAsNumber);
+            scrubbing = null;
+          }}
+          class="h-6 w-full cursor-pointer accent-primary-600"
+        />
         <div class="mt-1 flex justify-between text-xs text-zinc-500 tabular-nums">
-          <span data-testid="position">{durationText(player.position)}</span>
+          <span data-testid="position">{durationText(scrubbing ?? player.position)}</span>
           <span>{player.length > 0 ? `-${durationText(remaining) ?? ''}` : ''}</span>
         </div>
       </div>

@@ -16,4 +16,4 @@ One hour is the app's general cache lifetime (the Colour Theme cookie uses it to
 - Each audio request, `Range` requests included, runs a Cloudflare Pages Function. At one choir's scale this is expected to be well inside the free plan; the Function only passes the body through.
 - All file access still goes through one storage module (upload, stream, remove), so storage can move later (for example to Cloudflare R2) without touching the rest of the app.
 - A deleted track can stay in a browser's cache for up to an hour.
-- The upload limit is a deployment setting, `UPLOAD_LIMIT_MIB` (default 10). The UI reads it at build time, and a script applies it to the storage bucket during deployment, so the two cannot drift apart. The accepted types (MP3 and M4A) are fixed in the migration that creates the bucket.
+- The upload limit is a deployment setting, `PUBLIC_UPLOAD_LIMIT_MIB` (default 10). The UI reads it at build time, and a script applies it to the storage bucket during deployment, so the two cannot drift apart. The accepted types (MP3 and M4A) are fixed in the migration that creates the bucket.
