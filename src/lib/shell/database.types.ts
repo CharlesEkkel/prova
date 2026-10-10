@@ -50,6 +50,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      performances: {
+        Row: {
+          created_at: string;
+          ends_at: string;
+          id: string;
+          is_major: boolean;
+          name: string;
+          starts_at: string;
+          venue: string;
+        };
+        Insert: {
+          created_at?: string;
+          ends_at: string;
+          id?: string;
+          is_major?: boolean;
+          name: string;
+          starts_at: string;
+          venue?: string;
+        };
+        Update: {
+          created_at?: string;
+          ends_at?: string;
+          id?: string;
+          is_major?: boolean;
+          name?: string;
+          starts_at?: string;
+          venue?: string;
+        };
+        Relationships: [];
+      };
       pieces: {
         Row: {
           composer: string;
@@ -307,6 +337,16 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      add_performance: {
+        Args: {
+          performance_ends_at: string;
+          performance_is_major: boolean;
+          performance_name: string;
+          performance_starts_at: string;
+          performance_venue: string;
+        };
+        Returns: string;
+      };
       add_piece: {
         Args: { piece_composer: string; piece_notes: string; piece_title: string };
         Returns: string;
@@ -363,6 +403,15 @@ export type Database = {
           short_label: string;
           singer_count: number;
         }[];
+      };
+      check_performance: {
+        Args: {
+          except_performance: string;
+          performance_ends_at: string;
+          performance_name: string;
+          performance_starts_at: string;
+        };
+        Returns: undefined;
       };
       check_piece: {
         Args: {
