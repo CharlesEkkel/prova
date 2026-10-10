@@ -25,7 +25,7 @@ A Practice Track containing all Voice Parts together. It is what plays first on 
 _Avoid_: Full mix, tutti
 
 **Score**:
-A document (e.g. PDF) of the written music for a Piece, uploaded alongside its Practice Tracks. A Piece can have several, each labelled, including instrumental Scores. One is marked as the **choir score**, the one shown to Singers during playback.
+A PDF of the written music for a Piece, uploaded alongside its Practice Tracks, up to the same upload limit. A Piece can have several, each labelled, including instrumental Scores. At most one is marked as the **choir score**: the one the choir treats as its own, offered first on the player and followed through a Play-through. A Score is never opened for a Singer, who may use their own music; they open it on request. Marking a choir score at upload needs `append` only when the Piece has none, and replacing one needs `update`. Deleting the choir score leaves the Piece without one.
 _Avoid_: Sheet music, chart
 
 **Performance**:
