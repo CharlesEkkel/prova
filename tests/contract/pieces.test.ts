@@ -16,7 +16,7 @@ const unique = (): string => randomUUID().slice(0, 8);
 const addAs = async (
   singer: Pick<TestSinger, 'client'>,
   title: string,
-  composer = '',
+  composer = 'Anon',
   notes = '',
 ) => {
   const reply = await singer.client.rpc('add_piece', {
@@ -44,7 +44,7 @@ const singerHolding = async (...held: Parameters<typeof grantRole>[1][number][])
 };
 
 /** A Piece added by the service role, to be edited or deleted by the Singer under test. */
-const existingPiece = async (title = `Piece ${unique()}`, composer = '') => {
+const existingPiece = async (title = `Piece ${unique()}`, composer = 'Anon') => {
   const { data, error } = await serviceClient()
     .from('pieces')
     .insert({ title, composer })
@@ -56,20 +56,20 @@ const existingPiece = async (title = `Piece ${unique()}`, composer = '') => {
 };
 
 describe('reading the Repertoire', () => {
-  it('lets a Singer with read see every Piece, with or without a composer', async () => {
+  it('lets a Singer with read see every Piece', async () => {
     const reader = await singerHolding('read');
-    const bare = await existingPiece(`Bare ${unique()}`);
-    const composed = await existingPiece(`Composed ${unique()}`, 'Someone');
+    const first = await existingPiece(`First ${unique()}`);
+    const second = await existingPiece(`Second ${unique()}`, 'Someone');
 
     const listed = await reader.client.rpc('repertoire');
     const direct = await reader.client.from('pieces').select('id');
 
     const ids = (listed.data ?? []).map(({ id }) => id);
-    expect(ids).toEqual(expect.arrayContaining([bare, composed]));
+    expect(ids).toEqual(expect.arrayContaining([first, second]));
     expect((direct.data ?? []).map(({ id }) => id)).toEqual(
-      expect.arrayContaining([bare, composed]),
+      expect.arrayContaining([first, second]),
     );
-    expect(listed.data?.find(({ id }) => id === bare)).toMatchObject({
+    expect(listed.data?.find(({ id }) => id === first)).toMatchObject({
       practice_tracks: 0,
       scores: 0,
       performances: 0,
@@ -127,7 +127,9 @@ describe('adding a Piece', () => {
   it('refuses writing the table directly, even with every Permission', async () => {
     const singer = await singerHolding('read', 'append', 'update', 'delete');
 
-    const insert = await singer.client.from('pieces').insert({ title: `Direct ${unique()}` });
+    const insert = await singer.client
+      .from('pieces')
+      .insert({ title: `Direct ${unique()}`, composer: 'Anon' });
 
     expect(insert.error).not.toBeNull();
   });
@@ -151,14 +153,24 @@ describe('adding a Piece', () => {
       (await addAs(adder, `T ${unique()}`, 'x'.repeat(composerMaxLength + 1))).error?.code,
     ).toBe('22023');
     expect(
-      (await addAs(adder, `T ${unique()}`, '', 'x'.repeat(notesMaxLength + 1))).error?.code,
+      (await addAs(adder, `T ${unique()}`, 'Anon', 'x'.repeat(notesMaxLength + 1))).error?.code,
     ).toBe('22023');
   });
 
-  it('refuses a blank title', async () => {
+  it('refuses a blank title and a blank composer', async () => {
     const adder = await singerHolding('read', 'append');
 
     expect((await addAs(adder, '   ')).error?.code).toBe('22023');
+    expect((await addAs(adder, `T ${unique()}`, '')).error?.code).toBe('22023');
+    expect((await addAs(adder, `T ${unique()}`, '   ')).error?.code).toBe('22023');
+  });
+
+  it('refuses writing a Piece with no composer straight into the table', async () => {
+    const { error } = await serviceClient()
+      .from('pieces')
+      .insert({ title: `Bare ${unique()}`, composer: '' });
+
+    expect(error).not.toBeNull();
   });
 });
 
@@ -183,15 +195,6 @@ describe('the title and composer rule', () => {
 
     expect((await addAs(adder, title, 'Vivaldi')).error).toBeNull();
     expect((await addAs(adder, title, 'Poulenc')).error).toBeNull();
-    expect((await addAs(adder, title)).error).toBeNull();
-  });
-
-  it('counts no composer as an empty one', async () => {
-    const adder = await singerHolding('read', 'append');
-    const title = `Kyrie ${unique()}`;
-    await addAs(adder, title);
-
-    expect((await addAs(adder, title, '   ')).error?.code).toBe('23505');
   });
 
   it('holds on Edit too, but a Piece may keep its own title and composer', async () => {
@@ -243,7 +246,7 @@ describe('editing a Piece', () => {
     const { error } = await adder.client.rpc('update_piece', {
       target: id,
       piece_title: 'Hijacked',
-      piece_composer: '',
+      piece_composer: 'Anon',
       piece_notes: '',
     });
     // No update policy exists, so a direct write matches no rows rather than changing one.
@@ -259,7 +262,7 @@ describe('editing a Piece', () => {
     const { error } = await editor.client.rpc('update_piece', {
       target: randomUUID(),
       piece_title: 'Nothing',
-      piece_composer: '',
+      piece_composer: 'Anon',
       piece_notes: '',
     });
 

@@ -59,7 +59,7 @@ export type Database = {
           title: string;
         };
         Insert: {
-          composer?: string;
+          composer: string;
           created_at?: string;
           id?: string;
           notes?: string;
@@ -73,6 +73,54 @@ export type Database = {
           title?: string;
         };
         Relationships: [];
+      };
+      practice_tracks: {
+        Row: {
+          created_at: string;
+          duration_seconds: number | null;
+          id: string;
+          kind: Database['public']['Enums']['practice_track_kind'] | null;
+          label: string;
+          object_path: string;
+          piece_id: string;
+          voice_part_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          duration_seconds?: number | null;
+          id?: string;
+          kind?: Database['public']['Enums']['practice_track_kind'] | null;
+          label?: string;
+          object_path: string;
+          piece_id: string;
+          voice_part_id?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          duration_seconds?: number | null;
+          id?: string;
+          kind?: Database['public']['Enums']['practice_track_kind'] | null;
+          label?: string;
+          object_path?: string;
+          piece_id?: string;
+          voice_part_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'practice_tracks_piece_id_fkey';
+            columns: ['piece_id'];
+            isOneToOne: false;
+            referencedRelation: 'pieces';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'practice_tracks_voice_part_id_fkey';
+            columns: ['voice_part_id'];
+            isOneToOne: false;
+            referencedRelation: 'voice_parts';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       role_permissions: {
         Row: {
@@ -228,6 +276,17 @@ export type Database = {
         Args: { piece_composer: string; piece_notes: string; piece_title: string };
         Returns: string;
       };
+      add_practice_track: {
+        Args: {
+          file_path: string;
+          part?: string;
+          target_piece: string;
+          track_kind?: Database['public']['Enums']['practice_track_kind'];
+          track_label?: string;
+          track_seconds?: number;
+        };
+        Returns: string;
+      };
       admin_add_voice_part: { Args: { part_label: string; part_name: string }; Returns: string };
       admin_create_role: {
         Args: { perms: Database['public']['Enums']['permission'][]; role_name: string };
@@ -283,6 +342,7 @@ export type Database = {
         Returns: undefined;
       };
       delete_piece: { Args: { target: string }; Returns: undefined };
+      delete_practice_track: { Args: { target: string }; Returns: string };
       grant_admin_to_owners: { Args: Record<PropertyKey, never>; Returns: undefined };
       has_permission: {
         Args: { required: Database['public']['Enums']['permission'] };
@@ -298,6 +358,7 @@ export type Database = {
         Args: { singer: string };
         Returns: Database['public']['Enums']['permission'][];
       };
+      rename_practice_track: { Args: { target: string; track_label: string }; Returns: undefined };
       repertoire: {
         Args: { only_piece?: string };
         Returns: {
@@ -326,6 +387,7 @@ export type Database = {
     };
     Enums: {
       permission: 'read' | 'append' | 'update' | 'delete' | 'manage-users' | 'manage-admins';
+      practice_track_kind: 'part-only' | 'part-predominant';
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -441,6 +503,7 @@ export const Constants = {
   public: {
     Enums: {
       permission: ['read', 'append', 'update', 'delete', 'manage-users', 'manage-admins'],
+      practice_track_kind: ['part-only', 'part-predominant'],
     },
   },
 } as const;

@@ -18,6 +18,9 @@ export type Supabase = SupabaseClient<Database>;
 /** Where Supabase Auth lives; the only place the sign-in action may send a person off-site. */
 export const supabaseOrigin = new URL(publicEnv.PUBLIC_SUPABASE_URL).origin;
 
+/** The public (anon) key, which a browser sends along with a signed upload. */
+export const supabaseAnonKey = publicEnv.PUBLIC_SUPABASE_ANON_KEY;
+
 /** A client acting as whoever the request's cookies say they are (or no one). */
 export const createRequestSupabase = (cookies: Cookies): Supabase =>
   createServerClient<Database>(publicEnv.PUBLIC_SUPABASE_URL, publicEnv.PUBLIC_SUPABASE_ANON_KEY, {

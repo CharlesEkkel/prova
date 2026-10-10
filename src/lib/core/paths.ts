@@ -2,6 +2,7 @@
 // their paths from here and never write one out, so renaming or moving a page is one edit.
 import type { PerformanceId } from './performances';
 import type { PieceId } from './pieces';
+import type { TrackId } from './practice-tracks';
 import type { SafePath } from './safe-path';
 
 /** The pages, as paths on this site. */
@@ -43,6 +44,7 @@ export const formActions = {
   roles: { create: 'create', update: 'update', delete: 'delete' },
   voiceParts: { add: 'add', update: 'update', reorder: 'reorder', remove: 'remove' },
   pieces: { create: 'create', update: 'update', delete: 'delete' },
+  tracks: { ticket: 'ticket', add: 'add', rename: 'rename', delete: 'delete' },
   appearance: { set: 'set', reset: 'reset' },
 } as const;
 
@@ -66,6 +68,10 @@ export const overviewLink = (id: PerformanceId): string =>
 
 /** The page of one Piece. */
 export const piecePath = (id: PieceId): string => `${paths.repertoire}/${id}`;
+
+/** The audio of one Practice Track: a stable address that only a signed-in Singer with `read` can play. */
+export const trackAudioPath = (piece: PieceId, track: TrackId): string =>
+  `${piecePath(piece)}/tracks/${track}/audio`;
 
 /** Whether `pathname` is exactly this page. */
 export const isCurrentPage = (pathname: string, path: string): boolean => pathname === path;

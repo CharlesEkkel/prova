@@ -5,6 +5,8 @@ import { Effect, Schema } from 'effect';
 import { piecePath } from '../core/paths';
 import { pieceMessages, pieceProblemOf, type PieceId, type PieceProblem } from '../core/pieces';
 import { PieceIdSchema } from './pieces';
+import { loadPieceFiles } from './practice-tracks';
+import { removeFiles } from './storage';
 import { failureOrNull } from './run';
 import { callSupabase, callSupabaseAs, type Supabase } from './supabase';
 
@@ -69,8 +71,18 @@ export const deletePiece = (
 ): Effect.Effect<void, PieceProblem> =>
   decodeForm(PieceForm)(request).pipe(
     Effect.flatMap(({ piece }) =>
-      callSupabase(() => supabase.rpc('delete_piece', { target: piece })).pipe(
-        Effect.mapError(({ cause }) => problemOf(cause)),
+      // The files are listed first, because the delete takes their rows with it. They go afterwards:
+      // a failure in between leaves stray files, never a track whose file is missing.
+      loadPieceFiles(supabase, piece).pipe(
+        Effect.orElseSucceed((): readonly string[] => []),
+        Effect.flatMap((files) =>
+          callSupabase(() => supabase.rpc('delete_piece', { target: piece })).pipe(
+            Effect.mapError(({ cause }) => problemOf(cause)),
+            Effect.andThen(
+              removeFiles(supabase, files).pipe(Effect.orElseSucceed(() => undefined)),
+            ),
+          ),
+        ),
       ),
     ),
     Effect.asVoid,

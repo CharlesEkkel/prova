@@ -50,12 +50,18 @@ const voicePartsRefuseWithoutManageUsers =
   'refuses anyone without manage-users (voice-part-admin.test.ts proves it)';
 
 const piecesRefuseWithoutPermission =
-  'refuses anyone without the Permission it needs (pieces.test.ts proves it)';
+  'refuses anyone without the Permission it needs (pieces.test.ts and practice-tracks.test.ts prove it)';
 
 const callableBeforeApproval: ReadonlyMap<string, string> = new Map([
-  ...['repertoire', 'add_piece', 'update_piece', 'delete_piece'].map(
-    (name): readonly [string, string] => [name, piecesRefuseWithoutPermission],
-  ),
+  ...[
+    'repertoire',
+    'add_piece',
+    'update_piece',
+    'delete_piece',
+    'add_practice_track',
+    'rename_practice_track',
+    'delete_practice_track',
+  ].map((name): readonly [string, string] => [name, piecesRefuseWithoutPermission]),
   ...[
     'admin_voice_parts',
     'admin_add_voice_part',
@@ -132,8 +138,14 @@ const arrangeSampleRows = async (): Promise<void> => {
   await grantRole(other, ['read']);
   const piece = await serviceClient()
     .from('pieces')
-    .insert({ title: `Sample ${other.id}` });
+    .insert({ title: `Sample ${other.id}`, composer: 'Anon' })
+    .select('id')
+    .single();
   if (piece.error) throw piece.error;
+  const track = await serviceClient()
+    .from('practice_tracks')
+    .insert({ piece_id: piece.data.id, object_path: `${piece.data.id}/${other.id}.mp3` });
+  if (track.error) throw track.error;
 };
 
 const pendingSinger = (): Promise<TestSinger> => signInNewSinger();

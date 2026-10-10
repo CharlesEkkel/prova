@@ -2,6 +2,7 @@
 // visitor so most requests never read the database. The cookie holds only the theme's name.
 import type { Cookies } from '@sveltejs/kit';
 import { Effect, Schema } from 'effect';
+import { cacheLifetimeSeconds } from '../core/cache';
 import {
   colourThemes,
   defaultColourTheme,
@@ -16,7 +17,7 @@ import { callSupabaseAs, SupabaseCallFailed, type Supabase } from './supabase';
 export const colourThemeCookie = 'prova-colour-theme';
 
 /** How long a theme read from the database is kept: a change reaches everyone within this. */
-export const colourThemeMaxAge = 60 * 60;
+export const colourThemeMaxAge = cacheLifetimeSeconds;
 /** How long the default is kept when the database could not be read, so a hiccup is forgotten soon. */
 export const colourThemeFallbackMaxAge = 60;
 
