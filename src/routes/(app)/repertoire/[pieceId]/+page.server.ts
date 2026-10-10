@@ -1,8 +1,10 @@
 import { error } from '@sveltejs/kit';
 import { formActions } from '../../../../lib/core/paths';
+import { mayAddPiecesToPerformances } from '../../../../lib/core/performances';
 import { pieceActionsFor, pieceIdOf } from '../../../../lib/core/pieces';
 import { mayUploadTrack, trackActionsFor } from '../../../../lib/core/practice-tracks';
 import { choirChoiceAtUpload, mayUploadScore, scoreActionsFor } from '../../../../lib/core/scores';
+import { loadPerformancesOfPiece } from '../../../../lib/shell/performances';
 import { runPieceAction, updatePiece } from '../../../../lib/shell/piece-commands';
 import { loadPiece } from '../../../../lib/shell/pieces';
 import {
@@ -32,12 +34,13 @@ export const load: PageServerLoad = async ({ locals, params }) => {
   if (id === null) error(404, 'There is no such Piece.');
   const piece = await valueOrNull(loadPiece(locals.supabase, id));
   if (piece === null) error(404, 'There is no such Piece.');
-  const [tracks, scores, voiceParts] = await Promise.all([
+  const [tracks, scores, voiceParts, pieceIsIn] = await Promise.all([
     valueOrNull(loadTracks(locals.supabase, id)),
     valueOrNull(loadScores(locals.supabase, id)),
     valueOrNull(loadVoiceParts(locals.supabase)),
+    valueOrNull(loadPerformancesOfPiece(locals.supabase, id)),
   ]);
-  if (tracks === null || scores === null || voiceParts === null) {
+  if (tracks === null || scores === null || voiceParts === null || pieceIsIn === null) {
     error(503, 'The Practice Tracks and Scores could not be loaded. Try again in a moment.');
   }
   const { visitor } = locals;
@@ -47,11 +50,14 @@ export const load: PageServerLoad = async ({ locals, params }) => {
     tracks,
     scores,
     voiceParts,
+    // The Performances this Piece is in; the layout has the Performances themselves.
+    pieceIsIn,
     // Which Voice Part is in effect on this Piece. A Preferred Part (#22) will replace it.
     voicePartId: visitor.stage === 'ready' ? visitor.voicePart.id : null,
     // The database enforces these; they only decide what to show.
     // Editing the Piece's own details needs `update`, as in the Repertoire.
     mayEditPiece: pieceActionsFor(held).includes('edit'),
+    mayAddToPerformances: mayAddPiecesToPerformances(held),
     mayUpload: mayUploadTrack(held),
     trackActions: trackActionsFor(held),
     uploadLimitMiB,

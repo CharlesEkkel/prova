@@ -1,5 +1,8 @@
 <script lang="ts">
-  import { ArrowLeft, Pencil } from '@lucide/svelte';
+  import { ArrowLeft, CalendarPlus, Pencil } from '@lucide/svelte';
+  import AddToPerformancesDialog from '../../../../lib/components/performances/AddToPerformancesDialog.svelte';
+  import PiecePerformances from '../../../../lib/components/performances/PiecePerformances.svelte';
+  import { addToPerformanceChoices } from '../../../../lib/core/performances';
   import PieceDetails from '../../../../lib/components/PieceDetails.svelte';
   import PieceFormDialog from '../../../../lib/components/PieceFormDialog.svelte';
   import PlaybackScope from '../../../../lib/components/PlaybackScope.svelte';
@@ -20,17 +23,37 @@
   // A refusal is shown inside the open dialog; reopening it does not bring back the last one's.
   let dismissed = $state<ActionData>(null);
   const editProblem = $derived(form !== dismissed ? form?.problem : undefined);
+  let addingToPerformances = $state(false);
   const pieceActions = $derived([
-    {
-      key: 'edit',
-      label: 'Edit…',
-      icon: Pencil,
-      run: () => {
-        dismissed = form;
-        editing = true;
-      },
-    },
+    ...(data.mayEditPiece
+      ? [
+          {
+            key: 'edit',
+            label: 'Edit…',
+            icon: Pencil,
+            run: () => {
+              dismissed = form;
+              editing = true;
+            },
+          },
+        ]
+      : []),
+    ...(data.mayAddToPerformances
+      ? [
+          {
+            key: 'add-to-performances',
+            label: 'Add to a Performance…',
+            icon: CalendarPlus,
+            run: () => {
+              addingToPerformances = true;
+            },
+          },
+        ]
+      : []),
   ]);
+  const inPerformances = $derived(
+    data.performances.filter(({ id }) => data.pieceIsIn.includes(id)),
+  );
 
   let uploading = $state(false);
   let uploadingScore = $state(false);
@@ -43,13 +66,11 @@
     <ArrowLeft class="size-4" aria-hidden="true" /> Repertoire
   </a>
 
-  {#if data.mayEditPiece}
-    <ManageMenu actions={pieceActions} label="Actions for {piece.title}" align="first-line">
-      <PieceDetails {piece} />
-    </ManageMenu>
-  {:else}
+  <ManageMenu actions={pieceActions} label="Actions for {piece.title}" align="first-line">
     <PieceDetails {piece} />
-  {/if}
+  </ManageMenu>
+
+  <PiecePerformances performances={inPerformances} choirTimeZone={data.choirTimeZone} />
 
   <!-- Keyed by Piece, so moving to another Piece stops the audio and starts the player fresh. -->
   {#key piece.id}
@@ -118,6 +139,17 @@
   pieceTitle={piece.title}
   choirChoice={data.choirChoice}
   limitMiB={data.scoreUploadLimitMiB}
+/>
+
+<AddToPerformancesDialog
+  open={addingToPerformances}
+  onClose={() => {
+    addingToPerformances = false;
+  }}
+  pieceId={piece.id}
+  pieceTitle={piece.title}
+  choices={addToPerformanceChoices(data.performances, data.pieceIsIn, new Date())}
+  choirTimeZone={data.choirTimeZone}
 />
 
 <PieceFormDialog
