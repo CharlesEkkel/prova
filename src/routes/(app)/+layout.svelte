@@ -8,11 +8,18 @@
   import Logo from '../../lib/components/ui/Logo.svelte';
   import DisplayModeToggle from '../../lib/components/shell/DisplayModeToggle.svelte';
   import SidebarNav from '../../lib/components/shell/SidebarNav.svelte';
+  import PerformanceFormDialog from '../../lib/components/performances/PerformanceFormDialog.svelte';
+  import PerformanceOverview from '../../lib/components/performances/PerformanceOverview.svelte';
   import type { LayoutData } from './$types';
 
   const { data, children }: { readonly data: LayoutData; readonly children: Snippet } = $props();
 
   let drawerOpen = $state(false);
+  let creatingPerformance = $state(false);
+  const newPerformance = () => {
+    drawerOpen = false;
+    creatingPerformance = true;
+  };
   let sidebar = $state<HTMLElement | null>(null);
 
   // The drawer only exists while the desktop sidebar is hidden. When the sidebar appears (the window
@@ -50,7 +57,7 @@
     bind:this={sidebar}
     class="hidden w-64 shrink-0 border-r bg-zinc-100/60 lg:block dark:bg-zinc-900/40"
   >
-    <SidebarNav shell={data} />
+    <SidebarNav shell={data} onNewPerformance={newPerformance} />
   </aside>
 
   <div class="flex min-w-0 flex-1 flex-col">
@@ -91,7 +98,24 @@
           <Btn variant="ghost" size="icon" {...props}><X size={20} /></Btn>
         {/snippet}
       </Dialog.Close>
-      <SidebarNav shell={data} />
+      <SidebarNav shell={data} onNewPerformance={newPerformance} />
     </Dialog.Content>
   </Dialog.Portal>
 </Dialog.Root>
+
+<PerformanceFormDialog
+  open={creatingPerformance}
+  onClose={() => {
+    creatingPerformance = false;
+  }}
+  performance={null}
+  choirTimeZone={data.choirTimeZone}
+  repertoire={data.repertoire}
+/>
+
+<PerformanceOverview
+  overview={data.overview}
+  choirTimeZone={data.choirTimeZone}
+  actions={data.performanceActions}
+  rowActions={data.pieceRowActions}
+/>

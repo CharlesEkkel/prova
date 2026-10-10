@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state';
   import { Collapsible } from 'bits-ui';
-  import { Calendar, ChevronDown, House, Library, ShieldCheck, Star } from '@lucide/svelte';
+  import { Calendar, ChevronDown, House, Library, Plus, ShieldCheck, Star } from '@lucide/svelte';
   import { isActive, mainNavigation, type NavItem } from '../../core/navigation';
   import { overviewLink } from '../../core/paths';
   import type { ShellData } from '../../core/shell';
@@ -9,7 +9,10 @@
   import DisplayModeToggle from './DisplayModeToggle.svelte';
   import UserMenu from './UserMenu.svelte';
 
-  const { shell }: { readonly shell: ShellData } = $props();
+  const {
+    shell,
+    onNewPerformance,
+  }: { readonly shell: ShellData; readonly onNewPerformance: () => void } = $props();
 
   const link = (active: boolean) =>
     `flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm ${
@@ -57,13 +60,18 @@
         />
       </Collapsible.Trigger>
       <Collapsible.Content class="flex flex-col gap-0.5">
+        {#if shell.mayCreatePerformance}
+          <button type="button" class="{link(false)} w-full" onclick={onNewPerformance}>
+            <Plus size={16} aria-hidden="true" /> New Performance
+          </button>
+        {/if}
         {#if shell.performances.length === 0}
           <p class="px-3 text-sm opacity-70">No Performances yet.</p>
         {/if}
         <ul class="flex flex-col gap-0.5">
           {#each shell.performances as performance (performance.id)}
             <li class={performance.archived ? 'opacity-60' : ''}>
-              <!-- Opens the Performance Overview (#29), which reads this query parameter. -->
+              <!-- Opens the Performance Overview on the current page, which reads this query parameter. -->
               <a href={overviewLink(performance.id)} class={link(false)}>
                 {#if performance.isMajor}
                   <Star

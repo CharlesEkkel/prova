@@ -16,6 +16,9 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
 export const performanceIdOf = (raw: string): PerformanceId | null =>
   uuidPattern.test(raw) ? brand(raw) : null;
 
+export const isPerformanceId = (value: unknown): value is PerformanceId =>
+  typeof value === 'string' && uuidPattern.test(value);
+
 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- validation boundary: only called on text performanceIdOf has checked
 const brand = (id: string): PerformanceId => id as PerformanceId;
 

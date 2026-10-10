@@ -22,6 +22,8 @@ export const paths = {
   adminRoles: '/admin/roles',
   adminVoiceParts: '/admin/voice-parts',
   adminAppearance: '/admin/appearance',
+  /** Holds the Performance form actions, which the shell's dialogs post to from any page. Not a page. */
+  performances: '/performances',
 } as const;
 
 /** Reachable at every stage of sign-in: the manifest, Invite Links and the built assets. */
@@ -53,11 +55,22 @@ export const formActions = {
     makeChoir: 'scoreMakeChoir',
     delete: 'scoreDelete',
   },
-  appearance: { set: 'set', reset: 'reset' },
+  appearance: { set: 'set', reset: 'reset', timeZone: 'timeZone' },
+  performances: {
+    create: 'create',
+    update: 'update',
+    delete: 'delete',
+    addPiece: 'addPiece',
+    removePiece: 'removePiece',
+    reorder: 'reorder',
+  },
 } as const;
 
 /** The address of a named form action on the current page. */
 export const actionPath = (name: string): string => `?/${name}`;
+
+/** The address of a Performance form action, which works from any page. */
+export const performanceActionPath = (name: string): string => `${paths.performances}?/${name}`;
 
 /** `path` (which may already have a query), carrying `next` along unless that is just home. */
 export const pathWithNext = (path: string, next: SafePath): string => {
@@ -73,6 +86,14 @@ export const signInErrorPath = (problem: string, headedFor: SafePath): string =>
 /** A link that opens a Performance's Overview on the current page. */
 export const overviewLink = (id: PerformanceId): string =>
   `?${new URLSearchParams({ [overviewParam]: id }).toString()}`;
+
+/** The current page's address with its Overview closed: the rest of the query and the hash kept. */
+export const withoutOverview = (url: Pick<URL, 'pathname' | 'search' | 'hash'>): string => {
+  const query = new URLSearchParams(url.search);
+  query.delete(overviewParam);
+  const search = query.toString();
+  return `${url.pathname}${search === '' ? '' : `?${search}`}${url.hash}`;
+};
 
 /** The page of one Piece. */
 export const piecePath = (id: PieceId): string => `${paths.repertoire}/${id}`;

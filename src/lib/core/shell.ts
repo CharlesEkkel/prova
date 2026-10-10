@@ -6,4 +6,6 @@ export type ShellData = {
   readonly voicePartName: string;
   readonly showAdminLink: boolean;
   readonly performances: readonly SidebarEntry[];
+  /** Whether the sidebar offers New Performance. */
+  readonly mayCreatePerformance: boolean;
 };
