@@ -191,4 +191,21 @@ test.describe('the Repertoire', () => {
     await page.getByRole('link', { name: 'Back to Home' }).click();
     await expect(page).toHaveURL('/');
   });
+
+  test('shows the same error page for a missing file opened directly', async ({
+    page,
+    context,
+  }) => {
+    await signInAsApprovedSinger(context);
+
+    const response = await page.goto(`/repertoire/${randomUUID()}/tracks/${randomUUID()}/audio`);
+
+    expect(response?.status()).toBe(404);
+    await expect(page.getByText('404', { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'There is no such Practice Track.' }),
+    ).toBeVisible();
+    await page.getByRole('link', { name: 'Back to Home' }).click();
+    await expect(page).toHaveURL('/');
+  });
 });
