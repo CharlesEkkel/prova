@@ -115,4 +115,43 @@ test.describe('Home', () => {
     await tile.click();
     await expect(page.getByRole('dialog', { name })).toBeVisible();
   });
+
+  test('shows a Performance in progress as the next one, largest', async ({ page, context }) => {
+    // Only one Performance can be the next, and both layouts share the database, so this runs once.
+    test.skip(test.info().project.name !== 'desktop', 'the next Performance is shared state');
+    const name = `Under way ${unique()}`;
+    const hour = 60 * 60 * 1000;
+    await newPerformance(
+      name,
+      new Date(Date.now() - hour).toISOString(),
+      new Date(Date.now() + hour).toISOString(),
+    );
+    await signInAsApprovedSinger(context);
+
+    await openHome(page);
+
+    await expect(
+      page.getByRole('main').getByRole('link', { name: new RegExp(`^Next Performance ${name}`) }),
+    ).toBeVisible();
+  });
+
+  test('keeps past Performances collapsed above the Today marker until asked', async ({
+    page,
+    context,
+  }) => {
+    const name = `Old ${unique()}`;
+    await newPerformance(name, '1990-06-01T18:00:00Z', '1990-06-01T20:00:00Z');
+    await signInAsApprovedSinger(context);
+
+    await openHome(page);
+
+    const main = page.getByRole('main');
+    await expect(main.getByText(/^Today/)).toBeVisible();
+    const tile = main.getByRole('link', { name: new RegExp(name) });
+    await expect(tile).toBeHidden();
+
+    await main.getByRole('button', { name: /^\d+ past Performances?$/ }).click();
+    await tile.click();
+    await expect(page.getByRole('dialog', { name })).toBeVisible();
+  });
 });

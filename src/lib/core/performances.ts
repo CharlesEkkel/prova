@@ -113,7 +113,8 @@ export const performanceTimesOf = (
   return times.endsAt > times.startsAt ? times : null;
 };
 
-const dayIn = (moment: Date, zone: ChoirTimeZone): string => {
+/** The day a moment falls on in the Choir Time Zone, such as `Sun 11 Oct 2026`. */
+export const dayIn = (moment: Date, zone: ChoirTimeZone): string => {
   const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone: zone,
     weekday: 'short',
