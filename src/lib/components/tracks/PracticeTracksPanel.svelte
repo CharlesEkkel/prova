@@ -6,6 +6,7 @@
   import { AudioLines, ChevronDown, Pencil, Trash, Upload } from '@lucide/svelte';
   import { formActions } from '../../core/paths';
   import {
+    partNamesOf,
     sourceName,
     trackLabelMaxLength,
     trackTitle,
@@ -41,7 +42,7 @@
   const dialog = createDialogState<Dialog>();
   const current = $derived(dialog.current);
 
-  const nameOf = (id: string): string => voiceParts.find((part) => part.id === id)?.name ?? '';
+  const nameOf = $derived(partNamesOf(voiceParts));
   const titleOf = (track: PracticeTrack): string => trackTitle(track, nameOf);
 
   // A refusal is shown inside the open dialog; reopening a dialog does not bring back the last one's.

@@ -1,12 +1,14 @@
 import { error, redirect } from '@sveltejs/kit';
 import { paths } from '../../lib/core/paths';
-import { homeTimeline, startsIn } from '../../lib/core/performances';
-import { whatYouWouldHear } from '../../lib/core/playthrough';
 import {
-  loadHomePerformances,
+  dayIn,
+  homeTileOf,
+  homeTimeline,
+  pastRowOf,
   type HomePerformance,
-  type HomeTile,
-} from '../../lib/shell/performances';
+} from '../../lib/core/performances';
+import { partNamesOf } from '../../lib/core/practice-tracks';
+import { loadHomePerformances } from '../../lib/shell/performances';
 import { valueOrNull } from '../../lib/shell/run';
 import { loadVoiceParts } from '../../lib/shell/voice-parts';
 import type { PageServerLoad } from './$types';
@@ -23,21 +25,16 @@ export const load: PageServerLoad = async ({ locals: { visitor, supabase }, pare
     error(503, 'The Performances could not be loaded. Try again in a moment.');
   }
 
-  const nameOf = (voicePartId: string): string =>
-    voiceParts.find(({ id }) => id === voicePartId)?.name ?? '';
+  // One moment for the whole page, so the Today marker, the split and "In 3 days" agree.
   const now = new Date();
-  const tileOf = ({ pieces, ...performance }: HomePerformance): HomeTile => ({
-    ...performance,
-    startsIn: startsIn(performance.startsAt, performance.endsAt, now, choirTimeZone),
-    pieces: pieces.map(({ tracks, ...piece }) => ({
-      ...piece,
-      heard: whatYouWouldHear(tracks, visitor.voicePart.id, nameOf),
-    })),
-  });
+  const nameOf = partNamesOf(voiceParts);
+  const tileOf = (performance: HomePerformance) =>
+    homeTileOf(performance, now, choirTimeZone, visitor.voicePart.id, nameOf);
   const { past, next, later } = homeTimeline(performances, now);
 
   return {
-    past: past.map(tileOf),
+    today: dayIn(now, choirTimeZone),
+    past: past.map(pastRowOf),
     next: next === null ? null : tileOf(next),
     later: later.map(tileOf),
   };

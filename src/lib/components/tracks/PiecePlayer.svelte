@@ -11,7 +11,7 @@
     trackForChoice,
     type PartChoice,
   } from '../../core/playthrough';
-  import { indicatorText, type PracticeTrack } from '../../core/practice-tracks';
+  import { indicatorText, partNamesOf, type PracticeTrack } from '../../core/practice-tracks';
   import type { AudioPlayer } from '../../shell/audio-player.svelte';
   import type { StartControl } from './start-control';
   import type { VoicePart } from '../../shell/voice-parts';
@@ -42,7 +42,7 @@
   let choice = $state<PartChoice>(defaultChoice);
   const track = $derived(trackForChoice(tracks, voicePartId, choice));
   const options = $derived(choiceOptions(tracks));
-  const nameOf = (id: string): string => voiceParts.find((part) => part.id === id)?.name ?? '';
+  const nameOf = $derived(partNamesOf(voiceParts));
   const selected = $derived(
     track === undefined ? '' : track.source.type === 'combined' ? 'all' : track.source.voicePartId,
   );

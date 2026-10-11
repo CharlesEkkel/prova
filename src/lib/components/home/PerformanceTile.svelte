@@ -1,11 +1,11 @@
 <script lang="ts">
   // A Performance on Home: one link to its Overview, listing its Pieces with what the Singer would
-  // hear on each. The next Performance is the large hero; nothing here starts playback.
+  // hear on each. The next Performance is the large hero; nothing here starts playback. Its first
+  // line leaves room at the right for the ⋯ button laid over the tile.
   import { ChevronRight } from '@lucide/svelte';
   import type { ChoirTimeZone } from '../../core/choir-time';
   import { overviewLink } from '../../core/paths';
-  import { performanceWhen } from '../../core/performances';
-  import type { HomeTile } from '../../shell/performances';
+  import { performanceWhenAndWhere, type HomeTile } from '../../core/performances';
   import MajorBadge from '../ui/MajorBadge.svelte';
 
   const {
@@ -19,12 +19,7 @@
     readonly choirTimeZone: ChoirTimeZone;
   } = $props();
 
-  const when = $derived(
-    [
-      performanceWhen(tile.startsAt, tile.endsAt, choirTimeZone),
-      ...(tile.venue === '' ? [] : [tile.venue]),
-    ].join(' · '),
-  );
+  const when = $derived(performanceWhenAndWhere(tile, choirTimeZone));
 
   const surface = $derived(
     hero
@@ -36,13 +31,19 @@
   const muted = $derived(hero ? 'text-primary-100' : 'text-zinc-500');
 </script>
 
-<a href={overviewLink(tile.id)} class="block rounded-3xl transition {surface}">
-  {#if hero}
-    <p class="flex flex-wrap items-center gap-2 text-sm {muted}">
+<a
+  href={overviewLink(tile.id)}
+  aria-label="Open {tile.name} overview"
+  class="block rounded-3xl transition {surface}"
+>
+  <p class="flex min-h-6 flex-wrap items-center gap-2 pr-12 text-sm {muted}">
+    {#if hero}
       Next Performance · {tile.startsIn}
       {#if tile.isMajor}<MajorBadge />{/if}
-    </p>
-  {/if}
+    {:else}
+      {when} · {tile.startsIn}
+    {/if}
+  </p>
   <div class="mt-1 flex items-center justify-between gap-3">
     <h2
       class="flex flex-wrap items-center gap-2 font-semibold tracking-tight {hero
@@ -54,8 +55,9 @@
     </h2>
     <ChevronRight class="size-5 shrink-0 {muted}" aria-hidden="true" />
   </div>
-  <p class="mt-1 text-sm {muted}">{hero ? when : `${when} · ${tile.startsIn}`}</p>
-  <ol class="mt-4 grid gap-x-6 gap-y-1 sm:grid-cols-2">
+  {#if hero}<p class="mt-1 text-sm {muted}">{when}</p>{/if}
+  <!-- A zero minimum lets a long title truncate instead of pushing the label out of the tile. -->
+  <ol class="mt-4 grid grid-cols-[minmax(0,1fr)] gap-x-6 gap-y-1 sm:grid-cols-2">
     {#each tile.pieces as piece, index (piece.id)}
       <li class="flex min-h-9 items-center gap-3 text-sm">
         <span class="w-4 shrink-0 {muted}">{index + 1}</span>

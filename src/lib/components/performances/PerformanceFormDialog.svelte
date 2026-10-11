@@ -7,10 +7,14 @@
   import { goto } from '$app/navigation';
   import { choirTimeOf, type ChoirTimeZone } from '../../core/choir-time';
   import { overviewLink, formActions, performanceActionPath } from '../../core/paths';
-  import { matchingPieces, performanceDialogCopy, toggleTicked } from '../../core/performances';
+  import {
+    matchingPieces,
+    performanceDialogCopy,
+    toggleTicked,
+    type PerformanceDetails,
+  } from '../../core/performances';
   import type { PieceId, PieceSummary } from '../../core/pieces';
   import { submitPerformanceForm, type PerformanceFormOutcome } from '../../shell/enhance';
-  import type { PerformanceDetails } from '../../shell/performances';
   import AlertMessage from '../AlertMessage.svelte';
   import Btn from '../ui/Btn.svelte';
   import CheckRow from '../ui/CheckRow.svelte';

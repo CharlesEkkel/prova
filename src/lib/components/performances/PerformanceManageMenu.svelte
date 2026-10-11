@@ -8,9 +8,12 @@
   import type { Snippet } from 'svelte';
   import type { ChoirTimeZone } from '../../core/choir-time';
   import { formActions, performanceActionPath } from '../../core/paths';
-  import { performanceDialogCopy, type PerformanceAction } from '../../core/performances';
+  import {
+    performanceDialogCopy,
+    type PerformanceAction,
+    type PerformanceDetails,
+  } from '../../core/performances';
   import { submitPerformanceForm, type PerformanceFormOutcome } from '../../shell/enhance';
-  import type { PerformanceDetails } from '../../shell/performances';
   import AlertMessage from '../AlertMessage.svelte';
   import Btn from '../ui/Btn.svelte';
   import ManageMenu from '../ui/ManageMenu.svelte';
@@ -22,6 +25,7 @@
     actions,
     choirTimeZone,
     align = 'center',
+    overlay = 'none',
     onDeleted = () => undefined,
     children,
   }: {
@@ -29,6 +33,7 @@
     readonly actions: readonly PerformanceAction[];
     readonly choirTimeZone: ChoirTimeZone;
     readonly align?: 'center' | 'first-line';
+    readonly overlay?: 'none' | 'plain' | 'on-primary';
     /** After the Performance is deleted, such as closing the Overview that showed it. */
     readonly onDeleted?: () => unknown;
     readonly children: Snippet;
@@ -81,7 +86,7 @@
   const deleteFormId = $derived(`delete-performance-${performance.id}`);
 </script>
 
-<ManageMenu actions={menu} label="Actions for {performance.name}" {align}>
+<ManageMenu actions={menu} label="Actions for {performance.name}" {align} {overlay}>
   {@render children()}
 </ManageMenu>
 

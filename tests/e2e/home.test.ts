@@ -158,6 +158,24 @@ test.describe('Home', () => {
     ).toHaveValue(name);
   });
 
+  test('deletes a Performance from its menu and leaves Home usable', async ({ page, context }) => {
+    const [name, other] = [`Doomed ${unique()}`, `Stays ${unique()}`];
+    await newPerformance(name, ...later);
+    await newPerformance(other, ...later);
+    await signInAsSingerWith(context, ['delete']);
+    await openHome(page);
+
+    const main = page.getByRole('main');
+    await main.getByRole('button', { name: `Actions for ${name}` }).click();
+    await page.getByRole('menuitem', { name: 'Delete Performance…' }).click();
+    await page.getByRole('button', { name: 'Delete Performance' }).click();
+
+    await expect(main.getByRole('link', { name: new RegExp(name) })).toHaveCount(0);
+    await expect(page.getByRole('alertdialog')).toHaveCount(0);
+    await main.getByRole('link', { name: new RegExp(other) }).click();
+    await expect(page.getByRole('dialog', { name: other })).toBeVisible();
+  });
+
   test('shows a Performance in progress as the next one, largest', async ({ page, context }) => {
     // Only one Performance can be the next, and both layouts share the database, so this runs once.
     test.skip(test.info().project.name !== 'desktop', 'the next Performance is shared state');
@@ -173,10 +191,8 @@ test.describe('Home', () => {
     await openHome(page);
 
     await expect(
-      page
-        .getByRole('main')
-        .getByRole('link', { name: new RegExp(`^Next Performance · On now ${name}`) }),
-    ).toBeVisible();
+      page.getByRole('main').getByRole('link', { name: `Open ${name} overview` }),
+    ).toContainText(/^Next Performance · On now/);
   });
 
   test('keeps past Performances collapsed above the Today marker until asked', async ({

@@ -7,17 +7,18 @@ import {
   performanceMessages,
   performanceProblemOf,
   performanceTimesOf,
+  type HomePerformance,
+  type PerformanceDetails,
   type PerformanceId,
   type PerformanceProblem,
   type SidebarPerformance,
 } from '../core/performances';
 import type { PieceId, PieceSummary } from '../core/pieces';
-import type { PlaythroughTrack, WhatYouWouldHear } from '../core/playthrough';
 import { trackKinds } from '../core/practice-tracks';
 import { loadChoirTimeZone } from './choir-time-zone';
 import { formRunner, refusalOf } from './form';
 import { PieceIdSchema } from './pieces';
-import { sourceOf } from './practice-tracks';
+import { sourceOf, TrackIdSchema } from './practice-tracks';
 import { callSupabase, callSupabaseAs, type Supabase, type SupabaseCallFailed } from './supabase';
 
 export const PerformanceIdSchema = Schema.declare(isPerformanceId);
@@ -50,9 +51,6 @@ export const loadPerformances = (
   ).pipe(Effect.map((rows) => rows.map(performanceOf)));
 
 /** A Performance as its Overview shows it: its details and its Pieces in running order. */
-/** What the Edit Performance dialog changes: name, times and venue. */
-export type PerformanceDetails = SidebarPerformance & { readonly venue: string };
-
 export type PerformanceOverview = PerformanceDetails & {
   readonly pieces: readonly PieceSummary[];
 };
@@ -95,21 +93,6 @@ export const loadOverview = (
     ),
   );
 
-/** A Piece as Home lists it: enough to say what the Singer would hear on it. */
-export type HomePiece = PieceSummary & { readonly tracks: readonly PlaythroughTrack[] };
-
-/** A Performance as Home shows it: its details and its Pieces, with their tracks, in running order. */
-export type HomePerformance = PerformanceDetails & {
-  readonly pieces: readonly HomePiece[];
-};
-
-/** A Performance as a Home tile shows it: each Piece says what the Singer would hear on it. */
-export type HomeTile = Omit<HomePerformance, 'pieces'> & {
-  /** How soon it starts, such as `In 3 days`. */
-  readonly startsIn: string;
-  readonly pieces: readonly (PieceSummary & { readonly heard: WhatYouWouldHear })[];
-};
-
 const HomeRow = Schema.Struct({
   ...PerformanceRow.fields,
   venue: Schema.String,
@@ -122,7 +105,7 @@ const HomeRow = Schema.Struct({
         composer: Schema.String,
         practice_tracks: Schema.Array(
           Schema.Struct({
-            id: Schema.String,
+            id: TrackIdSchema,
             voice_part_id: Schema.NullOr(Schema.String),
             kind: Schema.NullOr(Schema.Literals(trackKinds)),
             created_at: Schema.String,

@@ -80,7 +80,14 @@ export const durationText = (seconds: number | null): string | null => {
   return `${Math.floor(whole / 60).toString()}:${rest.toString().padStart(2, '0')}`;
 };
 
-type PartNames = (voicePartId: string) => string;
+/** A Voice Part's name from its id. */
+export type PartNames = (voicePartId: string) => string;
+
+/** Looks Voice Part names up in the choir's list; an id not in it has no name. */
+export const partNamesOf =
+  (voiceParts: readonly { readonly id: string; readonly name: string }[]): PartNames =>
+  (voicePartId) =>
+    voiceParts.find(({ id }) => id === voicePartId)?.name ?? '';
 
 /** The name a track goes by in a list: its Voice Part, or the Combined Track's label. */
 export const sourceName = (source: TrackSource, nameOf: PartNames): string =>

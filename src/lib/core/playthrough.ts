@@ -1,6 +1,6 @@
 // Play-through resolver: pure core. Chooses the Practice Track to play for a Piece, and turns a
 // Performance's Pieces into an ordered list of steps. See Combined Track and Play-through in CONTEXT.md.
-import { indicatorText, type TrackSource } from './practice-tracks';
+import { indicatorText, type PartNames, type TrackSource } from './practice-tracks';
 
 /** A track as the resolver sees it. Tracks are given in the order they were uploaded. */
 export type PlaythroughTrack = {
@@ -79,7 +79,7 @@ export type WhatYouWouldHear = { readonly text: string; readonly playable: boole
 export const whatYouWouldHear = (
   tracks: readonly PlaythroughTrack[],
   voicePartId: string,
-  nameOf: (voicePartId: string) => string,
+  nameOf: PartNames,
 ): WhatYouWouldHear => {
   const track = chooseTrack(tracks, voicePartId, false);
   if (track !== undefined) return { text: indicatorText(track.source, nameOf), playable: true };

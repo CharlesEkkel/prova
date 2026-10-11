@@ -14,7 +14,7 @@
   import type { ChoirTimeZone } from '../../core/choir-time';
   import { formActions, performanceActionPath, piecePath, withoutOverview } from '../../core/paths';
   import {
-    performanceWhen,
+    performanceWhenAndWhere,
     type PerformanceAction,
     type PieceRowAction,
   } from '../../core/performances';
@@ -89,12 +89,7 @@
   };
 
   const description = $derived(
-    overview === null
-      ? ''
-      : [
-          performanceWhen(overview.startsAt, overview.endsAt, choirTimeZone),
-          ...(overview.venue === '' ? [] : [overview.venue]),
-        ].join(' · '),
+    overview === null ? '' : performanceWhenAndWhere(overview, choirTimeZone),
   );
 </script>
 
