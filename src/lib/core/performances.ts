@@ -112,7 +112,8 @@ export const homeTileOf = (
   startsIn: startsIn(performance.startsAt, performance.endsAt, now, zone),
   pieces: pieces.map(({ tracks, ...piece }) => ({
     ...piece,
-    heard: whatYouWouldHear(tracks, voicePartId, nameOf),
+    // Home has no Play-through options, so it shows the default.
+    heard: whatYouWouldHear(tracks, voicePartId, nameOf, false),
   })),
 });
 
