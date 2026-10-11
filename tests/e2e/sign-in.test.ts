@@ -170,7 +170,7 @@ test.describe('a Pending Singer', () => {
     await page.getByRole('button', { name: 'Check again' }).click();
 
     await expect(page).toHaveURL('/');
-    await expect(page.getByRole('heading', { name: /^Welcome/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^Hi / })).toBeVisible();
   });
 
   test('re-checks by itself when the Singer comes back to the tab', async ({ page, context }) => {
