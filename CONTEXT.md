@@ -45,7 +45,7 @@ The view opened by tapping any Performance. It lists the Performance's Pieces, h
 _Avoid_: Details page, preview
 
 **Home**:
-The first screen after signing in: a timeline of Performances showing what is coming and when, upcoming by default with past ones collapsed above a Today marker.
+The first screen after signing in: a timeline of Performances showing what is coming and when, upcoming by default with past ones collapsed above a Today marker. The next Performance (the earliest start among those not yet ended, so one in progress counts) is shown largest, and each Performance lists its Pieces with what the Singer would hear on each. Tapping any Performance on it opens its Performance Overview; nothing on Home starts playback.
 _Avoid_: Dashboard, landing page
 
 **Repertoire**:
