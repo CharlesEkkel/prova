@@ -2,22 +2,38 @@
   // Home: a timeline of Performances. The next one is the hero on the rail, later ones follow it.
   // Every tile opens its Performance Overview; nothing here starts playback.
   import { Collapsible } from 'bits-ui';
-  import { ChevronDown, ChevronRight } from '@lucide/svelte';
+  import { ChevronDown, ChevronRight, Plus } from '@lucide/svelte';
   import { overviewLink } from '../../lib/core/paths';
   import { dayIn } from '../../lib/core/performances';
   import PerformanceTile from '../../lib/components/home/PerformanceTile.svelte';
+  import PerformanceFormDialog from '../../lib/components/performances/PerformanceFormDialog.svelte';
   import PerformanceManageMenu from '../../lib/components/performances/PerformanceManageMenu.svelte';
+  import Btn from '../../lib/components/ui/Btn.svelte';
   import MajorBadge from '../../lib/components/ui/MajorBadge.svelte';
   import type { PageData } from './$types';
 
   const { data }: { readonly data: PageData } = $props();
   // What every Performance's menu offers this Singer; with nothing allowed, it shows no menu.
   const menu = $derived({ actions: data.performanceActions, choirTimeZone: data.choirTimeZone });
+  let creatingPerformance = $state(false);
 </script>
 
 <div class="mx-auto w-full max-w-4xl px-4 py-6 lg:px-10 lg:py-10">
-  <h1 class="text-2xl font-semibold tracking-tight lg:text-3xl">Hi {data.singerName}</h1>
-  <p class="text-zinc-500">You sing {data.voicePartName}.</p>
+  <div class="flex items-start justify-between gap-3">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight lg:text-3xl">Hi {data.singerName}</h1>
+      <p class="text-zinc-500">You sing {data.voicePartName}.</p>
+    </div>
+    {#if data.mayCreatePerformance}
+      <Btn
+        variant="soft"
+        size="sm"
+        onclick={() => {
+          creatingPerformance = true;
+        }}><Plus class="size-4" aria-hidden="true" /> New Performance</Btn
+      >
+    {/if}
+  </div>
 
   {#if data.past.length > 0}
     <Collapsible.Root class="mt-6">
@@ -100,3 +116,13 @@
     </ol>
   </div>
 </div>
+
+<PerformanceFormDialog
+  open={creatingPerformance}
+  onClose={() => {
+    creatingPerformance = false;
+  }}
+  performance={null}
+  choirTimeZone={data.choirTimeZone}
+  repertoire={data.repertoire}
+/>

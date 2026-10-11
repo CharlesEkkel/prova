@@ -119,6 +119,21 @@ test.describe('Home', () => {
     await expect(page.getByRole('dialog', { name })).toBeVisible();
   });
 
+  test('offers New Performance only to a Singer with append', async ({ page, context }) => {
+    await signInAsApprovedSinger(context);
+    await openHome(page);
+    const newPerformanceButton = page
+      .getByRole('main')
+      .getByRole('button', { name: 'New Performance' });
+    await expect(newPerformanceButton).toHaveCount(0);
+
+    await context.clearCookies();
+    await signInAsSingerWith(context, ['append']);
+    await openHome(page);
+    await newPerformanceButton.click();
+    await expect(page.getByRole('dialog', { name: 'New Performance' })).toBeVisible();
+  });
+
   test('gives a Singer with update and delete a menu on each Performance', async ({
     page,
     context,
