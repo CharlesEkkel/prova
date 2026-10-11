@@ -51,6 +51,32 @@ export const sidebarPerformances = (
   ];
 };
 
+export type HomeTimeline<P extends SidebarPerformance> = {
+  /** Ended, most recent first: collapsed above the Today marker. */
+  readonly past: readonly P[];
+  /** The earliest start among those not yet ended, so one in progress counts; shown largest. */
+  readonly next: P | null;
+  /** The rest of the upcoming ones, soonest first. */
+  readonly later: readonly P[];
+};
+
+/** How Home lays Performances out around the Today marker. */
+export const homeTimeline = <P extends SidebarPerformance>(
+  performances: readonly P[],
+  now: Date,
+): HomeTimeline<P> => {
+  const [next, ...later] = performances
+    .filter((performance) => !archivedAt(performance, now))
+    .toSorted(byStart);
+  return {
+    past: performances
+      .filter((performance) => archivedAt(performance, now))
+      .toSorted((a, b) => byStart(b, a)),
+    next: next ?? null,
+    later,
+  };
+};
+
 export type AddToPerformanceChoice = SidebarEntry & { readonly alreadyIn: boolean };
 
 /**

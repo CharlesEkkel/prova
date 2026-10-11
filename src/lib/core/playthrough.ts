@@ -1,6 +1,6 @@
 // Play-through resolver: pure core. Chooses the Practice Track to play for a Piece, and turns a
 // Performance's Pieces into an ordered list of steps. See Combined Track and Play-through in CONTEXT.md.
-import type { TrackSource } from './practice-tracks';
+import { indicatorText, type TrackSource } from './practice-tracks';
 
 /** A track as the resolver sees it. Tracks are given in the order they were uploaded. */
 export type PlaythroughTrack = {
@@ -68,6 +68,26 @@ export const resolvePlaythrough = (
   pieces
     .map((piece) => resolveStep(piece, voicePartId, options))
     .filter((step): step is PlaythroughStep => step !== undefined);
+
+/** What Home says a Singer would hear on a Piece; not `playable` when nothing would play. */
+export type WhatYouWouldHear = { readonly text: string; readonly playable: boolean };
+
+/**
+ * What a Singer would hear on a Piece by default, in the part indicator's words (`All`, `Alto only`,
+ * `Alto + mix`), or why nothing would play.
+ */
+export const whatYouWouldHear = (
+  tracks: readonly PlaythroughTrack[],
+  voicePartId: string,
+  nameOf: (voicePartId: string) => string,
+): WhatYouWouldHear => {
+  const track = chooseTrack(tracks, voicePartId, false);
+  if (track !== undefined) return { text: indicatorText(track.source, nameOf), playable: true };
+  return {
+    text: tracks.length === 0 ? 'No tracks yet' : `No ${nameOf(voicePartId)} track`,
+    playable: false,
+  };
+};
 
 /** What a Singer picked in the part indicator: leave it to the default, or play this one once. */
 export type PartChoice =

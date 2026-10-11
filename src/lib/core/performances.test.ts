@@ -12,6 +12,7 @@ import {
   performanceTimesOf,
   performanceWhen,
   addToPerformanceChoices,
+  homeTimeline,
   pieceRowActionsFor,
   sidebarPerformances,
   type PerformanceId,
@@ -90,6 +91,51 @@ describe('sidebarPerformances', () => {
       ['b', true],
     ]);
     expect(input.map(({ name }) => name)).toEqual(['b', 'a']);
+  });
+});
+
+describe('homeTimeline', () => {
+  it('shows the next Performance largest, later ones soonest first, and past ones most recent first', () => {
+    const timeline = homeTimeline(
+      [
+        performance('later', '2026-12-01T19:00Z', '2026-12-01T21:00Z'),
+        performance('old', '2026-01-01T19:00Z', '2026-01-01T21:00Z'),
+        performance('soon', '2026-10-20T19:00Z', '2026-10-20T21:00Z'),
+        performance('older', '2025-06-01T19:00Z', '2025-06-01T21:00Z'),
+        performance('soonest', '2026-10-15T19:00Z', '2026-10-15T21:00Z'),
+      ],
+      now,
+    );
+
+    expect(timeline.next?.name).toBe('soonest');
+    expect(timeline.later.map(({ name }) => name)).toEqual(['soon', 'later']);
+    expect(timeline.past.map(({ name }) => name)).toEqual(['old', 'older']);
+  });
+
+  it('counts a Performance in progress as the next one', () => {
+    const timeline = homeTimeline(
+      [
+        performance('tonight', '2026-10-10T19:00Z', '2026-10-10T21:00Z'),
+        performance('under way', '2026-10-10T11:00Z', '2026-10-10T13:00Z'),
+      ],
+      now,
+    );
+
+    expect(timeline.next?.name).toBe('under way');
+    expect(timeline.later.map(({ name }) => name)).toEqual(['tonight']);
+  });
+
+  it('has no next Performance when every one has ended', () => {
+    const timeline = homeTimeline(
+      [performance('over', '2026-10-10T09:00Z', '2026-10-10T12:00Z')],
+      now,
+    );
+
+    expect(timeline).toEqual({
+      past: [performance('over', '2026-10-10T09:00Z', '2026-10-10T12:00Z')],
+      next: null,
+      later: [],
+    });
   });
 });
 

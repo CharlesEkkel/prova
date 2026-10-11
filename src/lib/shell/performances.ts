@@ -12,9 +12,12 @@ import {
   type SidebarPerformance,
 } from '../core/performances';
 import type { PieceId, PieceSummary } from '../core/pieces';
+import type { PlaythroughTrack, WhatYouWouldHear } from '../core/playthrough';
+import { trackKinds } from '../core/practice-tracks';
 import { loadChoirTimeZone } from './choir-time-zone';
 import { formRunner, refusalOf } from './form';
 import { PieceIdSchema } from './pieces';
+import { sourceOf } from './practice-tracks';
 import { callSupabase, callSupabaseAs, type Supabase, type SupabaseCallFailed } from './supabase';
 
 export const PerformanceIdSchema = Schema.declare(isPerformanceId);
@@ -87,6 +90,78 @@ export const loadOverview = (
               .toSorted((a, b) => a.position - b.position)
               .map(({ piece }) => piece),
           },
+    ),
+  );
+
+/** A Piece as Home lists it: enough to say what the Singer would hear on it. */
+export type HomePiece = PieceSummary & { readonly tracks: readonly PlaythroughTrack[] };
+
+/** A Performance as Home shows it: its details and its Pieces, with their tracks, in running order. */
+export type HomePerformance = SidebarPerformance & {
+  readonly venue: string;
+  readonly pieces: readonly HomePiece[];
+};
+
+/** A Performance as a Home tile shows it: each Piece says what the Singer would hear on it. */
+export type HomeTile = Omit<HomePerformance, 'pieces'> & {
+  readonly pieces: readonly (PieceSummary & { readonly heard: WhatYouWouldHear })[];
+};
+
+const HomeRow = Schema.Struct({
+  ...PerformanceRow.fields,
+  venue: Schema.String,
+  performance_pieces: Schema.Array(
+    Schema.Struct({
+      position: Schema.Number,
+      piece: Schema.Struct({
+        id: PieceIdSchema,
+        title: Schema.String,
+        composer: Schema.String,
+        practice_tracks: Schema.Array(
+          Schema.Struct({
+            id: Schema.String,
+            voice_part_id: Schema.NullOr(Schema.String),
+            kind: Schema.NullOr(Schema.Literals(trackKinds)),
+            created_at: Schema.String,
+          }),
+        ),
+      }),
+    }),
+  ),
+});
+
+/** First uploaded first, as `loadTracks` lists them, so the resolver picks the same one. */
+const byUpload = (
+  a: { readonly id: string; readonly created_at: string },
+  b: { readonly id: string; readonly created_at: string },
+): number =>
+  new Date(a.created_at).getTime() - new Date(b.created_at).getTime() || a.id.localeCompare(b.id);
+
+/** Every Performance with its Pieces and their tracks, in no particular order; `homeTimeline` orders them. */
+export const loadHomePerformances = (
+  supabase: Supabase,
+): Effect.Effect<readonly HomePerformance[], SupabaseCallFailed> =>
+  callSupabaseAs(Schema.Array(HomeRow), () =>
+    supabase
+      .from('performances')
+      .select(
+        `${performanceColumns}, venue, performance_pieces(position, piece:pieces(id, title, composer, practice_tracks(id, voice_part_id, kind, created_at)))`,
+      ),
+  ).pipe(
+    Effect.map((rows) =>
+      rows.map((row) => ({
+        ...performanceOf(row),
+        venue: row.venue,
+        pieces: row.performance_pieces
+          .toSorted((a, b) => a.position - b.position)
+          .map(({ piece: { practice_tracks, ...piece } }) => ({
+            ...piece,
+            tracks: practice_tracks.toSorted(byUpload).map((track) => ({
+              id: track.id,
+              source: sourceOf(track.voice_part_id, track.kind),
+            })),
+          })),
+      })),
     ),
   );
 
