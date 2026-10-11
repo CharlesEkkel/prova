@@ -35,7 +35,7 @@
     readonly voiceParts: readonly VoicePart[];
     /** The Voice Part in effect on this Piece: the Singer's default. */
     readonly voicePartId: string | null;
-    /** The Play-through option; a Piece played on its own leaves it off. */
+    /** The Play-through option, passed by #24's Play-through; a Piece played on its own leaves it off. */
     readonly preferVoicePart?: boolean;
     /** Hands over what the Score viewer needs to start this player when the Singer has not. */
     readonly onControl: (control: StartControl) => void;
@@ -43,7 +43,7 @@
 
   // Picking a part in the indicator plays it once; it is forgotten when the Singer leaves.
   let choice = $state<PartChoice>(defaultChoice);
-  const track = $derived(trackForChoice(tracks, voicePartId, choice, preferVoicePart));
+  const track = $derived(trackForChoice(tracks, voicePartId, choice, { preferVoicePart }));
   const options = $derived(choiceOptions(tracks));
   const nameOf = $derived(partNamesOf(voiceParts));
   const selected = $derived(
@@ -64,7 +64,7 @@
   });
   const choose = async (next: PartChoice): Promise<void> => {
     choice = next;
-    const chosen = trackForChoice(tracks, voicePartId, next, preferVoicePart);
+    const chosen = trackForChoice(tracks, voicePartId, next, { preferVoicePart });
     if (chosen !== undefined) await player.switchTo(...sourceOf(chosen));
   };
 </script>
