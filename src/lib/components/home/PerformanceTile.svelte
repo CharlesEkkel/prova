@@ -39,10 +39,11 @@
 <a href={overviewLink(tile.id)} class="block rounded-3xl transition {surface}">
   {#if hero}
     <p class="flex flex-wrap items-center gap-2 text-sm {muted}">
-      Next Performance {#if tile.isMajor}<MajorBadge />{/if}
+      Next Performance · {tile.startsIn}
+      {#if tile.isMajor}<MajorBadge />{/if}
     </p>
   {/if}
-  <span class="mt-1 flex items-center justify-between gap-3">
+  <div class="mt-1 flex items-center justify-between gap-3">
     <h2
       class="flex flex-wrap items-center gap-2 font-semibold tracking-tight {hero
         ? 'text-3xl lg:text-4xl'
@@ -52,8 +53,8 @@
       {#if tile.isMajor && !hero}<MajorBadge />{/if}
     </h2>
     <ChevronRight class="size-5 shrink-0 {muted}" aria-hidden="true" />
-  </span>
-  <p class="mt-1 text-sm {muted}">{when}</p>
+  </div>
+  <p class="mt-1 text-sm {muted}">{hero ? when : `${when} · ${tile.startsIn}`}</p>
   <ol class="mt-4 grid gap-x-6 gap-y-1 sm:grid-cols-2">
     {#each tile.pieces as piece, index (piece.id)}
       <li class="flex min-h-9 items-center gap-3 text-sm">

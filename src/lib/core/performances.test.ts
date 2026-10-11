@@ -13,6 +13,7 @@ import {
   performanceWhen,
   addToPerformanceChoices,
   homeTimeline,
+  startsIn,
   pieceRowActionsFor,
   sidebarPerformances,
   type PerformanceId,
@@ -136,6 +137,23 @@ describe('homeTimeline', () => {
       next: null,
       later: [],
     });
+  });
+});
+
+describe('startsIn', () => {
+  const sydney = choirTimeZoneOf('Australia/Sydney');
+  if (sydney === null) throw new Error('no Sydney time zone');
+  // 23:00 on Sat 10 Oct in Sydney.
+  const lateEvening = at('2026-10-10T12:00:00Z');
+
+  it.each([
+    ['On now', '2026-10-10T11:00Z', '2026-10-10T13:00Z'],
+    ['Today', '2026-10-10T12:30Z', '2026-10-10T12:50Z'],
+    // 00:30 on Sun 11 Oct in Sydney: only an hour and a half away, but the next day there.
+    ['Tomorrow', '2026-10-10T13:30Z', '2026-10-10T15:00Z'],
+    ['In 9 days', '2026-10-19T08:00Z', '2026-10-19T10:00Z'],
+  ])('says %s, counting days in the Choir Time Zone', (text, startsAt, endsAt) => {
+    expect(startsIn(at(startsAt), at(endsAt), lateEvening, sydney)).toBe(text);
   });
 });
 

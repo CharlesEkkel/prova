@@ -105,6 +105,8 @@ export type HomePerformance = PerformanceDetails & {
 
 /** A Performance as a Home tile shows it: each Piece says what the Singer would hear on it. */
 export type HomeTile = Omit<HomePerformance, 'pieces'> & {
+  /** How soon it starts, such as `In 3 days`. */
+  readonly startsIn: string;
   readonly pieces: readonly (PieceSummary & { readonly heard: WhatYouWouldHear })[];
 };
 

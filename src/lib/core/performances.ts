@@ -138,6 +138,18 @@ export const performanceWhen = (startsAt: Date, endsAt: Date, zone: ChoirTimeZon
     : `${startDay}, ${clockIn(startsAt, zone)} – ${endDay}, ${clockIn(endsAt, zone)}`;
 };
 
+/** The calendar date of a moment in the Choir Time Zone, as a day number that can be subtracted. */
+const dayNumber = (moment: Date, zone: ChoirTimeZone): number =>
+  Date.parse(`${choirTimeOf(moment, zone).slice(0, 'YYYY-MM-DD'.length)}T00:00Z`) / 86_400_000;
+
+/** How soon a Performance starts, counting days in the Choir Time Zone: `On now`, `Today`, `In 3 days`. */
+export const startsIn = (startsAt: Date, endsAt: Date, now: Date, zone: ChoirTimeZone): string => {
+  if (startsAt <= now && now < endsAt) return 'On now';
+  const days = dayNumber(startsAt, zone) - dayNumber(now, zone);
+  if (days === 0) return 'Today';
+  return days === 1 ? 'Tomorrow' : `In ${days.toString()} days`;
+};
+
 /** A Piece as the New Performance dialog offers it for the first Pieces. */
 type Findable = { readonly title: string; readonly composer: string };
 

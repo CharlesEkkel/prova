@@ -158,7 +158,9 @@ test.describe('Home', () => {
     await openHome(page);
 
     await expect(
-      page.getByRole('main').getByRole('link', { name: new RegExp(`^Next Performance ${name}`) }),
+      page
+        .getByRole('main')
+        .getByRole('link', { name: new RegExp(`^Next Performance · On now ${name}`) }),
     ).toBeVisible();
   });
 
