@@ -3,6 +3,9 @@
 import type { DialogCopy } from './admin-dialogs';
 import { choirTimeOf, instantOfChoirTime, localDateTimeOf, type ChoirTimeZone } from './choir-time';
 import type { Permission } from './permissions';
+import type { PieceSummary } from './pieces';
+import { whatYouWouldHear, type PlaythroughTrack, type WhatYouWouldHear } from './playthrough';
+import type { PartNames } from './practice-tracks';
 import type { DatabaseRefusal } from './voice-parts';
 
 declare const performanceIdBrand: unique symbol;
@@ -36,20 +39,92 @@ const archivedAt = (performance: SidebarPerformance, now: Date): boolean =>
 const byStart = (a: SidebarPerformance, b: SidebarPerformance): number =>
   a.startsAt.getTime() - b.startsAt.getTime();
 
+/** Upcoming Performances soonest first, and past ones most recent first. */
+const upcomingAndPast = <P extends SidebarPerformance>(
+  performances: readonly P[],
+  now: Date,
+): { readonly upcoming: readonly P[]; readonly past: readonly P[] } => ({
+  upcoming: performances.filter((performance) => !archivedAt(performance, now)).toSorted(byStart),
+  past: performances
+    .filter((performance) => archivedAt(performance, now))
+    .toSorted((a, b) => byStart(b, a)),
+});
+
 /** Upcoming Performances soonest first, then past ones, most recent first, each marked archived or not. */
 export const sidebarPerformances = (
   performances: readonly SidebarPerformance[],
   now: Date,
 ): readonly SidebarEntry[] => {
-  const entries = performances.map((performance) => ({
-    ...performance,
-    archived: archivedAt(performance, now),
-  }));
+  const { upcoming, past } = upcomingAndPast(performances, now);
   return [
-    ...entries.filter(({ archived }) => !archived).toSorted(byStart),
-    ...entries.filter(({ archived }) => archived).toSorted((a, b) => byStart(b, a)),
+    ...upcoming.map((performance) => ({ ...performance, archived: false })),
+    ...past.map((performance) => ({ ...performance, archived: true })),
   ];
 };
+
+export type HomeTimeline<P extends SidebarPerformance> = {
+  /** Ended, most recent first: collapsed above the Today marker. */
+  readonly past: readonly P[];
+  /** The earliest start among those not yet ended, so one in progress counts; shown largest. */
+  readonly next: P | null;
+  /** The rest of the upcoming ones, soonest first. */
+  readonly later: readonly P[];
+};
+
+/** How Home lays Performances out around the Today marker. */
+export const homeTimeline = <P extends SidebarPerformance>(
+  performances: readonly P[],
+  now: Date,
+): HomeTimeline<P> => {
+  const { upcoming, past } = upcomingAndPast(performances, now);
+  const [next, ...later] = upcoming;
+  return { past, next: next ?? null, later };
+};
+
+/** What the Edit Performance dialog changes, and what a Performance's heading shows: name, times, venue. */
+export type PerformanceDetails = SidebarPerformance & { readonly venue: string };
+
+/** A Piece as Home lists it: enough to say what the Singer would hear on it. */
+export type HomePiece = PieceSummary & { readonly tracks: readonly PlaythroughTrack[] };
+
+/** A Performance as Home loads it: its details and its Pieces, with their tracks, in running order. */
+export type HomePerformance = PerformanceDetails & { readonly pieces: readonly HomePiece[] };
+
+/** A Piece on a Home tile, saying what the Singer would hear on it. */
+export type HomeTilePiece = PieceSummary & { readonly heard: WhatYouWouldHear };
+
+/** An upcoming Performance as its Home tile shows it. */
+export type HomeTile = PerformanceDetails & {
+  /** How soon it starts, such as `In 3 days`. */
+  readonly startsIn: string;
+  readonly pieces: readonly HomeTilePiece[];
+};
+
+/** What a Home tile shows for a Singer singing `voicePartId`, at `now`. */
+export const homeTileOf = (
+  { pieces, ...performance }: HomePerformance,
+  now: Date,
+  zone: ChoirTimeZone,
+  voicePartId: string,
+  nameOf: PartNames,
+): HomeTile => ({
+  ...performance,
+  startsIn: startsIn(performance.startsAt, performance.endsAt, now, zone),
+  pieces: pieces.map(({ tracks, ...piece }) => ({
+    ...piece,
+    heard: whatYouWouldHear(tracks, voicePartId, nameOf),
+  })),
+});
+
+/** A past Performance on Home: a dimmed row, without its Pieces. */
+export const pastRowOf = ({
+  id,
+  name,
+  startsAt,
+  endsAt,
+  isMajor,
+  venue,
+}: HomePerformance): PerformanceDetails => ({ id, name, startsAt, endsAt, isMajor, venue });
 
 export type AddToPerformanceChoice = SidebarEntry & { readonly alreadyIn: boolean };
 
@@ -87,7 +162,8 @@ export const performanceTimesOf = (
   return times.endsAt > times.startsAt ? times : null;
 };
 
-const dayIn = (moment: Date, zone: ChoirTimeZone): string => {
+/** The day a moment falls on in the Choir Time Zone, such as `Sun 11 Oct 2026`. */
+export const dayIn = (moment: Date, zone: ChoirTimeZone): string => {
   const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone: zone,
     weekday: 'short',
@@ -109,6 +185,25 @@ export const performanceWhen = (startsAt: Date, endsAt: Date, zone: ChoirTimeZon
   return startDay === endDay
     ? `${startDay}, ${clockIn(startsAt, zone)}–${clockIn(endsAt, zone)}`
     : `${startDay}, ${clockIn(startsAt, zone)} – ${endDay}, ${clockIn(endsAt, zone)}`;
+};
+
+/** A Performance's heading line: when it is, then its venue if it has one. */
+export const performanceWhenAndWhere = (
+  { startsAt, endsAt, venue }: Pick<PerformanceDetails, 'startsAt' | 'endsAt' | 'venue'>,
+  zone: ChoirTimeZone,
+): string =>
+  [performanceWhen(startsAt, endsAt, zone), ...(venue === '' ? [] : [venue])].join(' · ');
+
+/** The calendar date of a moment in the Choir Time Zone, as a day number that can be subtracted. */
+const dayNumber = (moment: Date, zone: ChoirTimeZone): number =>
+  Date.parse(`${choirTimeOf(moment, zone).slice(0, 'YYYY-MM-DD'.length)}T00:00Z`) / 86_400_000;
+
+/** How soon a Performance starts, counting days in the Choir Time Zone: `On now`, `Today`, `In 3 days`. */
+export const startsIn = (startsAt: Date, endsAt: Date, now: Date, zone: ChoirTimeZone): string => {
+  if (startsAt <= now && now < endsAt) return 'On now';
+  const days = dayNumber(startsAt, zone) - dayNumber(now, zone);
+  if (days === 0) return 'Today';
+  return days === 1 ? 'Tomorrow' : `In ${days.toString()} days`;
 };
 
 /** A Piece as the New Performance dialog offers it for the first Pieces. */

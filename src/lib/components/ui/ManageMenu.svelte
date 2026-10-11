@@ -14,21 +14,40 @@
     actions,
     label,
     align = 'center',
+    overlay = 'none',
     children,
   }: {
     readonly actions: readonly ManageAction[];
     readonly label: string;
     /** Where the ⋯ button sits beside tall content: centred, or level with its first line (a 2rem heading). */
     readonly align?: 'center' | 'first-line';
+    /**
+     * Lay the ⋯ button over the content's top-right corner instead of beside it, so a wide tile keeps
+     * its width on a phone; `on-primary` lightens it for content on the primary colour.
+     */
+    readonly overlay?: 'none' | 'plain' | 'on-primary';
     readonly children: Snippet;
   } = $props();
+
+  const placement = $derived(
+    overlay === 'none' ? (align === 'first-line' ? '-mt-1.5' : '') : 'absolute top-2 right-2',
+  );
+  const tone = $derived(
+    overlay === 'on-primary'
+      ? 'text-primary-100 hover:bg-white/15'
+      : 'text-zinc-500 hover:bg-zinc-200/70 dark:hover:bg-zinc-800',
+  );
 </script>
 
 {#if actions.length === 0}
   <!-- Nothing this Singer may do: just the content, with no empty menu. -->
   {@render children()}
 {:else}
-  <div class="flex gap-1 {align === 'first-line' ? 'items-start' : 'items-center'}">
+  <div
+    class="{overlay === 'none' ? 'flex gap-1' : 'relative'} {align === 'first-line'
+      ? 'items-start'
+      : 'items-center'}"
+  >
     <ContextMenu.Root>
       <ContextMenu.Trigger class="block min-w-0 flex-1">{@render children()}</ContextMenu.Trigger>
       <ContextMenu.Portal>
@@ -40,10 +59,7 @@
     <DropdownMenu.Root>
       <DropdownMenu.Trigger
         aria-label={label}
-        class="grid size-11 shrink-0 place-items-center rounded-full text-zinc-500 transition hover:bg-zinc-200/70 dark:hover:bg-zinc-800 {align ===
-        'first-line'
-          ? '-mt-1.5'
-          : ''}"
+        class="grid size-11 shrink-0 place-items-center rounded-full transition {tone} {placement}"
       >
         <Ellipsis class="size-5" />
       </DropdownMenu.Trigger>

@@ -5,6 +5,7 @@ import {
   defaultChoice,
   trackForChoice,
   resolvePlaythrough,
+  whatYouWouldHear,
   type PlaythroughPiece,
   type PlaythroughTrack,
 } from './playthrough';
@@ -131,5 +132,32 @@ describe('choiceOptions', () => {
     expect([...offered.voicePartIds]).toEqual([alto]);
     expect(choiceOptions([part('t', tenor)]).hasCombined).toBe(false);
     expect(choiceOptions([]).voicePartIds.size).toBe(0);
+  });
+});
+
+describe('whatYouWouldHear', () => {
+  const nameOf = (voicePartId: string) => (voicePartId === alto ? 'Alto' : 'Tenor');
+
+  it.each([
+    ['the Combined Track when there is one', [part('p', alto), combined('c')], 'All'],
+    ['the part-only track when there is no Combined Track', [part('p', alto)], 'Alto only'],
+    [
+      'the part-predominant track the same way',
+      [part('p', alto, 'part-predominant')],
+      'Alto + mix',
+    ],
+  ])('says it plays %s', (_name, tracks, text) => {
+    expect(whatYouWouldHear(tracks, alto, nameOf)).toEqual({ text, playable: true });
+  });
+
+  it('says a Piece with no Practice Tracks has none yet', () => {
+    expect(whatYouWouldHear([], alto, nameOf)).toEqual({ text: 'No tracks yet', playable: false });
+  });
+
+  it('says when a Piece has tracks but none the Singer would hear', () => {
+    expect(whatYouWouldHear([part('t', tenor)], alto, nameOf)).toEqual({
+      text: 'No Alto track',
+      playable: false,
+    });
   });
 });

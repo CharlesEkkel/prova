@@ -9,6 +9,8 @@ import {
   isTrackKind,
   trackKinds,
   type PracticeTrack,
+  type TrackKind,
+  type TrackSource,
 } from '../core/practice-tracks';
 import { trackMessages, trackProblemOf, type TrackProblem } from '../core/track-problems';
 import { isAudioExtension, trackFilePath } from '../core/upload-rules';
@@ -28,10 +30,13 @@ const TrackRow = Schema.Struct({
 }).pipe(Schema.encodeKeys({ voicePartId: 'voice_part_id', durationSeconds: 'duration_seconds' }));
 type TrackRow = typeof TrackRow.Type;
 
+/** What a track holds, from its row: a Voice Part and kind, or neither for the Combined Track. */
+export const sourceOf = (voicePartId: string | null, kind: TrackKind | null): TrackSource =>
+  voicePartId !== null && kind !== null ? { type: 'part', voicePartId, kind } : combinedSource;
+
 const trackOf = ({ id, voicePartId, kind, label, durationSeconds }: TrackRow): PracticeTrack => ({
   id,
-  source:
-    voicePartId !== null && kind !== null ? { type: 'part', voicePartId, kind } : combinedSource,
+  source: sourceOf(voicePartId, kind),
   label,
   durationSeconds,
 });

@@ -12,6 +12,8 @@ import {
   performanceTimesOf,
   performanceWhen,
   addToPerformanceChoices,
+  homeTimeline,
+  startsIn,
   pieceRowActionsFor,
   sidebarPerformances,
   type PerformanceId,
@@ -90,6 +92,68 @@ describe('sidebarPerformances', () => {
       ['b', true],
     ]);
     expect(input.map(({ name }) => name)).toEqual(['b', 'a']);
+  });
+});
+
+describe('homeTimeline', () => {
+  it('shows the next Performance largest, later ones soonest first, and past ones most recent first', () => {
+    const timeline = homeTimeline(
+      [
+        performance('later', '2026-12-01T19:00Z', '2026-12-01T21:00Z'),
+        performance('old', '2026-01-01T19:00Z', '2026-01-01T21:00Z'),
+        performance('soon', '2026-10-20T19:00Z', '2026-10-20T21:00Z'),
+        performance('older', '2025-06-01T19:00Z', '2025-06-01T21:00Z'),
+        performance('soonest', '2026-10-15T19:00Z', '2026-10-15T21:00Z'),
+      ],
+      now,
+    );
+
+    expect(timeline.next?.name).toBe('soonest');
+    expect(timeline.later.map(({ name }) => name)).toEqual(['soon', 'later']);
+    expect(timeline.past.map(({ name }) => name)).toEqual(['old', 'older']);
+  });
+
+  it('counts a Performance in progress as the next one', () => {
+    const timeline = homeTimeline(
+      [
+        performance('tonight', '2026-10-10T19:00Z', '2026-10-10T21:00Z'),
+        performance('under way', '2026-10-10T11:00Z', '2026-10-10T13:00Z'),
+      ],
+      now,
+    );
+
+    expect(timeline.next?.name).toBe('under way');
+    expect(timeline.later.map(({ name }) => name)).toEqual(['tonight']);
+  });
+
+  it('has no next Performance when every one has ended', () => {
+    const timeline = homeTimeline(
+      [performance('over', '2026-10-10T09:00Z', '2026-10-10T12:00Z')],
+      now,
+    );
+
+    expect(timeline).toEqual({
+      past: [performance('over', '2026-10-10T09:00Z', '2026-10-10T12:00Z')],
+      next: null,
+      later: [],
+    });
+  });
+});
+
+describe('startsIn', () => {
+  const sydney = choirTimeZoneOf('Australia/Sydney');
+  if (sydney === null) throw new Error('no Sydney time zone');
+  // 23:00 on Sat 10 Oct in Sydney.
+  const lateEvening = at('2026-10-10T12:00:00Z');
+
+  it.each([
+    ['On now', '2026-10-10T11:00Z', '2026-10-10T13:00Z'],
+    ['Today', '2026-10-10T12:30Z', '2026-10-10T12:50Z'],
+    // 00:30 on Sun 11 Oct in Sydney: only an hour and a half away, but the next day there.
+    ['Tomorrow', '2026-10-10T13:30Z', '2026-10-10T15:00Z'],
+    ['In 9 days', '2026-10-19T08:00Z', '2026-10-19T10:00Z'],
+  ])('says %s, counting days in the Choir Time Zone', (text, startsAt, endsAt) => {
+    expect(startsIn(at(startsAt), at(endsAt), lateEvening, sydney)).toBe(text);
   });
 });
 

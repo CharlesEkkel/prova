@@ -7,10 +7,14 @@
   import { goto } from '$app/navigation';
   import { choirTimeOf, type ChoirTimeZone } from '../../core/choir-time';
   import { overviewLink, formActions, performanceActionPath } from '../../core/paths';
-  import { matchingPieces, performanceDialogCopy, toggleTicked } from '../../core/performances';
+  import {
+    matchingPieces,
+    performanceDialogCopy,
+    toggleTicked,
+    type PerformanceDetails,
+  } from '../../core/performances';
   import type { PieceId, PieceSummary } from '../../core/pieces';
   import { submitPerformanceForm, type PerformanceFormOutcome } from '../../shell/enhance';
-  import type { PerformanceOverview } from '../../shell/performances';
   import AlertMessage from '../AlertMessage.svelte';
   import Btn from '../ui/Btn.svelte';
   import CheckRow from '../ui/CheckRow.svelte';
@@ -27,7 +31,7 @@
     readonly open: boolean;
     readonly onClose: () => void;
     /** The Performance being edited, or null to create one. */
-    readonly performance: PerformanceOverview | null;
+    readonly performance: PerformanceDetails | null;
     readonly choirTimeZone: ChoirTimeZone;
     /** The Pieces a new Performance can start with. */
     readonly repertoire: readonly PieceSummary[];
