@@ -55,7 +55,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
     voiceParts,
     // The Performances this Piece is in; the layout has the Performances themselves.
     pieceIsIn,
-    // Which Voice Part is in effect on this Piece. A Preferred Part (#22) will replace it.
+    // Which Voice Part is in effect on this Piece: the Singer's default.
     voicePartId: visitor.stage === 'ready' ? visitor.voicePart.id : null,
     // The database enforces these; they only decide what to show.
     // Editing the Piece's own details needs `update`, as in the Repertoire.
