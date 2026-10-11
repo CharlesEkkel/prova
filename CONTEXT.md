@@ -21,7 +21,7 @@ An audio file (MP3 or M4A, up to the choir's upload limit, 10 MB unless configur
 _Avoid_: Recording, part track, stem
 
 **Combined Track**:
-A Practice Track containing all Voice Parts together. It is what plays first on a Piece: the Singer's part track plays only when the Piece has no Combined Track, or when the Singer has asked for it (a Preferred Part, or the Play-through option below).
+A Practice Track containing all Voice Parts together. It is what plays first on a Piece: the Singer's part track plays only when the Piece has no Combined Track, or when the Singer has asked for it (by choosing it from the part indicator, or the Play-through option below).
 _Avoid_: Full mix, tutti
 
 **Score**:
@@ -53,7 +53,7 @@ The list of every Piece the choir has, including those in no Performance and tho
 _Avoid_: Library, catalogue, song list
 
 **Play-through**:
-Playing a Performance's Pieces in order, from the first Piece. Two options, both off by default: skip Pieces with no usable Practice Track (otherwise it pauses at an empty Piece), and prefer my Voice Part (off: it plays the Combined Track and falls back to the Singer's part track; on: the reverse, the Singer's part track falling back to the Combined Track). A Preferred Part on a Piece wins over both. Started from the Performance Overview.
+Playing a Performance's Pieces in order, from the first Piece. Two options, both off by default: skip Pieces with no usable Practice Track (otherwise it pauses at an empty Piece), and prefer my Voice Part (off: it plays the Combined Track and falls back to the Singer's part track; on: the reverse, the Singer's part track falling back to the Combined Track). Started from the Performance Overview.
 _Avoid_: Playlist, queue, autoplay
 
 **Singer**:
@@ -64,12 +64,8 @@ _Avoid_: Member, user
 A Singer without the `read` Permission, who sees only the waiting-for-approval screen until an Admin approves them.
 _Avoid_: Pending user, unapproved user, guest
 
-**Preferred Part**:
-A Singer's saved, per-Piece choice of a Voice Part to hear on that Piece instead of the Combined Track, e.g. their own part, a divisi split or a Bass covering a Tenor line. It can be any Voice Part, including the Singer's own. It is made from the part indicator with "Prefer this track in future", since it is rare; choosing a part just to play it once is not a Preferred Part and is not saved. It plays in place of the Combined Track, and takes the place of the Singer's default Voice Part when a Piece has no Combined Track.
-_Avoid_: Part Override, override, exception, custom part
-
 **Part indicator**:
-The control on a Piece's player showing what would play (`All` for the Combined Track, or a Voice Part with `only` or `+ mix` for its kind). Opening it lists `All` and the Voice Parts that have a Practice Track on that Piece, so a Singer can play one once or prefer it in future.
+The control on a Piece's player showing what would play (`All` for the Combined Track, or a Voice Part with `only` or `+ mix` for its kind). Opening it lists `All` and the Voice Parts that have a Practice Track on that Piece, so a Singer can play one once. The choice is not saved.
 _Avoid_: Part picker, track selector
 
 ## Access
