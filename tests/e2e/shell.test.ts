@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { randomUUID } from 'node:crypto';
+import { serviceClient } from '../contract/support';
 import {
   chooseVoicePart,
   isDesktopLayout,
@@ -31,17 +33,32 @@ test.describe('the app shell', () => {
     page,
     context,
   }) => {
-    await signInAsApprovedSinger(context);
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    // The database is shared, so the sidebar cannot be expected to be empty: it lists this one.
+    const name = `Shell ${randomUUID().slice(0, 8)}`;
+    const added = await serviceClient()
+      .from('performances')
+      .insert({ name, starts_at: '2030-01-01T18:00:00Z', ends_at: '2030-01-01T20:00:00Z' })
+      .select('id')
+      .single();
+    if (added.error) throw added.error;
+    try {
+      await signInAsApprovedSinger(context);
+      await page.goto('/');
+      await page.waitForLoadState('networkidle');
 
-    const nav = await openNavigation(page);
+      const nav = await openNavigation(page);
 
-    await expect(nav.getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
-    await expect(nav.getByRole('button', { name: 'Performances' })).toBeVisible();
-    await expect(nav.getByText('No Performances yet.')).toBeVisible();
-    const menu = page.getByRole('button', { name: /^User menu for Test Singer/ });
-    await expect(menu).toContainText('Alto');
+      await expect(nav.getByRole('link', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
+      await expect(nav.getByRole('button', { name: 'Performances' })).toBeVisible();
+      await expect(nav.getByRole('link', { name })).toHaveAttribute(
+        'href',
+        `?overview=${added.data.id}`,
+      );
+      const menu = page.getByRole('button', { name: /^User menu for Test Singer/ });
+      await expect(menu).toContainText('Alto');
+    } finally {
+      await serviceClient().from('performances').delete().eq('id', added.data.id);
+    }
   });
 
   test('the drawer opens from the header and closes when a link is followed', async ({

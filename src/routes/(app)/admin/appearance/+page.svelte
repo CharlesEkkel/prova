@@ -3,7 +3,7 @@
   import { Check } from '@lucide/svelte';
   import AlertMessage from '../../../../lib/components/AlertMessage.svelte';
   import Btn from '../../../../lib/components/ui/Btn.svelte';
-  import { card } from '../../../../lib/components/ui/styles';
+  import { card, fieldLabel, hint, input } from '../../../../lib/components/ui/styles';
   import {
     colourThemeLabels,
     colourThemes,
@@ -76,5 +76,29 @@
       size="sm"
       disabled={data.colourTheme === defaultColourTheme}>Reset to the default</Btn
     >
+  </form>
+
+  <form
+    method="POST"
+    action={actionPath(formActions.appearance.timeZone)}
+    use:enhance={() =>
+      async ({ update }) => {
+        await update({ reset: false });
+      }}
+    class="mt-6 flex flex-col gap-2"
+  >
+    <label for="choir-time-zone" class={fieldLabel}>Choir Time Zone</label>
+    <div class="flex flex-wrap items-center gap-2">
+      <select id="choir-time-zone" name="zone" class="{input} max-w-xs" value={data.choirTimeZone}>
+        {#each data.choirTimeZones as zone (zone)}
+          <option value={zone}>{zone.replaceAll('_', ' ')}</option>
+        {/each}
+      </select>
+      <Btn type="submit" variant="outline" size="sm">Save time zone</Btn>
+    </div>
+    <p class={hint}>
+      Every Performance time is entered and shown in this zone, whatever a Singer’s device says.
+      Changing it moves no Performance; it changes how their times read.
+    </p>
   </form>
 </div>

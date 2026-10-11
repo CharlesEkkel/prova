@@ -11,6 +11,8 @@ import {
   isInSection,
   overviewLink,
   pathWithNext,
+  performanceActionPath,
+  withoutOverview,
   paths,
   signInErrorPath,
 } from './paths';
@@ -55,6 +57,19 @@ describe('overviewLink', () => {
     const id = performanceIdOf('5d34142f-5d7d-4ea8-9e80-2d9b7a5e4c11');
     if (id === null) throw new Error('the id is valid');
     expect(overviewLink(id)).toBe('?overview=5d34142f-5d7d-4ea8-9e80-2d9b7a5e4c11');
+  });
+});
+
+describe('withoutOverview', () => {
+  it('closes the Overview, keeping the rest of the page’s address', () => {
+    expect(withoutOverview(new URL('http://x.test/repertoire?overview=abc'))).toBe('/repertoire');
+    expect(withoutOverview(new URL('http://x.test/?q=1&overview=abc#top'))).toBe('/?q=1#top');
+  });
+});
+
+describe('performanceActionPath', () => {
+  it('addresses a Performance action, which works from any page', () => {
+    expect(performanceActionPath('create')).toBe('/performances?/create');
   });
 });
 

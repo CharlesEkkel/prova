@@ -22,6 +22,13 @@ export const titleMaxLength = 120;
 export const composerMaxLength = 120;
 export const notesMaxLength = 2000;
 
+/** A Piece in brief, as a Performance's running order and the first-Pieces picker show it. */
+export type PieceSummary = {
+  readonly id: PieceId;
+  readonly title: string;
+  readonly composer: string;
+};
+
 /** A Piece as the Repertoire lists it, with what it holds (all zero until those issues land). */
 export type RepertoireEntry = {
   readonly id: PieceId;

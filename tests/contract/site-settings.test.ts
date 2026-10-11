@@ -33,7 +33,7 @@ afterEach(async () => {
 
 describe('the Colour Theme setting', () => {
   it('is seeded as Forest, in a single row', async () => {
-    const { data, error } = await serviceClient().from('site_settings').select('*');
+    const { data, error } = await serviceClient().from('site_settings').select('colour_theme');
 
     expect(error).toBeNull();
     expect(data).toEqual([{ colour_theme: 'forest' }]);

@@ -12,7 +12,8 @@ import {
 import type { AdminProblem } from '../core/admin-problems';
 import { problemOf } from './admin-commands';
 import { valueOrNull } from './run';
-import { callSupabaseAs, SupabaseCallFailed, type Supabase } from './supabase';
+import { saveSiteSettings } from './site-settings';
+import { callSupabaseAs, type SupabaseCallFailed, type Supabase } from './supabase';
 
 export const colourThemeCookie = 'prova-colour-theme';
 
@@ -36,9 +37,6 @@ export const setColourThemeCookie = (
   });
 };
 
-/** Postgres' "insufficient privilege": what a refusal by row-level security looks like elsewhere. */
-const notAllowedCode = '42501';
-
 const SiteSettingsRow = Schema.Struct({ colour_theme: Schema.Literals(colourThemes) });
 
 /** The Colour Theme the database holds right now. Anyone may read it, signed in or not. */
@@ -49,28 +47,11 @@ export const loadColourTheme = (
     supabase.from('site_settings').select('colour_theme').single(),
   ).pipe(Effect.map((row) => row.colour_theme));
 
-/**
- * Changes the Colour Theme. The database refuses anyone without `manage-users` by changing no rows,
- * so a reply without the row is a refusal.
- */
+/** Changes the Colour Theme; anyone without `manage-users` is refused. */
 export const saveColourTheme = (
   supabase: Supabase,
   theme: ColourTheme,
-): Effect.Effect<void, SupabaseCallFailed> =>
-  callSupabaseAs(Schema.Array(SiteSettingsRow), () =>
-    // PostgREST refuses an update with no filter; the table has one row, so this matches it.
-    supabase
-      .from('site_settings')
-      .update({ colour_theme: theme })
-      .not('colour_theme', 'is', null)
-      .select('colour_theme'),
-  ).pipe(
-    Effect.flatMap((rows) =>
-      rows.length === 1
-        ? Effect.void
-        : Effect.fail(new SupabaseCallFailed({ cause: { code: notAllowedCode } })),
-    ),
-  );
+): Effect.Effect<void, SupabaseCallFailed> => saveSiteSettings(supabase, { colour_theme: theme });
 
 /**
  * The theme for a request: the cookie's, when it names one of the five; otherwise a fresh read of
