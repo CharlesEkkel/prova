@@ -50,8 +50,10 @@ export const loadPerformances = (
   ).pipe(Effect.map((rows) => rows.map(performanceOf)));
 
 /** A Performance as its Overview shows it: its details and its Pieces in running order. */
-export type PerformanceOverview = SidebarPerformance & {
-  readonly venue: string;
+/** What the Edit Performance dialog changes: name, times and venue. */
+export type PerformanceDetails = SidebarPerformance & { readonly venue: string };
+
+export type PerformanceOverview = PerformanceDetails & {
   readonly pieces: readonly PieceSummary[];
 };
 
@@ -97,8 +99,7 @@ export const loadOverview = (
 export type HomePiece = PieceSummary & { readonly tracks: readonly PlaythroughTrack[] };
 
 /** A Performance as Home shows it: its details and its Pieces, with their tracks, in running order. */
-export type HomePerformance = SidebarPerformance & {
-  readonly venue: string;
+export type HomePerformance = PerformanceDetails & {
   readonly pieces: readonly HomePiece[];
 };
 

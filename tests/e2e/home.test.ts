@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import { serviceClient } from '../contract/support';
-import { signInAsApprovedSinger } from './support';
+import { signInAsApprovedSinger, signInAsSingerWith } from './support';
 
 const unique = (): string => randomUUID().slice(0, 8);
 
@@ -112,8 +112,35 @@ test.describe('Home', () => {
       new RegExp(`3\\s*${empty}\\s*No tracks yet`),
     ]);
 
+    await expect(page.getByRole('main').getByRole('button', { name: /^Actions for/ })).toHaveCount(
+      0,
+    );
     await tile.click();
     await expect(page.getByRole('dialog', { name })).toBeVisible();
+  });
+
+  test('gives a Singer with update and delete a menu on each Performance', async ({
+    page,
+    context,
+  }) => {
+    const name = `Managed ${unique()}`;
+    await newPerformance(name, ...later);
+    await signInAsSingerWith(context, ['update', 'delete']);
+
+    await openHome(page);
+
+    await page
+      .getByRole('main')
+      .getByRole('button', { name: `Actions for ${name}` })
+      .click();
+    await expect(page.getByRole('menuitem')).toHaveText([
+      'Edit Performance…',
+      'Delete Performance…',
+    ]);
+    await page.getByRole('menuitem', { name: 'Edit Performance…' }).click();
+    await expect(
+      page.getByRole('dialog', { name: 'Edit Performance' }).getByLabel('Name'),
+    ).toHaveValue(name);
   });
 
   test('shows a Performance in progress as the next one, largest', async ({ page, context }) => {

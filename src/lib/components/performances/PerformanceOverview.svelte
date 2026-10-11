@@ -6,15 +6,14 @@
   import { enhance } from '$app/forms';
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
-  import { AlertDialog, Dialog } from 'bits-ui';
-  import { ChevronRight, Pencil, Star, Trash, X } from '@lucide/svelte';
+  import { Dialog } from 'bits-ui';
+  import { ChevronRight, Trash, X } from '@lucide/svelte';
   import { tick } from 'svelte';
   import { flip } from 'svelte/animate';
   import { dragHandle, dragHandleZone, type DndEvent } from 'svelte-dnd-action';
   import type { ChoirTimeZone } from '../../core/choir-time';
   import { formActions, performanceActionPath, piecePath, withoutOverview } from '../../core/paths';
   import {
-    performanceDialogCopy,
     performanceWhen,
     type PerformanceAction,
     type PieceRowAction,
@@ -23,10 +22,9 @@
   import type { PieceSummary } from '../../core/pieces';
   import type { PerformanceOverview } from '../../shell/performances';
   import AlertMessage from '../AlertMessage.svelte';
-  import Btn from '../ui/Btn.svelte';
+  import MajorBadge from '../ui/MajorBadge.svelte';
   import ManageMenu from '../ui/ManageMenu.svelte';
-  import Modal from '../ui/Modal.svelte';
-  import PerformanceFormDialog from './PerformanceFormDialog.svelte';
+  import PerformanceManageMenu from './PerformanceManageMenu.svelte';
 
   const {
     overview,
@@ -46,44 +44,8 @@
 
   const close = () => goto(withoutOverview(page.url), { reset: false });
 
-  let editing = $state(false);
-  let deleting = $state(false);
   // A refusal of a move or a removal, shown above the list.
   let problem = $state<string | undefined>(undefined);
-  let deleteProblem = $state<string | undefined>(undefined);
-
-  const menu = $derived(
-    overview === null
-      ? []
-      : [
-          ...(actions.includes('edit')
-            ? [
-                {
-                  key: 'edit',
-                  label: 'Edit Performance…',
-                  icon: Pencil,
-                  run: () => {
-                    editing = true;
-                  },
-                },
-              ]
-            : []),
-          ...(actions.includes('delete')
-            ? [
-                {
-                  key: 'delete',
-                  label: 'Delete Performance…',
-                  icon: Trash,
-                  danger: true,
-                  run: () => {
-                    deleteProblem = undefined;
-                    deleting = true;
-                  },
-                },
-              ]
-            : []),
-        ],
-  );
 
   // The order shown follows the server's, except while dragging and until the new order is saved.
   let items = $derived(overview?.pieces ?? []);
@@ -126,15 +88,6 @@
     if (!outcome.ok) items = overview?.pieces ?? [];
   };
 
-  const afterDelete = async (outcome: PerformanceFormOutcome) => {
-    if (!outcome.ok) {
-      deleteProblem = outcome.problem;
-      return;
-    }
-    deleting = false;
-    await close();
-  };
-
   const description = $derived(
     overview === null
       ? ''
@@ -143,7 +96,6 @@
           ...(overview.venue === '' ? [] : [overview.venue]),
         ].join(' · '),
   );
-  const deleteCopy = $derived(performanceDialogCopy('delete', overview?.name ?? ''));
 </script>
 
 <Dialog.Root
@@ -160,20 +112,21 @@
       >
         <div class="flex items-start justify-between gap-2 p-5 pb-2">
           <div class="min-w-0 flex-1">
-            <ManageMenu actions={menu} label="Actions for {overview.name}" align="first-line">
+            <PerformanceManageMenu
+              performance={overview}
+              {actions}
+              {choirTimeZone}
+              align="first-line"
+              onDeleted={close}
+            >
               <Dialog.Title
                 class="flex flex-wrap items-center gap-2 text-xl font-semibold tracking-tight"
               >
                 {overview.name}
-                {#if overview.isMajor}
-                  <span
-                    class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-400/15 dark:text-amber-300"
-                    ><Star class="size-3 fill-current" aria-hidden="true" /> Major</span
-                  >
-                {/if}
+                {#if overview.isMajor}<MajorBadge />{/if}
               </Dialog.Title>
               <Dialog.Description class="text-sm text-zinc-500">{description}</Dialog.Description>
-            </ManageMenu>
+            </PerformanceManageMenu>
           </div>
           <Dialog.Close
             class="grid size-11 shrink-0 place-items-center rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -276,45 +229,3 @@
     {/if}
   </Dialog.Portal>
 </Dialog.Root>
-
-<PerformanceFormDialog
-  open={editing}
-  onClose={() => {
-    editing = false;
-  }}
-  performance={overview}
-  {choirTimeZone}
-  repertoire={[]}
-/>
-
-<Modal
-  alert
-  open={deleting}
-  onClose={() => {
-    deleting = false;
-  }}
-  title={deleteCopy.title}
-  description={deleteCopy.description}
->
-  {#if overview !== null}
-    <form
-      id="delete-performance-form"
-      method="POST"
-      action={performanceActionPath(formActions.performances.delete)}
-      use:enhance={submitPerformanceForm(afterDelete)}
-    >
-      <input type="hidden" name="performance" value={overview.id} />
-    </form>
-    {#if deleteProblem !== undefined}
-      <div class="mt-3"><AlertMessage>{deleteProblem}</AlertMessage></div>
-    {/if}
-  {/if}
-  {#snippet footer()}
-    <AlertDialog.Cancel>
-      {#snippet child({ props })}
-        <Btn variant="ghost" {...props}>Cancel</Btn>
-      {/snippet}
-    </AlertDialog.Cancel>
-    <Btn variant="danger" type="submit" form="delete-performance-form">{deleteCopy.submit}</Btn>
-  {/snippet}
-</Modal>

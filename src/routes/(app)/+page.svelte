@@ -6,10 +6,13 @@
   import { overviewLink } from '../../lib/core/paths';
   import { dayIn } from '../../lib/core/performances';
   import PerformanceTile from '../../lib/components/home/PerformanceTile.svelte';
+  import PerformanceManageMenu from '../../lib/components/performances/PerformanceManageMenu.svelte';
   import MajorBadge from '../../lib/components/ui/MajorBadge.svelte';
   import type { PageData } from './$types';
 
   const { data }: { readonly data: PageData } = $props();
+  // What every Performance's menu offers this Singer; with nothing allowed, it shows no menu.
+  const menu = $derived({ actions: data.performanceActions, choirTimeZone: data.choirTimeZone });
 </script>
 
 <div class="mx-auto w-full max-w-4xl px-4 py-6 lg:px-10 lg:py-10">
@@ -34,20 +37,22 @@
         >
           {#each data.past as tile (tile.id)}
             <li>
-              <a
-                href={overviewLink(tile.id)}
-                class="flex min-h-14 items-center justify-between gap-3 rounded-xl px-3 opacity-60 transition hover:bg-zinc-100 hover:opacity-100 dark:hover:bg-zinc-900"
-              >
-                <span class="min-w-0">
-                  <span class="block text-xs text-zinc-500"
-                    >{dayIn(tile.startsAt, data.choirTimeZone)}</span
-                  >
-                  <span class="flex items-center gap-2 font-medium"
-                    >{tile.name}{#if tile.isMajor}<MajorBadge />{/if}</span
-                  >
-                </span>
-                <ChevronRight class="size-4 shrink-0 text-zinc-400" aria-hidden="true" />
-              </a>
+              <PerformanceManageMenu performance={tile} {...menu}>
+                <a
+                  href={overviewLink(tile.id)}
+                  class="flex min-h-14 items-center justify-between gap-3 rounded-xl px-3 opacity-60 transition hover:bg-zinc-100 hover:opacity-100 dark:hover:bg-zinc-900"
+                >
+                  <span class="min-w-0">
+                    <span class="block text-xs text-zinc-500"
+                      >{dayIn(tile.startsAt, data.choirTimeZone)}</span
+                    >
+                    <span class="flex items-center gap-2 font-medium"
+                      >{tile.name}{#if tile.isMajor}<MajorBadge />{/if}</span
+                    >
+                  </span>
+                  <ChevronRight class="size-4 shrink-0 text-zinc-400" aria-hidden="true" />
+                </a>
+              </PerformanceManageMenu>
             </li>
           {/each}
         </ol>
@@ -72,7 +77,9 @@
             class="absolute top-6 -left-[2.1rem] size-4 rounded-full border-4 border-zinc-50 bg-primary-500 lg:-left-[3.1rem] dark:border-zinc-950"
             aria-hidden="true"
           ></span>
-          <PerformanceTile tile={data.next} hero choirTimeZone={data.choirTimeZone} />
+          <PerformanceManageMenu performance={data.next} {...menu} align="first-line">
+            <PerformanceTile tile={data.next} hero choirTimeZone={data.choirTimeZone} />
+          </PerformanceManageMenu>
         </li>
       {:else}
         <li class="text-zinc-500">No upcoming Performances.</li>
@@ -85,7 +92,9 @@
               : 'bg-primary-500'}"
             aria-hidden="true"
           ></span>
-          <PerformanceTile {tile} choirTimeZone={data.choirTimeZone} />
+          <PerformanceManageMenu performance={tile} {...menu} align="first-line">
+            <PerformanceTile {tile} choirTimeZone={data.choirTimeZone} />
+          </PerformanceManageMenu>
         </li>
       {/each}
     </ol>
