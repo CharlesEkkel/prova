@@ -1,5 +1,5 @@
-// Play-through resolver: pure core. Chooses the Practice Track to play for a Piece, and turns a
-// Performance's Pieces into an ordered list of steps. See Combined Track and Play-through in CONTEXT.md.
+// Play-through resolver: pure core. Chooses the Practice Track to play for a Piece, and resolves
+// each of a Performance's Pieces, in order, for a Play-through. See Combined Track and Play-through in CONTEXT.md.
 import { indicatorText, type PartNames, type TrackSource } from './practice-tracks';
 
 /** A track as the resolver sees it. Tracks are given in the order they were uploaded. */
@@ -19,9 +19,22 @@ export type PlaythroughOptions = {
   readonly preferVoicePart: boolean;
 };
 
-export type PlaythroughStep =
-  | { readonly kind: 'play'; readonly pieceId: string; readonly trackId: string }
-  | { readonly kind: 'pause'; readonly pieceId: string };
+/** Which track a Singer hears first on a Piece: the option that matters outside a Play-through too. */
+export type TrackPreference = Pick<PlaythroughOptions, 'preferVoicePart'>;
+
+/** What a Singer would hear on a Piece, in the part indicator's words; not `playable` when nothing would play. */
+export type WhatYouWouldHear = { readonly text: string; readonly playable: boolean };
+
+/**
+ * What a Play-through does at a Piece: play `track`, or, with no track, pause there unless
+ * `skipped`. `heard` says which, for the Overview, Home and the Play-through's "Up next".
+ */
+export type PlaythroughEntry<P extends PlaythroughPiece = PlaythroughPiece> = {
+  readonly piece: P;
+  readonly track: P['tracks'][number] | undefined;
+  readonly skipped: boolean;
+  readonly heard: WhatYouWouldHear;
+};
 
 /** The first Combined Track (the first uploaded wins when there are several). */
 const combinedTrack = <T extends PlaythroughTrack>(tracks: readonly T[]): T | undefined =>
@@ -44,50 +57,60 @@ const partTrack = <T extends PlaythroughTrack>(
 export const chooseTrack = <T extends PlaythroughTrack>(
   tracks: readonly T[],
   voicePartId: string | null,
-  preferVoicePart: boolean,
+  { preferVoicePart }: TrackPreference,
 ): T | undefined =>
   preferVoicePart
     ? (partTrack(tracks, voicePartId) ?? combinedTrack(tracks))
     : (combinedTrack(tracks) ?? partTrack(tracks, voicePartId));
 
-const resolveStep = (
-  piece: PlaythroughPiece,
+/** Why a Singer would hear nothing on a Piece: it has no tracks, or none for them. */
+const whyNothingPlays = (
+  tracks: readonly PlaythroughTrack[],
   voicePartId: string | null,
-  options: PlaythroughOptions,
-): PlaythroughStep | undefined => {
-  const track = chooseTrack(piece.tracks, voicePartId, options.preferVoicePart);
-  if (track !== undefined) return { kind: 'play', pieceId: piece.id, trackId: track.id };
-  return options.skipEmpty ? undefined : { kind: 'pause', pieceId: piece.id };
+  nameOf: PartNames,
+): string => {
+  if (tracks.length === 0) return 'No tracks yet';
+  return voicePartId === null ? 'No Combined track' : `No ${nameOf(voicePartId)} track`;
 };
 
-export const resolvePlaythrough = (
-  pieces: readonly PlaythroughPiece[],
+/** What a Singer would hear on a Piece, given the track chosen for them (if any). */
+const whatYouWouldHear = (
+  { tracks }: PlaythroughPiece,
+  track: PlaythroughTrack | undefined,
   voicePartId: string | null,
-  options: PlaythroughOptions,
-): readonly PlaythroughStep[] =>
-  pieces
-    .map((piece) => resolveStep(piece, voicePartId, options))
-    .filter((step): step is PlaythroughStep => step !== undefined);
-
-/** What Home says a Singer would hear on a Piece; not `playable` when nothing would play. */
-export type WhatYouWouldHear = { readonly text: string; readonly playable: boolean };
-
-/**
- * What a Singer would hear on a Piece by default, in the part indicator's words (`All`, `Alto only`,
- * `Alto + mix`), or why nothing would play.
- */
-export const whatYouWouldHear = (
-  tracks: readonly PlaythroughTrack[],
-  voicePartId: string,
   nameOf: PartNames,
-): WhatYouWouldHear => {
-  const track = chooseTrack(tracks, voicePartId, false);
-  if (track !== undefined) return { text: indicatorText(track.source, nameOf), playable: true };
+): WhatYouWouldHear =>
+  track === undefined
+    ? { text: whyNothingPlays(tracks, voicePartId, nameOf), playable: false }
+    : { text: indicatorText(track.source, nameOf), playable: true };
+
+const resolveEntry = <P extends PlaythroughPiece>(
+  piece: P,
+  voicePartId: string | null,
+  nameOf: PartNames,
+  options: PlaythroughOptions,
+): PlaythroughEntry<P> => {
+  const track = chooseTrack(piece.tracks, voicePartId, options);
   return {
-    text: tracks.length === 0 ? 'No tracks yet' : `No ${nameOf(voicePartId)} track`,
-    playable: false,
+    piece,
+    track,
+    skipped: track === undefined && options.skipEmpty,
+    heard: whatYouWouldHear(piece, track, voicePartId, nameOf),
   };
 };
+
+/**
+ * Every Piece of a Performance, in order, with what a Play-through does there and what the Singer
+ * would hear, in the part indicator's words (`All`, `Alto only`, `Alto + mix`) or why nothing would
+ * play.
+ */
+export const resolvePlaythrough = <P extends PlaythroughPiece>(
+  pieces: readonly P[],
+  voicePartId: string | null,
+  nameOf: PartNames,
+  options: PlaythroughOptions,
+): readonly PlaythroughEntry<P>[] =>
+  pieces.map((piece) => resolveEntry(piece, voicePartId, nameOf, options));
 
 /** What a Singer picked in the part indicator: leave it to the default, or play this one once. */
 export type PartChoice =
@@ -97,15 +120,19 @@ export type PartChoice =
 
 export const defaultChoice: PartChoice = { type: 'default' };
 
-/** The track a Piece plays for this choice; with no choice, the default for the Singer's Voice Part. */
+/**
+ * The track a Piece plays for this choice; with no choice, the default for the Singer's Voice Part
+ * and their prefer-my-Voice-Part option.
+ */
 export const trackForChoice = <T extends PlaythroughTrack>(
   tracks: readonly T[],
   voicePartId: string | null,
   choice: PartChoice,
+  preference: TrackPreference,
 ): T | undefined => {
   switch (choice.type) {
     case 'default':
-      return chooseTrack(tracks, voicePartId, false);
+      return chooseTrack(tracks, voicePartId, preference);
     case 'combined':
       return combinedTrack(tracks);
     case 'part':

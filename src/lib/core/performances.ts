@@ -4,7 +4,12 @@ import type { DialogCopy } from './admin-dialogs';
 import { choirTimeOf, instantOfChoirTime, localDateTimeOf, type ChoirTimeZone } from './choir-time';
 import type { Permission } from './permissions';
 import type { PieceSummary } from './pieces';
-import { whatYouWouldHear, type PlaythroughTrack, type WhatYouWouldHear } from './playthrough';
+import {
+  resolvePlaythrough,
+  type PlaythroughOptions,
+  type PlaythroughTrack,
+  type WhatYouWouldHear,
+} from './playthrough';
 import type { PartNames } from './practice-tracks';
 import type { DatabaseRefusal } from './voice-parts';
 
@@ -100,6 +105,9 @@ export type HomeTile = PerformanceDetails & {
   readonly pieces: readonly HomeTilePiece[];
 };
 
+/** Home has no Play-through options, so its tiles say what the defaults would play. */
+const homeOptions: PlaythroughOptions = { skipEmpty: false, preferVoicePart: false };
+
 /** What a Home tile shows for a Singer singing `voicePartId`, at `now`. */
 export const homeTileOf = (
   { pieces, ...performance }: HomePerformance,
@@ -110,10 +118,9 @@ export const homeTileOf = (
 ): HomeTile => ({
   ...performance,
   startsIn: startsIn(performance.startsAt, performance.endsAt, now, zone),
-  pieces: pieces.map(({ tracks, ...piece }) => ({
-    ...piece,
-    heard: whatYouWouldHear(tracks, voicePartId, nameOf),
-  })),
+  pieces: resolvePlaythrough(pieces, voicePartId, nameOf, homeOptions).map(
+    ({ piece: { id, title, composer }, heard }) => ({ id, title, composer, heard }),
+  ),
 });
 
 /** A past Performance on Home: a dimmed row, without its Pieces. */

@@ -5,7 +5,6 @@ import {
   defaultChoice,
   trackForChoice,
   resolvePlaythrough,
-  whatYouWouldHear,
   type PlaythroughPiece,
   type PlaythroughTrack,
 } from './playthrough';
@@ -21,12 +20,8 @@ const part = (
   kind: TrackKind = 'part-only',
 ): PlaythroughTrack => ({ id, source: { type: 'part', voicePartId, kind } });
 
-const pieces: readonly PlaythroughPiece[] = [
-  { id: 'a', tracks: [part('a-alto', alto), combined('a-all')] },
-  { id: 'b', tracks: [] },
-  { id: 'c', tracks: [combined('c-all')] },
-  { id: 'd', tracks: [part('d-alto', alto, 'part-predominant')] },
-];
+const byDefault = { preferVoicePart: false };
+const preferringPart = { preferVoicePart: true };
 
 describe('chooseTrack', () => {
   it.each([
@@ -35,92 +30,171 @@ describe('chooseTrack', () => {
     ['only the Singer part', [part('p', alto)], 'p', 'p'],
   ])(
     'with %s plays Combined first, or the part first when preferred',
-    (_name, tracks, byDefault, preferred) => {
-      expect(chooseTrack(tracks, alto, false)?.id).toBe(byDefault);
-      expect(chooseTrack(tracks, alto, true)?.id).toBe(preferred);
+    (_name, tracks, playedByDefault, playedPreferringPart) => {
+      expect(chooseTrack(tracks, alto, byDefault)?.id).toBe(playedByDefault);
+      expect(chooseTrack(tracks, alto, preferringPart)?.id).toBe(playedPreferringPart);
     },
   );
 
   it('plays nothing when the Piece has no track for the Singer and no Combined Track', () => {
-    expect(chooseTrack([part('t', tenor)], alto, false)).toBeUndefined();
-    expect(chooseTrack<PlaythroughTrack>([], alto, true)).toBeUndefined();
+    expect(chooseTrack([part('t', tenor)], alto, byDefault)).toBeUndefined();
+    expect(chooseTrack<PlaythroughTrack>([], alto, preferringPart)).toBeUndefined();
   });
 
   it('uses the first listed when there are several for the same part or several Combined Tracks', () => {
     const tracks = [part('a2', alto), part('a1', alto), combined('c2'), combined('c1')];
 
-    expect(chooseTrack(tracks, alto, false)?.id).toBe('c2');
-    expect(chooseTrack(tracks, alto, true)?.id).toBe('a2');
+    expect(chooseTrack(tracks, alto, byDefault)?.id).toBe('c2');
+    expect(chooseTrack(tracks, alto, preferringPart)?.id).toBe('a2');
   });
 
   it('plays a part-predominant track like a part-only one', () => {
-    expect(chooseTrack([part('p', alto, 'part-predominant')], alto, false)?.id).toBe('p');
+    expect(chooseTrack([part('p', alto, 'part-predominant')], alto, byDefault)?.id).toBe('p');
   });
 
   it('falls back to Combined for a Singer with no Voice Part', () => {
-    expect(chooseTrack([part('p', alto), combined('c')], null, true)?.id).toBe('c');
-    expect(chooseTrack([part('p', alto)], null, false)).toBeUndefined();
+    expect(chooseTrack([part('p', alto), combined('c')], null, preferringPart)?.id).toBe('c');
+    expect(chooseTrack([part('p', alto)], null, byDefault)).toBeUndefined();
   });
 });
 
 describe('resolvePlaythrough', () => {
-  it('plays Combined, falls back to the part, and pauses at an empty Piece', () => {
-    const steps = resolvePlaythrough(pieces, alto, { skipEmpty: false, preferVoicePart: false });
-    expect(steps).toEqual([
-      { kind: 'play', pieceId: 'a', trackId: 'a-all' },
-      { kind: 'pause', pieceId: 'b' },
-      { kind: 'play', pieceId: 'c', trackId: 'c-all' },
-      { kind: 'play', pieceId: 'd', trackId: 'd-alto' },
+  const nameOf = (voicePartId: string) => (voicePartId === alto ? 'Alto' : 'Tenor');
+
+  // One Performance with every Piece shape, resolved for an Alto.
+  const performance: readonly PlaythroughPiece[] = [
+    { id: 'both', tracks: [part('both-alto', alto), combined('both-all')] },
+    { id: 'all-and-tenor', tracks: [part('tenor-part', tenor), combined('all-and-tenor-all')] },
+    { id: 'none', tracks: [] },
+    { id: 'combined', tracks: [combined('combined-all')] },
+    { id: 'alto-only', tracks: [part('alto-only-alto', alto)] },
+    { id: 'alto-mix', tracks: [part('alto-mix-alto', alto, 'part-predominant')] },
+    { id: 'tenor', tracks: [part('tenor-tenor', tenor)] },
+  ];
+  const everySkipEmpty = [false, true];
+  const everyPreferVoicePart = [false, true];
+
+  // Prefer-my-Voice-Part decides what plays and what the label says (`-` for nothing),
+  // whatever skip-empty is.
+  it.each([
+    {
+      preferVoicePart: false,
+      played: [
+        'both-all',
+        'all-and-tenor-all',
+        '-',
+        'combined-all',
+        'alto-only-alto',
+        'alto-mix-alto',
+        '-',
+      ],
+      heard: ['All', 'All', 'No tracks yet', 'All', 'Alto only', 'Alto + mix', 'No Alto track'],
+    },
+    {
+      preferVoicePart: true,
+      played: [
+        'both-alto',
+        'all-and-tenor-all',
+        '-',
+        'combined-all',
+        'alto-only-alto',
+        'alto-mix-alto',
+        '-',
+      ],
+      heard: [
+        'Alto only',
+        'All',
+        'No tracks yet',
+        'All',
+        'Alto only',
+        'Alto + mix',
+        'No Alto track',
+      ],
+    },
+  ])(
+    'with prefer-my-Voice-Part $preferVoicePart, plays and labels every Piece in order',
+    ({ preferVoicePart, played, heard }) => {
+      for (const skipEmpty of everySkipEmpty) {
+        const entries = resolvePlaythrough(performance, alto, nameOf, {
+          skipEmpty,
+          preferVoicePart,
+        });
+
+        expect(entries.map((entry) => entry.piece)).toEqual(performance);
+        expect(entries.map(({ track }) => track?.id ?? '-')).toEqual(played);
+        expect(entries.map((entry) => entry.heard.text)).toEqual(heard);
+        expect(entries.map((entry) => entry.heard.playable)).toEqual(
+          played.map((id) => id !== '-'),
+        );
+      }
+    },
+  );
+
+  // Skip-empty decides which Pieces are skipped, whatever prefer-my-Voice-Part is.
+  it.each([
+    { skipEmpty: false, skipped: [false, false, false, false, false, false, false] },
+    { skipEmpty: true, skipped: [false, false, true, false, false, false, true] },
+  ])(
+    'with skip-empty $skipEmpty, skips only Pieces with nothing to play',
+    ({ skipEmpty, skipped }) => {
+      for (const preferVoicePart of everyPreferVoicePart) {
+        const entries = resolvePlaythrough(performance, alto, nameOf, {
+          skipEmpty,
+          preferVoicePart,
+        });
+
+        expect(entries.map((entry) => entry.skipped)).toEqual(skipped);
+      }
+    },
+  );
+
+  it('plays a Singer with no Voice Part the Combined Track, or says there is none', () => {
+    const pieces: readonly PlaythroughPiece[] = [
+      { id: 'both', tracks: [part('p', alto), combined('c')] },
+      { id: 'alto-only', tracks: [part('a', alto)] },
+    ];
+
+    const entries = resolvePlaythrough(pieces, null, nameOf, {
+      skipEmpty: false,
+      preferVoicePart: true,
+    });
+
+    expect(entries.map(({ track }) => track?.id ?? '-')).toEqual(['c', '-']);
+    expect(entries.map((entry) => entry.heard)).toEqual([
+      { text: 'All', playable: true },
+      { text: 'No Combined track', playable: false },
     ]);
-  });
-
-  it('skips Pieces with no usable track when asked', () => {
-    const steps = resolvePlaythrough(pieces, alto, { skipEmpty: true, preferVoicePart: false });
-    expect(steps.map((s) => s.pieceId)).toEqual(['a', 'c', 'd']);
-  });
-
-  it('prefers the Singer part when asked', () => {
-    const steps = resolvePlaythrough(pieces, alto, { skipEmpty: true, preferVoicePart: true });
-    expect(steps).toEqual([
-      { kind: 'play', pieceId: 'a', trackId: 'a-alto' },
-      { kind: 'play', pieceId: 'c', trackId: 'c-all' },
-      { kind: 'play', pieceId: 'd', trackId: 'd-alto' },
-    ]);
-  });
-
-  it('pauses at a Piece with only another part, and skips it when asked', () => {
-    const other: readonly PlaythroughPiece[] = [{ id: 'e', tracks: [part('e-tenor', tenor)] }];
-
-    expect(resolvePlaythrough(other, alto, { skipEmpty: false, preferVoicePart: false })).toEqual([
-      { kind: 'pause', pieceId: 'e' },
-    ]);
-    expect(resolvePlaythrough(other, alto, { skipEmpty: true, preferVoicePart: false })).toEqual(
-      [],
-    );
   });
 
   it('answers nothing for an empty Performance', () => {
-    expect(resolvePlaythrough([], alto, { skipEmpty: false, preferVoicePart: false })).toEqual([]);
+    expect(
+      resolvePlaythrough([], alto, nameOf, { skipEmpty: true, preferVoicePart: true }),
+    ).toEqual([]);
   });
 });
 
 describe('trackForChoice', () => {
   const tracks = [part('a-alto', alto), part('a-tenor', tenor), combined('a-all')];
 
-  it('plays the default with no choice made', () => {
-    expect(trackForChoice(tracks, alto, defaultChoice)?.id).toBe('a-all');
+  it('plays the default with no choice made, honouring prefer-my-Voice-Part', () => {
+    expect(trackForChoice(tracks, alto, defaultChoice, byDefault)?.id).toBe('a-all');
+    expect(trackForChoice(tracks, alto, defaultChoice, preferringPart)?.id).toBe('a-alto');
   });
 
-  it('plays the Combined Track or the chosen part once', () => {
-    expect(trackForChoice(tracks, alto, { type: 'combined' })?.id).toBe('a-all');
-    expect(trackForChoice(tracks, alto, { type: 'part', voicePartId: tenor })?.id).toBe('a-tenor');
+  it('plays the Combined Track or the chosen part once, whatever the option', () => {
+    expect(trackForChoice(tracks, alto, { type: 'combined' }, preferringPart)?.id).toBe('a-all');
+    expect(trackForChoice(tracks, alto, { type: 'part', voicePartId: tenor }, byDefault)?.id).toBe(
+      'a-tenor',
+    );
   });
 
   it('plays nothing for a part the Piece has no track for', () => {
     expect(
-      trackForChoice(tracks, alto, { type: 'part', voicePartId: 'part-bass' }),
+      trackForChoice(tracks, alto, { type: 'part', voicePartId: 'part-bass' }, byDefault),
     ).toBeUndefined();
-    expect(trackForChoice([part('x', alto)], alto, { type: 'combined' })).toBeUndefined();
+    expect(
+      trackForChoice([part('x', alto)], alto, { type: 'combined' }, byDefault),
+    ).toBeUndefined();
   });
 });
 
@@ -132,32 +206,5 @@ describe('choiceOptions', () => {
     expect([...offered.voicePartIds]).toEqual([alto]);
     expect(choiceOptions([part('t', tenor)]).hasCombined).toBe(false);
     expect(choiceOptions([]).voicePartIds.size).toBe(0);
-  });
-});
-
-describe('whatYouWouldHear', () => {
-  const nameOf = (voicePartId: string) => (voicePartId === alto ? 'Alto' : 'Tenor');
-
-  it.each([
-    ['the Combined Track when there is one', [part('p', alto), combined('c')], 'All'],
-    ['the part-only track when there is no Combined Track', [part('p', alto)], 'Alto only'],
-    [
-      'the part-predominant track the same way',
-      [part('p', alto, 'part-predominant')],
-      'Alto + mix',
-    ],
-  ])('says it plays %s', (_name, tracks, text) => {
-    expect(whatYouWouldHear(tracks, alto, nameOf)).toEqual({ text, playable: true });
-  });
-
-  it('says a Piece with no Practice Tracks has none yet', () => {
-    expect(whatYouWouldHear([], alto, nameOf)).toEqual({ text: 'No tracks yet', playable: false });
-  });
-
-  it('says when a Piece has tracks but none the Singer would hear', () => {
-    expect(whatYouWouldHear([part('t', tenor)], alto, nameOf)).toEqual({
-      text: 'No Alto track',
-      playable: false,
-    });
   });
 });

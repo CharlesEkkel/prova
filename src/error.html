@@ -1,0 +1,100 @@
+<!doctype html>
+<!-- The page SvelteKit shows when it cannot render src/routes/+error.svelte: an error in the hooks
+     (such as the gate failing to check access) or a file link opened directly. Keep it looking like
+     +error.svelte, in plain CSS since Tailwind is not loaded here. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>%sveltekit.error.message% · Prova</title>
+    <!-- Follow the saved Display Mode, as app.html does (same storage key and logic). -->
+    <script>
+      var choice = 'system';
+      try {
+        var saved = localStorage.getItem('prova-display-mode');
+        if (saved === 'light' || saved === 'dark') choice = saved;
+      } catch (e) {}
+      var dark =
+        choice === 'dark' ||
+        (choice === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.classList.toggle('dark', dark);
+    </script>
+    <style>
+      /* Tailwind's zinc palette, as body uses in app.css. */
+      :root {
+        --bg: oklch(98.5% 0 0);
+        --fg: oklch(21% 0.006 285.885);
+        --divider: oklch(87.1% 0.006 286.286);
+        --link: oklch(44.2% 0.017 285.786);
+        color-scheme: light;
+      }
+      :root.dark {
+        --bg: oklch(14.1% 0.005 285.823);
+        --fg: oklch(96.7% 0.001 286.375);
+        --divider: oklch(44.2% 0.017 285.786);
+        --link: oklch(70.5% 0.015 286.067);
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.5rem;
+        padding: 0 1rem;
+        box-sizing: border-box;
+        background: var(--bg);
+        color: var(--fg);
+        font-family:
+          ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+          'Segoe UI Symbol', 'Noto Color Emoji';
+        -webkit-font-smoothing: antialiased;
+      }
+      .error {
+        display: flex;
+        align-items: center;
+        max-width: 32rem;
+      }
+      .status {
+        position: relative;
+        top: -1px;
+        font-size: 3rem;
+        font-weight: 200;
+        line-height: 1;
+      }
+      .message {
+        display: flex;
+        align-items: center;
+        min-height: 2.5rem;
+        margin-left: 1rem;
+        padding-left: 1rem;
+        border-left: 1px solid var(--divider);
+      }
+      h1 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 400;
+      }
+      a {
+        font-size: 0.875rem;
+        color: var(--link);
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+      a:hover {
+        color: var(--fg);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="error">
+      <span class="status">%sveltekit.status%</span>
+      <div class="message"><h1>%sveltekit.error.message%</h1></div>
+    </div>
+    <!-- paths.home in src/lib/core/paths.ts. -->
+    <a href="/">Back to Home</a>
+  </body>
+</html>

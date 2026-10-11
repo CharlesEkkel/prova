@@ -177,11 +177,35 @@ test.describe('the Repertoire', () => {
     }
   });
 
-  test('answers 404 for a Piece that does not exist', async ({ page, context }) => {
+  test('answers 404 for a Piece that does not exist, with a way back Home', async ({
+    page,
+    context,
+  }) => {
     await signInAsApprovedSinger(context);
 
     const response = await page.goto(`/repertoire/${randomUUID()}`);
 
     expect(response?.status()).toBe(404);
+    await expect(page.getByText('404', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'There is no such Piece.' })).toBeVisible();
+    await page.getByRole('link', { name: 'Back to Home' }).click();
+    await expect(page).toHaveURL('/');
+  });
+
+  test('shows the same error page for a missing file opened directly', async ({
+    page,
+    context,
+  }) => {
+    await signInAsApprovedSinger(context);
+
+    const response = await page.goto(`/repertoire/${randomUUID()}/tracks/${randomUUID()}/audio`);
+
+    expect(response?.status()).toBe(404);
+    await expect(page.getByText('404', { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'There is no such Practice Track.' }),
+    ).toBeVisible();
+    await page.getByRole('link', { name: 'Back to Home' }).click();
+    await expect(page).toHaveURL('/');
   });
 });
