@@ -1,7 +1,8 @@
 <script lang="ts">
   // Every error a page or its load raises (a missing page, a missing Piece, no Permission) lands
-  // here. It matches the fallback SvelteKit shows when the hooks themselves fail, so a Singer sees
-  // the same calm screen whatever went wrong.
+  // here. src/error.html covers the rest (the hooks, file links); keep the two looking the same, so
+  // a Singer sees one calm screen whatever went wrong. The link stays neutral because that page
+  // cannot know the Colour Theme.
   import { page } from '$app/state';
   import { paths } from '../lib/core/paths';
 
@@ -21,7 +22,7 @@
   </div>
   <a
     href={paths.home}
-    class="text-sm text-primary-600 underline-offset-4 hover:underline dark:text-primary-400"
+    class="text-sm text-zinc-600 underline underline-offset-4 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
   >
     Back to Home
   </a>
