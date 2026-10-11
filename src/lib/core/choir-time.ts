@@ -10,9 +10,6 @@ export type ChoirTimeZone = string & { readonly [choirTimeZoneBrand]: true };
 /** A date and time with no zone, as a date-and-time field holds it (`2027-03-01T19:00`). */
 export type LocalDateTime = string & { readonly [localDateTimeBrand]: true };
 
-/** The zone the setting starts as, matching the database's default. */
-export const defaultChoirTimeZone = 'UTC';
-
 const knowsZone = (name: string): boolean => {
   try {
     new Intl.DateTimeFormat('en-GB', { timeZone: name });
@@ -22,10 +19,19 @@ const knowsZone = (name: string): boolean => {
   }
 };
 
+const isChoirTimeZone = (name: string): name is ChoirTimeZone => knowsZone(name);
+
 /** `name` as a Choir Time Zone if it is one, otherwise null. */
 export const choirTimeZoneOf = (name: string): ChoirTimeZone | null =>
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- validation boundary: Intl has accepted the name
-  knowsZone(name) ? (name as ChoirTimeZone) : null;
+  isChoirTimeZone(name) ? name : null;
+
+const unreachable = (why: string): never => {
+  throw new Error(`unreachable: ${why}`);
+};
+
+/** The zone the setting starts as, matching the database's default. */
+export const defaultChoirTimeZone: ChoirTimeZone =
+  choirTimeZoneOf('UTC') ?? unreachable('every runtime knows UTC');
 
 /** Every zone the runtime knows, for the setting's picker, with UTC first. */
 export const choirTimeZones = (): readonly string[] => [
@@ -43,7 +49,7 @@ type Fields = {
   readonly minute: number;
 };
 
-const fieldsOf = (local: string): Fields | null => {
+const fieldsOfLocal = (local: string): Fields | null => {
   const match = localPattern.exec(local);
   if (match === null) return null;
   const [year, month, day, hour, minute] = match.slice(1).map(Number);
@@ -65,7 +71,7 @@ const asUtc = ({ year, month, day, hour, minute }: Fields): number =>
 
 /** `raw` as a local date and time if it names a real one, otherwise null. */
 export const localDateTimeOf = (raw: string): LocalDateTime | null => {
-  const fields = fieldsOf(raw);
+  const fields = fieldsOfLocal(raw);
   if (fields === null || fields.hour > 23 || fields.minute > 59) return null;
   const roundTrip = new Date(asUtc(fields));
   // A day that does not exist (30 February) rolls over into the next month.
@@ -107,8 +113,8 @@ const offsetAt = (moment: number, zone: ChoirTimeZone): number =>
  * by the hour they skip; a time they pass twice is read as the later one.
  */
 export const instantOfChoirTime = (local: LocalDateTime, zone: ChoirTimeZone): Date => {
-  const fields = fieldsOf(local);
-  if (fields === null) throw new Error('unreachable: a LocalDateTime always has its fields');
+  const fields = fieldsOfLocal(local);
+  if (fields === null) return unreachable('a LocalDateTime always has its fields');
   const wall = asUtc(fields);
   const first = offsetAt(wall, zone);
   const second = offsetAt(wall - first, zone);

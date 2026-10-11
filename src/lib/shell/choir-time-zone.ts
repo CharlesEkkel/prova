@@ -1,37 +1,22 @@
-// Shell: changing the Choir Time Zone, a site setting beside the Colour Theme (ADR 0004). Reading it
-// is `loadChoirTimeZone` in ./performances, where Performance times are read.
+// Shell: the Choir Time Zone, a site setting beside the Colour Theme (ADR 0004): reading it for
+// Performance times, and changing it from Appearance.
 import { Effect, Schema } from 'effect';
-import { choirTimeZoneOf, type ChoirTimeZone } from '../core/choir-time';
 import type { AdminProblem } from '../core/admin-problems';
+import { choirTimeZoneOf, defaultChoirTimeZone, type ChoirTimeZone } from '../core/choir-time';
 import { problemOf } from './admin-commands';
-import { callSupabaseAs, SupabaseCallFailed, type Supabase } from './supabase';
+import { saveSiteSettings } from './site-settings';
+import { callSupabaseAs, type Supabase, type SupabaseCallFailed } from './supabase';
 
-/** Postgres' "insufficient privilege": what a refusal by row-level security looks like elsewhere. */
-const notAllowedCode = '42501';
+const ZoneRow = Schema.Struct({ choir_time_zone: Schema.String });
 
-const ZoneRows = Schema.Array(Schema.Struct({ choir_time_zone: Schema.String }));
-
-/**
- * Changes the Choir Time Zone. The database refuses anyone without `manage-users` by changing no
- * rows, so a reply without the row is a refusal.
- */
-const saveChoirTimeZone = (
+/** The Choir Time Zone; the default if the setting names a zone this runtime does not know. */
+export const loadChoirTimeZone = (
   supabase: Supabase,
-  zone: ChoirTimeZone,
-): Effect.Effect<void, SupabaseCallFailed> =>
-  callSupabaseAs(ZoneRows, () =>
-    // PostgREST refuses an update with no filter; the table has one row, so this matches it.
-    supabase
-      .from('site_settings')
-      .update({ choir_time_zone: zone })
-      .not('choir_time_zone', 'is', null)
-      .select('choir_time_zone'),
+): Effect.Effect<ChoirTimeZone, SupabaseCallFailed> =>
+  callSupabaseAs(ZoneRow, () =>
+    supabase.from('site_settings').select('choir_time_zone').single(),
   ).pipe(
-    Effect.flatMap((rows) =>
-      rows.length === 1
-        ? Effect.void
-        : Effect.fail(new SupabaseCallFailed({ cause: { code: notAllowedCode } })),
-    ),
+    Effect.map(({ choir_time_zone }) => choirTimeZoneOf(choir_time_zone) ?? defaultChoirTimeZone),
   );
 
 const ZoneForm = Schema.Struct({ zone: Schema.String });
@@ -48,6 +33,6 @@ export const chooseChoirTimeZone = (
       const known = choirTimeZoneOf(zone);
       return known === null
         ? Effect.fail<AdminProblem>('invalid')
-        : saveChoirTimeZone(supabase, known).pipe(Effect.mapError(problemOf));
+        : saveSiteSettings(supabase, { choir_time_zone: known }).pipe(Effect.mapError(problemOf));
     }),
   );

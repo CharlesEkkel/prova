@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { formActions } from '../../../../lib/core/paths';
-import { mayAddPiecesToPerformances } from '../../../../lib/core/performances';
+import { mayChangeRunningOrder } from '../../../../lib/core/performances';
 import { pieceActionsFor, pieceIdOf } from '../../../../lib/core/pieces';
 import { mayUploadTrack, trackActionsFor } from '../../../../lib/core/practice-tracks';
 import { choirChoiceAtUpload, mayUploadScore, scoreActionsFor } from '../../../../lib/core/scores';
@@ -41,7 +41,10 @@ export const load: PageServerLoad = async ({ locals, params }) => {
     valueOrNull(loadPerformancesOfPiece(locals.supabase, id)),
   ]);
   if (tracks === null || scores === null || voiceParts === null || pieceIsIn === null) {
-    error(503, 'The Practice Tracks and Scores could not be loaded. Try again in a moment.');
+    error(
+      503,
+      'The Practice Tracks, Scores and Performances could not be loaded. Try again in a moment.',
+    );
   }
   const { visitor } = locals;
   const held = visitor.stage === 'ready' ? visitor.permissions : [];
@@ -57,7 +60,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
     // The database enforces these; they only decide what to show.
     // Editing the Piece's own details needs `update`, as in the Repertoire.
     mayEditPiece: pieceActionsFor(held).includes('edit'),
-    mayAddToPerformances: mayAddPiecesToPerformances(held),
+    mayAddToPerformances: mayChangeRunningOrder(held),
     mayUpload: mayUploadTrack(held),
     trackActions: trackActionsFor(held),
     uploadLimitMiB,

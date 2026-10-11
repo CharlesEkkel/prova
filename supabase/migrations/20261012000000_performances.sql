@@ -1,5 +1,7 @@
 -- Performances (#20): an event with a name, a start and an end (stored as UTC) and an optional venue.
--- Reading needs `read`. Writing goes only through the functions below: `append` creates.
+-- Name and venue are up to 120 characters, the name at least 1. Reading needs `read`. Writing goes
+-- only through the functions below: `append` creates, `update` edits and changes the running order,
+-- `delete` deletes.
 create table public.performances (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -8,6 +10,9 @@ create table public.performances (
   venue text not null default '',
   is_major boolean not null default false,
   created_at timestamptz not null default now(),
+  constraint performances_name_shape
+    check (name = btrim(name) and char_length(name) between 1 and 120),
+  constraint performances_venue_shape check (venue = btrim(venue) and char_length(venue) <= 120),
   constraint performances_ends_after_start check (ends_at > starts_at)
 );
 
@@ -42,6 +47,7 @@ create policy performance_pieces_read on public.performance_pieces for select to
 -- `except_performance` is the Performance being edited, if any.
 create function public.check_performance(
   performance_name text,
+  performance_venue text,
   performance_starts_at timestamptz,
   performance_ends_at timestamptz,
   except_performance uuid
@@ -53,6 +59,11 @@ security definer
 set search_path = ''
 as $$
 begin
+  if char_length(public.tidy_text(performance_name)) not between 1 and 120
+    or char_length(public.tidy_text(performance_venue)) > 120
+  then
+    raise exception 'a Performance needs a name of 1 to 120 characters and a venue of up to 120' using errcode = '22023', hint = 'invalid';
+  end if;
   if performance_ends_at <= performance_starts_at then
     raise exception 'a Performance must end after it starts' using errcode = '22023', hint = 'invalid';
   end if;
@@ -85,7 +96,7 @@ declare
   added uuid;
 begin
   perform public.require_permission('append');
-  perform public.check_performance(performance_name, performance_starts_at, performance_ends_at, null);
+  perform public.check_performance(performance_name, performance_venue, performance_starts_at, performance_ends_at, null);
 
   insert into public.performances (name, starts_at, ends_at, venue, is_major)
     values (
@@ -122,7 +133,7 @@ begin
   if not exists (select 1 from public.performances where id = target) then
     raise exception 'unknown Performance' using errcode = 'P0002';
   end if;
-  perform public.check_performance(performance_name, performance_starts_at, performance_ends_at, target);
+  perform public.check_performance(performance_name, performance_venue, performance_starts_at, performance_ends_at, target);
 
   update public.performances
     set name = public.tidy_text(performance_name),
@@ -258,7 +269,7 @@ begin
 end;
 $$;
 
-revoke execute on function public.check_performance(text, timestamptz, timestamptz, uuid) from public, anon, authenticated;
+revoke execute on function public.check_performance(text, text, timestamptz, timestamptz, uuid) from public, anon, authenticated;
 revoke execute on function public.add_performance(text, timestamptz, timestamptz, text, boolean, uuid[]) from public, anon;
 grant execute on function public.add_performance(text, timestamptz, timestamptz, text, boolean, uuid[]) to authenticated;
 revoke execute on function public.update_performance(uuid, text, timestamptz, timestamptz, text) from public, anon;

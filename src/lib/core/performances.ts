@@ -12,15 +12,12 @@ export type PerformanceId = string & { readonly [performanceIdBrand]: true };
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** `raw` as a Performance id if it is a UUID, otherwise null. */
-export const performanceIdOf = (raw: string): PerformanceId | null =>
-  uuidPattern.test(raw) ? brand(raw) : null;
-
 export const isPerformanceId = (value: unknown): value is PerformanceId =>
   typeof value === 'string' && uuidPattern.test(value);
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- validation boundary: only called on text performanceIdOf has checked
-const brand = (id: string): PerformanceId => id as PerformanceId;
+/** `raw` as a Performance id if it is a UUID, otherwise null. */
+export const performanceIdOf = (raw: string): PerformanceId | null =>
+  isPerformanceId(raw) ? raw : null;
 
 export type SidebarPerformance = {
   readonly id: PerformanceId;
@@ -114,6 +111,29 @@ export const performanceWhen = (startsAt: Date, endsAt: Date, zone: ChoirTimeZon
     : `${startDay}, ${clockIn(startsAt, zone)} – ${endDay}, ${clockIn(endsAt, zone)}`;
 };
 
+/** A Piece as the New Performance dialog offers it for the first Pieces. */
+type Findable = { readonly title: string; readonly composer: string };
+
+/** The Pieces whose title or composer contains `search`, ignoring case and outer spaces. */
+export const matchingPieces = <Piece extends Findable>(
+  pieces: readonly Piece[],
+  search: string,
+): readonly Piece[] => {
+  const wanted = search.trim().toLowerCase();
+  return pieces.filter(({ title, composer }) =>
+    `${title} ${composer}`.toLowerCase().includes(wanted),
+  );
+};
+
+/**
+ * The first Pieces, in the order they were ticked: the running order a new Performance starts with.
+ * Ticking one already ticked keeps its place; unticking takes it out.
+ */
+export const toggleTicked = <Id>(ticked: readonly Id[], id: Id, on: boolean): readonly Id[] => {
+  if (!on) return ticked.filter((other) => other !== id);
+  return ticked.includes(id) ? ticked : [...ticked, id];
+};
+
 /** Whether New Performance is shown: creating one, with its first Pieces and major mark, needs `append`. */
 export const mayCreatePerformance = (held: readonly Permission[]): boolean =>
   held.includes('append');
@@ -128,15 +148,18 @@ export const performanceActionsFor = (
   ...(held.includes('delete') ? (['delete'] as const) : []),
 ];
 
-/** Whether a Piece's menu offers "Add to a Performance…": changing a running order needs `update`. */
-export const mayAddPiecesToPerformances = (held: readonly Permission[]): boolean =>
+/**
+ * Whether a Singer may change a running order: "Add to a Performance…", "Remove from this
+ * Performance" and dragging the Pieces into a new order all need `update`.
+ */
+export const mayChangeRunningOrder = (held: readonly Permission[]): boolean =>
   held.includes('update');
 
 export type PieceRowAction = 'remove';
 
 /** The actions on a Piece's row in the Overview: "Remove from this Performance" needs `update`. */
 export const pieceRowActionsFor = (held: readonly Permission[]): readonly PieceRowAction[] =>
-  held.includes('update') ? ['remove'] : [];
+  mayChangeRunningOrder(held) ? ['remove'] : [];
 
 /** Why a change to a Performance was not made. */
 export type PerformanceProblem =
@@ -157,7 +180,8 @@ export const performanceProblemOf = ({ code, hint }: DatabaseRefusal): Performan
   if (code === '42501') return 'not-allowed';
   if (code === '23505') return hint === 'duplicate' ? 'duplicate' : 'already-in';
   if (code === '22023') return hint === 'stale-list' ? 'list-changed' : 'invalid';
-  return code === 'P0002' ? 'gone' : 'failed';
+  // 23503: a Piece or Performance named in the change was deleted meanwhile.
+  return code === 'P0002' || code === '23503' ? 'gone' : 'failed';
 };
 
 export type PerformanceDialogKind = 'new' | 'edit' | 'delete';

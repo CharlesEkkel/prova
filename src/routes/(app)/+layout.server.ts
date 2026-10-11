@@ -2,14 +2,16 @@ import { error, redirect } from '@sveltejs/kit';
 import { mayOpenAdmin } from '../../lib/core/admin-rules';
 import { overviewParam, paths } from '../../lib/core/paths';
 import {
-  mayAddPiecesToPerformances,
+  mayChangeRunningOrder,
   mayCreatePerformance,
   performanceActionsFor,
   performanceIdOf,
   pieceRowActionsFor,
   sidebarPerformances,
 } from '../../lib/core/performances';
-import { loadChoirTimeZone, loadOverview, loadPerformances } from '../../lib/shell/performances';
+import type { PieceSummary } from '../../lib/core/pieces';
+import { loadChoirTimeZone } from '../../lib/shell/choir-time-zone';
+import { loadOverview, loadPerformances } from '../../lib/shell/performances';
 import { loadRepertoire } from '../../lib/shell/pieces';
 import { valueOrNull } from '../../lib/shell/run';
 import type { LayoutServerLoad } from './$types';
@@ -41,10 +43,14 @@ export const load: LayoutServerLoad = async ({ locals: { visitor, supabase }, ur
     choirTimeZone,
     // The database enforces these; they only decide what to show.
     mayCreatePerformance: mayCreate,
-    mayAddPiecesToPerformances: mayAddPiecesToPerformances(held),
+    mayChangeRunningOrder: mayChangeRunningOrder(held),
     performanceActions: performanceActionsFor(held),
     pieceRowActions: pieceRowActionsFor(held),
-    repertoire: repertoire.map(({ id, title, composer }) => ({ id, title, composer })),
+    repertoire: repertoire.map(({ id, title, composer }): PieceSummary => ({
+      id,
+      title,
+      composer,
+    })),
     // The Performance whose Overview is open, from `?overview=`; an unknown one opens nothing.
     overview,
   };

@@ -6,7 +6,7 @@
   import { formActions, performanceActionPath } from '../../core/paths';
   import { performanceWhen, type AddToPerformanceChoice } from '../../core/performances';
   import type { PieceId } from '../../core/pieces';
-  import { submitElsewhere, type ElsewhereOutcome } from '../../shell/enhance';
+  import { submitPerformanceForm, type PerformanceFormOutcome } from '../../shell/enhance';
   import AlertMessage from '../AlertMessage.svelte';
   import Btn from '../ui/Btn.svelte';
   import CheckRow from '../ui/CheckRow.svelte';
@@ -36,7 +36,7 @@
     if (open) problem = undefined;
   });
 
-  const done = (outcome: ElsewhereOutcome) => {
+  const done = (outcome: PerformanceFormOutcome) => {
     if (outcome.ok) onClose();
     else problem = outcome.problem;
   };
@@ -60,7 +60,7 @@
       id="{uid}-form"
       method="POST"
       action={performanceActionPath(formActions.performances.addPiece)}
-      use:enhance={submitElsewhere(done)}
+      use:enhance={submitPerformanceForm(done)}
       class="flex flex-col gap-1"
     >
       <input type="hidden" name="piece" value={pieceId} />

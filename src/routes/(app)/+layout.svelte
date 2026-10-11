@@ -118,4 +118,5 @@
   choirTimeZone={data.choirTimeZone}
   actions={data.performanceActions}
   rowActions={data.pieceRowActions}
+  mayChangeOrder={data.mayChangeRunningOrder}
 />

@@ -70,7 +70,9 @@ export const formActions = {
 export const actionPath = (name: string): string => `?/${name}`;
 
 /** The address of a Performance form action, which works from any page. */
-export const performanceActionPath = (name: string): string => `${paths.performances}?/${name}`;
+export const performanceActionPath = (
+  name: (typeof formActions.performances)[keyof typeof formActions.performances],
+): string => `${paths.performances}?/${name}`;
 
 /** `path` (which may already have a query), carrying `next` along unless that is just home. */
 export const pathWithNext = (path: string, next: SafePath): string => {

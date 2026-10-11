@@ -308,6 +308,31 @@ test.describe('a Piece and its Performances', () => {
     ]);
   });
 
+  test('offers Add to a Performance from the Piece’s row in the Repertoire too', async ({
+    page,
+    context,
+  }) => {
+    const title = `From the list ${unique()}`;
+    const name = `Listed in ${unique()}`;
+    const piece = await newPiece(title);
+    await newPerformance(name);
+    await signInAsSingerWith(context, ['update']);
+    await page.goto('/repertoire');
+    await settle(page);
+
+    await page.getByRole('button', { name: `Actions for ${title}` }).click();
+    await page.getByRole('menuitem', { name: 'Add to a Performance…' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Add to a Performance' });
+    await dialog.getByRole('checkbox', { name: new RegExp(name) }).click();
+    await dialog.getByRole('button', { name: 'Add' }).click();
+    await expect(dialog).toBeHidden();
+
+    await openPiece(page, piece);
+    await expect(
+      page.getByRole('region', { name: 'In Performances' }).getByRole('link'),
+    ).toHaveText([name]);
+  });
+
   test('does not offer Add to a Performance without update', async ({ page, context }) => {
     const title = `Not mine ${unique()}`;
     const piece = await newPiece(title);

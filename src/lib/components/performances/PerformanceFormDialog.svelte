@@ -5,24 +5,17 @@
   // Performance actions from whatever page it is on and shows a refusal inside itself.
   import { enhance } from '$app/forms';
   import { goto } from '$app/navigation';
-  import { Schema } from 'effect';
   import { choirTimeOf, type ChoirTimeZone } from '../../core/choir-time';
   import { overviewLink, formActions, performanceActionPath } from '../../core/paths';
-  import { isPerformanceId, performanceDialogCopy } from '../../core/performances';
-  import type { PieceId } from '../../core/pieces';
-  import { submitElsewhere, type ElsewhereOutcome } from '../../shell/enhance';
+  import { matchingPieces, performanceDialogCopy, toggleTicked } from '../../core/performances';
+  import type { PieceId, PieceSummary } from '../../core/pieces';
+  import { submitPerformanceForm, type PerformanceFormOutcome } from '../../shell/enhance';
   import type { PerformanceOverview } from '../../shell/performances';
   import AlertMessage from '../AlertMessage.svelte';
   import Btn from '../ui/Btn.svelte';
   import CheckRow from '../ui/CheckRow.svelte';
   import Modal from '../ui/Modal.svelte';
   import { fieldLabel, hint, input } from '../ui/styles';
-
-  type RepertoirePiece = {
-    readonly id: PieceId;
-    readonly title: string;
-    readonly composer: string;
-  };
 
   const {
     open,
@@ -37,7 +30,7 @@
     readonly performance: PerformanceOverview | null;
     readonly choirTimeZone: ChoirTimeZone;
     /** The Pieces a new Performance can start with. */
-    readonly repertoire: readonly RepertoirePiece[];
+    readonly repertoire: readonly PieceSummary[];
   } = $props();
 
   const uid = $props.id();
@@ -58,27 +51,16 @@
     }
   });
 
-  const shown = $derived(
-    repertoire.filter(({ title, composer }) =>
-      `${title} ${composer}`.toLowerCase().includes(search.trim().toLowerCase()),
-    ),
-  );
+  const shown = $derived(matchingPieces(repertoire, search));
 
-  const tick = (id: PieceId, on: boolean) => {
-    ticked = on ? [...ticked.filter((other) => other !== id), id] : ticked.filter((o) => o !== id);
-  };
-
-  const Created = Schema.Struct({ id: Schema.declare(isPerformanceId) });
-  const isCreated = Schema.is(Created);
-
-  const done = async (outcome: ElsewhereOutcome) => {
+  const done = async (outcome: PerformanceFormOutcome) => {
     if (!outcome.ok) {
       problem = outcome.problem;
       return;
     }
     onClose();
     // A new Performance opens its Overview, on the page the Singer is on.
-    if (isCreated(outcome.data)) await goto(overviewLink(outcome.data.id));
+    if (outcome.created !== null) await goto(overviewLink(outcome.created));
   };
 
   const localValue = (moment: Date | undefined): string =>
@@ -93,7 +75,7 @@
       action={performanceActionPath(
         performance === null ? formActions.performances.create : formActions.performances.update,
       )}
-      use:enhance={submitElsewhere(done)}
+      use:enhance={submitPerformanceForm(done)}
       class="flex flex-col gap-5"
     >
       {#if performance !== null}
@@ -177,7 +159,7 @@
                 value={piece.id}
                 checked={ticked.includes(piece.id)}
                 onChange={(on: boolean) => {
-                  tick(piece.id, on);
+                  ticked = toggleTicked(ticked, piece.id, on);
                 }}
                 title={piece.title}
                 detail={ticked.includes(piece.id)

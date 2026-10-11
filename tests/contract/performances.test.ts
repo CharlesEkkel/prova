@@ -141,6 +141,42 @@ describe('creating a Performance', () => {
   });
 });
 
+describe('a Performance’s name and venue', () => {
+  it('refuses a blank name, and a name or venue over 120 characters', async () => {
+    const appender = await singerHolding('read', 'append');
+
+    const blank = await createAs(appender, { name: '   ' });
+    const longName = await createAs(appender, { name: 'x'.repeat(121) });
+    const longVenue = await createAs(appender, { venue: 'x'.repeat(121) });
+
+    for (const reply of [blank, longName, longVenue]) expect(reply.error?.code).toBe('22023');
+  });
+
+  it('refuses a blank name on edit too', async () => {
+    const updater = await singerHolding('read', 'update');
+    const target = await existingPerformance();
+
+    const reply = await editAs(updater, target, {
+      name: '  ',
+      startsAt: '2027-06-01T17:00:00Z',
+      endsAt: '2027-06-01T19:00:00Z',
+      venue: '',
+    });
+
+    expect(reply.error?.code).toBe('22023');
+  });
+
+  it('is also held by the table, whoever writes to it', async () => {
+    const { data, error } = await serviceClient()
+      .from('performances')
+      .insert({ name: '', starts_at: '2027-01-01T18:00:00Z', ends_at: '2027-01-01T20:00:00Z' })
+      .select('id');
+    if (data !== null) created.push(...data.map(({ id }) => id));
+
+    expect(error).not.toBeNull();
+  });
+});
+
 describe('a Performance’s name and start', () => {
   it('may not both repeat, ignoring case and extra spaces', async () => {
     const appender = await singerHolding('read', 'append');
@@ -593,5 +629,28 @@ describe('the Repertoire', () => {
     const { data } = await reader.client.rpc('repertoire', { only_piece: piece });
 
     expect(data?.map(({ performances }) => performances)).toEqual([2]);
+  });
+});
+
+describe('a Singer with only read', () => {
+  it('cannot edit a Performance or add to, remove from or reorder its Pieces', async () => {
+    const reader = await singerHolding('read');
+    const [first, second] = [await existingPiece(), await existingPiece()];
+    const performance = await performanceHolding(first);
+    const before = await stored(performance);
+
+    const edit = await editAs(reader, performance, {
+      name: `Renamed ${unique()}`,
+      startsAt: '2027-06-01T17:00:00Z',
+      endsAt: '2027-06-01T19:00:00Z',
+      venue: '',
+    });
+    const add = await addToAs(reader, second, [performance]);
+    const remove = await removeFromAs(reader, performance, first);
+    const reorder = await reorderAs(reader, performance, [first]);
+
+    for (const reply of [edit, add, remove, reorder]) expect(reply.error?.code).toBe('42501');
+    expect(await stored(performance)).toEqual(before);
+    expect(await runningOrder(performance)).toEqual([first]);
   });
 });

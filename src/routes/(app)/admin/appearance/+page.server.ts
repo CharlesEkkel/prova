@@ -7,8 +7,7 @@ import {
   resetColourTheme,
 } from '../../../../lib/shell/colour-theme';
 import { choirTimeZones } from '../../../../lib/core/choir-time';
-import { chooseChoirTimeZone } from '../../../../lib/shell/choir-time-zone';
-import { loadChoirTimeZone } from '../../../../lib/shell/performances';
+import { chooseChoirTimeZone, loadChoirTimeZone } from '../../../../lib/shell/choir-time-zone';
 import { failureOrNull, valueOrNull } from '../../../../lib/shell/run';
 import type { Actions, PageServerLoad } from './$types';
 

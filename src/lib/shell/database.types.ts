@@ -451,6 +451,7 @@ export type Database = {
           performance_ends_at: string;
           performance_name: string;
           performance_starts_at: string;
+          performance_venue: string;
         };
         Returns: undefined;
       };

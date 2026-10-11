@@ -2,7 +2,6 @@
 // Each command reads its form once, then calls one RPC; the database decides whether the caller may
 // and whether the change is allowed.
 import { Effect, Schema } from 'effect';
-import { choirTimeZoneOf, defaultChoirTimeZone, type ChoirTimeZone } from '../core/choir-time';
 import {
   isPerformanceId,
   performanceMessages,
@@ -12,7 +11,8 @@ import {
   type PerformanceProblem,
   type SidebarPerformance,
 } from '../core/performances';
-import type { PieceId } from '../core/pieces';
+import type { PieceId, PieceSummary } from '../core/pieces';
+import { loadChoirTimeZone } from './choir-time-zone';
 import { formRunner, refusalOf } from './form';
 import { PieceIdSchema } from './pieces';
 import { callSupabase, callSupabaseAs, type Supabase, type SupabaseCallFailed } from './supabase';
@@ -46,35 +46,10 @@ export const loadPerformances = (
     supabase.from('performances').select(performanceColumns),
   ).pipe(Effect.map((rows) => rows.map(performanceOf)));
 
-const ZoneRow = Schema.Struct({ choir_time_zone: Schema.String });
-
-/** The Choir Time Zone; UTC if the setting names a zone this runtime does not know. */
-export const loadChoirTimeZone = (
-  supabase: Supabase,
-): Effect.Effect<ChoirTimeZone, SupabaseCallFailed> =>
-  callSupabaseAs(ZoneRow, () =>
-    supabase.from('site_settings').select('choir_time_zone').single(),
-  ).pipe(
-    Effect.map(
-      ({ choir_time_zone }) =>
-        choirTimeZoneOf(choir_time_zone) ?? choirTimeZoneOf(defaultChoirTimeZone) ?? fallbackZone,
-    ),
-  );
-
-// eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- UTC is always a time zone
-const fallbackZone = defaultChoirTimeZone as ChoirTimeZone;
-
-/** One Piece in a Performance's running order. */
-export type OverviewPiece = {
-  readonly id: PieceId;
-  readonly title: string;
-  readonly composer: string;
-};
-
 /** A Performance as its Overview shows it: its details and its Pieces in running order. */
 export type PerformanceOverview = SidebarPerformance & {
   readonly venue: string;
-  readonly pieces: readonly OverviewPiece[];
+  readonly pieces: readonly PieceSummary[];
 };
 
 const OverviewRow = Schema.Struct({
@@ -125,6 +100,26 @@ export const loadPerformancesOfPiece = (
   callSupabaseAs(Schema.Array(MembershipRow), () =>
     supabase.from('performance_pieces').select('performance_id').eq('piece_id', piece),
   ).pipe(Effect.map((rows) => rows.map(({ performance_id }) => performance_id)));
+
+const EntryRow = Schema.Struct({ piece_id: PieceIdSchema, performance_id: PerformanceIdSchema });
+
+/** Which Performance each Piece is in, for every Piece at once: one entry per Piece per Performance. */
+export const loadPerformanceEntries = (
+  supabase: Supabase,
+): Effect.Effect<
+  readonly { readonly pieceId: PieceId; readonly performanceId: PerformanceId }[],
+  SupabaseCallFailed
+> =>
+  callSupabaseAs(Schema.Array(EntryRow), () =>
+    supabase.from('performance_pieces').select('piece_id, performance_id'),
+  ).pipe(
+    Effect.map((rows) =>
+      rows.map(({ piece_id, performance_id }) => ({
+        pieceId: piece_id,
+        performanceId: performance_id,
+      })),
+    ),
+  );
 
 // Plain text for the name and venue: the database decides what they may be. The times are read in
 // the Choir Time Zone, and `piece` repeats, once per Piece, in the order they were ticked.

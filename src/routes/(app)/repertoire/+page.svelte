@@ -1,7 +1,8 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
   import { AlertDialog } from 'bits-ui';
-  import { Pencil, Plus, Trash } from '@lucide/svelte';
+  import { CalendarPlus, Pencil, Plus, Trash } from '@lucide/svelte';
+  import AddToPerformancesDialog from '../../../lib/components/performances/AddToPerformancesDialog.svelte';
   import AlertMessage from '../../../lib/components/AlertMessage.svelte';
   import PieceFormDialog from '../../../lib/components/PieceFormDialog.svelte';
   import PieceLink from '../../../lib/components/PieceLink.svelte';
@@ -11,6 +12,7 @@
   import Modal from '../../../lib/components/ui/Modal.svelte';
   import { card } from '../../../lib/components/ui/styles';
   import { actionPath, formActions } from '../../../lib/core/paths';
+  import { addToPerformanceChoices } from '../../../lib/core/performances';
   import { pieceDialogCopy, type RepertoireEntry } from '../../../lib/core/pieces';
   import { closeOnSuccess } from '../../../lib/shell/enhance';
   import type { ActionData, PageData } from './$types';
@@ -19,14 +21,20 @@
 
   type Dialog =
     | { readonly kind: 'new' }
-    | { readonly kind: 'edit' | 'delete'; readonly piece: RepertoireEntry };
+    | { readonly kind: 'edit' | 'delete' | 'add-to-performances'; readonly piece: RepertoireEntry };
   const dialog = createDialogState<Dialog>();
   const current = $derived(dialog.current);
   const subjectOf = (shown: Dialog): RepertoireEntry | null =>
     shown.kind === 'new' ? null : shown.piece;
   const copy = $derived(
-    current === null ? null : pieceDialogCopy(current.kind, subjectOf(current)),
+    current === null || current.kind === 'add-to-performances'
+      ? null
+      : pieceDialogCopy(current.kind, subjectOf(current)),
   );
+  const performancesOf = (piece: RepertoireEntry) =>
+    data.performanceEntries
+      .filter(({ pieceId }) => pieceId === piece.id)
+      .map(({ performanceId }) => performanceId);
   const closeIfDone = closeOnSuccess(dialog.close);
 
   // A refusal is shown inside the open dialog. Reopening a dialog does not bring back the last one's.
@@ -47,6 +55,18 @@
             icon: Pencil,
             run: () => {
               openDialog({ kind: 'edit', piece });
+            },
+          },
+        ]
+      : []),
+    ...(data.mayAddToPerformances
+      ? [
+          {
+            key: 'add-to-performances',
+            label: 'Add to a Performance…',
+            icon: CalendarPlus,
+            run: () => {
+              openDialog({ kind: 'add-to-performances', piece });
             },
           },
         ]
@@ -102,6 +122,17 @@
     {/each}
   </ul>
 </div>
+
+{#if current?.kind === 'add-to-performances'}
+  <AddToPerformancesDialog
+    open
+    onClose={dialog.close}
+    pieceId={current.piece.id}
+    pieceTitle={current.piece.title}
+    choices={addToPerformanceChoices(data.performances, performancesOf(current.piece), new Date())}
+    choirTimeZone={data.choirTimeZone}
+  />
+{/if}
 
 <PieceFormDialog
   open={current?.kind === 'new' || current?.kind === 'edit'}

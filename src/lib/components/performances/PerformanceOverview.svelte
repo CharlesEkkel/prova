@@ -19,8 +19,9 @@
     type PerformanceAction,
     type PieceRowAction,
   } from '../../core/performances';
-  import { submitElsewhere, type ElsewhereOutcome } from '../../shell/enhance';
-  import type { OverviewPiece, PerformanceOverview } from '../../shell/performances';
+  import { submitPerformanceForm, type PerformanceFormOutcome } from '../../shell/enhance';
+  import type { PieceSummary } from '../../core/pieces';
+  import type { PerformanceOverview } from '../../shell/performances';
   import AlertMessage from '../AlertMessage.svelte';
   import Btn from '../ui/Btn.svelte';
   import ManageMenu from '../ui/ManageMenu.svelte';
@@ -32,12 +33,15 @@
     choirTimeZone,
     actions,
     rowActions,
+    mayChangeOrder,
   }: {
     /** The Performance whose Overview is open, or null when none is. */
     readonly overview: PerformanceOverview | null;
     readonly choirTimeZone: ChoirTimeZone;
     readonly actions: readonly PerformanceAction[];
     readonly rowActions: readonly PieceRowAction[];
+    /** Whether the Pieces can be dragged into a new order. */
+    readonly mayChangeOrder: boolean;
   } = $props();
 
   const close = () => goto(withoutOverview(page.url), { reset: false });
@@ -81,27 +85,25 @@
         ],
   );
 
-  const mayChangeOrder = $derived(rowActions.includes('remove'));
-
   // The order shown follows the server's, except while dragging and until the new order is saved.
   let items = $derived(overview?.pieces ?? []);
   const flipDurationMs = 150;
   let reorderForm = $state<HTMLFormElement | null>(null);
   let removeForm = $state<HTMLFormElement | null>(null);
-  let removing = $state<OverviewPiece | null>(null);
+  let removing = $state<PieceSummary | null>(null);
 
-  const onConsider = (event: CustomEvent<DndEvent<OverviewPiece>>) => {
+  const onConsider = (event: CustomEvent<DndEvent<PieceSummary>>) => {
     items = event.detail.items;
   };
 
-  const onFinalize = async (event: CustomEvent<DndEvent<OverviewPiece>>) => {
+  const onFinalize = async (event: CustomEvent<DndEvent<PieceSummary>>) => {
     items = event.detail.items;
     // Wait for the form's hidden fields to show the dropped order before sending them.
     await tick();
     reorderForm?.requestSubmit();
   };
 
-  const rowMenu = (piece: OverviewPiece) =>
+  const rowMenu = (piece: PieceSummary) =>
     rowActions.includes('remove')
       ? [
           {
@@ -118,13 +120,13 @@
         ]
       : [];
 
-  const showProblem = (outcome: ElsewhereOutcome) => {
+  const showProblem = (outcome: PerformanceFormOutcome) => {
     problem = outcome.ok ? undefined : outcome.problem;
-    // A refused move puts the server's order back.
+    // A refused move shows the order the server has now, which the page has just reloaded.
     if (!outcome.ok) items = overview?.pieces ?? [];
   };
 
-  const afterDelete = async (outcome: ElsewhereOutcome) => {
+  const afterDelete = async (outcome: PerformanceFormOutcome) => {
     if (!outcome.ok) {
       deleteProblem = outcome.problem;
       return;
@@ -196,7 +198,7 @@
             bind:this={reorderForm}
             method="POST"
             action={performanceActionPath(formActions.performances.reorder)}
-            use:enhance={submitElsewhere(showProblem)}
+            use:enhance={submitPerformanceForm(showProblem)}
             class="hidden"
           >
             <input type="hidden" name="performance" value={overview.id} />
@@ -208,7 +210,7 @@
             bind:this={removeForm}
             method="POST"
             action={performanceActionPath(formActions.performances.removePiece)}
-            use:enhance={submitElsewhere(showProblem)}
+            use:enhance={submitPerformanceForm(showProblem)}
             class="hidden"
           >
             <input type="hidden" name="performance" value={overview.id} />
@@ -299,7 +301,7 @@
       id="delete-performance-form"
       method="POST"
       action={performanceActionPath(formActions.performances.delete)}
-      use:enhance={submitElsewhere(afterDelete)}
+      use:enhance={submitPerformanceForm(afterDelete)}
     >
       <input type="hidden" name="performance" value={overview.id} />
     </form>

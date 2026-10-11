@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { choirTimeZoneOf, type ChoirTimeZone } from './choir-time';
 import {
-  mayAddPiecesToPerformances,
+  mayChangeRunningOrder,
+  matchingPieces,
+  toggleTicked,
   mayCreatePerformance,
   performanceActionsFor,
   performanceDialogCopy,
@@ -108,6 +110,7 @@ describe('performanceProblemOf', () => {
     expect(performanceProblemOf({ code: '22023', hint: 'invalid' })).toBe('invalid');
     expect(performanceProblemOf({ code: '22023', hint: 'stale-list' })).toBe('list-changed');
     expect(performanceProblemOf({ code: 'P0002' })).toBe('gone');
+    expect(performanceProblemOf({ code: '23503' })).toBe('gone');
     expect(performanceProblemOf({})).toBe('failed');
   });
 });
@@ -124,9 +127,9 @@ describe('who sees which Performance actions', () => {
     expect(performanceActionsFor(['read', 'update', 'delete'])).toEqual(['edit', 'delete']);
   });
 
-  it('shows Add to a Performance and Remove from this Performance only with update', () => {
-    expect(mayAddPiecesToPerformances(['read', 'append'])).toBe(false);
-    expect(mayAddPiecesToPerformances(['read', 'update'])).toBe(true);
+  it('shows Add to a Performance, Remove and reordering only with update', () => {
+    expect(mayChangeRunningOrder(['read', 'append'])).toBe(false);
+    expect(mayChangeRunningOrder(['read', 'update'])).toBe(true);
     expect(pieceRowActionsFor(['read', 'append', 'delete'])).toEqual([]);
     expect(pieceRowActionsFor(['read', 'update'])).toEqual(['remove']);
   });
@@ -191,5 +194,24 @@ describe('addToPerformanceChoices', () => {
       ['later', false, true],
       ['past', true, false],
     ]);
+  });
+});
+
+describe('choosing first Pieces', () => {
+  const ave = { title: 'Ave Verum', composer: 'Mozart' };
+  const gloria = { title: 'Gloria', composer: 'Vivaldi' };
+
+  it('finds Pieces by title or composer, ignoring case and outer spaces', () => {
+    expect(matchingPieces([ave, gloria], '  mozart ')).toEqual([ave]);
+    expect(matchingPieces([ave, gloria], 'GLO')).toEqual([gloria]);
+    expect(matchingPieces([ave, gloria], '')).toEqual([ave, gloria]);
+  });
+
+  it('keeps the Pieces in the order they were ticked, and drops one unticked', () => {
+    const ticked = toggleTicked(toggleTicked(toggleTicked([], 'b', true), 'a', true), 'c', true);
+
+    expect(ticked).toEqual(['b', 'a', 'c']);
+    expect(toggleTicked(ticked, 'a', false)).toEqual(['b', 'c']);
+    expect(toggleTicked(ticked, 'b', true)).toEqual(['b', 'a', 'c']);
   });
 });
