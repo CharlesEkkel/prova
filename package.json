@@ -59,7 +59,7 @@
     "pdfjs-dist": "^6.3.289",
     "prettier": "^3.9.9",
     "prettier-plugin-svelte": "^4.1.1",
-    "supabase": "^2.118.0",
+    "supabase": "^2.120.0",
     "svelte": "^5.57.1",
     "svelte-check": "^4.7.6",
     "svelte-dnd-action": "^0.9.79",
