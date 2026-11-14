@@ -3,6 +3,10 @@ import {
   choiceOptions,
   chooseTrack,
   defaultChoice,
+  firstStop,
+  overviewRowText,
+  playButtonText,
+  playCount,
   trackForChoice,
   resolvePlaythrough,
   type PlaythroughEntry,
@@ -199,6 +203,124 @@ describe('resolvePlaythrough', () => {
     expect(
       resolvePlaythrough([], alto, nameOf, { skipEmpty: true, preferVoicePart: true }),
     ).toEqual([]);
+  });
+});
+
+describe('playCount', () => {
+  const nameOf = () => 'Alto';
+  const pieces: readonly PlaythroughPiece[] = [
+    { id: 'combined', tracks: [combined('c')] },
+    { id: 'none', tracks: [] },
+    { id: 'tenor', tracks: [part('t', tenor)] },
+    { id: 'alto', tracks: [part('a', alto)] },
+  ];
+
+  it('counts every Piece when skip-empty is off, since a Play-through pauses at an empty one', () => {
+    const entries = resolvePlaythrough(pieces, alto, nameOf, {
+      skipEmpty: false,
+      preferVoicePart: false,
+    });
+
+    expect(playCount(entries)).toBe(4);
+  });
+
+  it('counts only the Pieces not skipped when skip-empty is on', () => {
+    const entries = resolvePlaythrough(pieces, alto, nameOf, {
+      skipEmpty: true,
+      preferVoicePart: false,
+    });
+
+    expect(playCount(entries)).toBe(2);
+  });
+
+  it('counts nothing for an empty Performance, or one whose every Piece is skipped', () => {
+    expect(playCount([])).toBe(0);
+    expect(
+      playCount(
+        resolvePlaythrough([{ id: 'none', tracks: [] }], alto, nameOf, {
+          skipEmpty: true,
+          preferVoicePart: false,
+        }),
+      ),
+    ).toBe(0);
+  });
+});
+
+describe('firstStop', () => {
+  const nameOf = () => 'Alto';
+  const pieces: readonly PlaythroughPiece[] = [
+    { id: 'none', tracks: [] },
+    { id: 'tenor', tracks: [part('t', tenor)] },
+    { id: 'combined', tracks: [combined('c')] },
+  ];
+
+  it('is the first Piece when skip-empty is off, even one the Play-through pauses at', () => {
+    const entries = resolvePlaythrough(pieces, alto, nameOf, {
+      skipEmpty: false,
+      preferVoicePart: false,
+    });
+
+    expect(firstStop(entries)?.piece.id).toBe('none');
+  });
+
+  it('is the first Piece not skipped when skip-empty is on', () => {
+    const entries = resolvePlaythrough(pieces, alto, nameOf, {
+      skipEmpty: true,
+      preferVoicePart: false,
+    });
+
+    expect(firstStop(entries)?.piece.id).toBe('combined');
+  });
+
+  it('is nothing when every Piece is skipped, or there are none', () => {
+    expect(firstStop([])).toBeUndefined();
+    expect(
+      firstStop(
+        resolvePlaythrough([{ id: 'none', tracks: [] }], alto, nameOf, {
+          skipEmpty: true,
+          preferVoicePart: false,
+        }),
+      ),
+    ).toBeUndefined();
+  });
+});
+
+describe('overviewRowText', () => {
+  const nameOf = () => 'Alto';
+  const pieces: readonly PlaythroughPiece[] = [
+    { id: 'combined', tracks: [combined('c')] },
+    { id: 'none', tracks: [] },
+    { id: 'tenor', tracks: [part('t', tenor)] },
+  ];
+
+  it('says what the Singer would hear, or why nothing plays where the Play-through pauses', () => {
+    const entries = resolvePlaythrough(pieces, alto, nameOf, {
+      skipEmpty: false,
+      preferVoicePart: false,
+    });
+
+    expect(entries.map(overviewRowText)).toEqual(['All', 'No tracks yet', 'No Alto track']);
+  });
+
+  it('marks a skipped Piece Skipped and keeps the reason', () => {
+    const entries = resolvePlaythrough(pieces, alto, nameOf, {
+      skipEmpty: true,
+      preferVoicePart: false,
+    });
+
+    expect(entries.map(overviewRowText)).toEqual([
+      'All',
+      'Skipped · No tracks yet',
+      'Skipped · No Alto track',
+    ]);
+  });
+});
+
+describe('playButtonText', () => {
+  it('says how many Pieces the Play-through stops at', () => {
+    expect(playButtonText(3)).toBe('Play through · 3 Pieces');
+    expect(playButtonText(1)).toBe('Play through · 1 Piece');
+    expect(playButtonText(0)).toBe('Play through · 0 Pieces');
   });
 });
 

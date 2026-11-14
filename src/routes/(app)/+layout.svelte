@@ -119,4 +119,6 @@
   actions={data.performanceActions}
   rowActions={data.pieceRowActions}
   mayChangeOrder={data.mayChangeRunningOrder}
+  voicePartId={data.voicePartId}
+  voiceParts={data.voiceParts}
 />

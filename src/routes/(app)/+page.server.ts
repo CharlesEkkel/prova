@@ -5,7 +5,7 @@ import {
   homeTileOf,
   homeTimeline,
   pastRowOf,
-  type HomePerformance,
+  type PerformanceWithPieces,
 } from '../../lib/core/performances';
 import { partNamesOf } from '../../lib/core/practice-tracks';
 import { loadHomePerformances } from '../../lib/shell/performances';
@@ -28,7 +28,7 @@ export const load: PageServerLoad = async ({ locals: { visitor, supabase }, pare
   // One moment for the whole page, so the Today marker, the split and "In 3 days" agree.
   const now = new Date();
   const nameOf = partNamesOf(voiceParts);
-  const tileOf = (performance: HomePerformance) =>
+  const tileOf = (performance: PerformanceWithPieces) =>
     homeTileOf(performance, now, choirTimeZone, visitor.voicePart.id, nameOf);
   const { past, next, later } = homeTimeline(performances, now);
 

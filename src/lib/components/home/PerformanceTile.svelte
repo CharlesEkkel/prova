@@ -6,6 +6,7 @@
   import type { ChoirTimeZone } from '../../core/choir-time';
   import { overviewLink } from '../../core/paths';
   import { performanceWhenAndWhere, type HomeTile } from '../../core/performances';
+  import HeardLabel from '../HeardLabel.svelte';
   import MajorBadge from '../ui/MajorBadge.svelte';
 
   const {
@@ -62,19 +63,7 @@
       <li class="flex min-h-9 items-center gap-3 text-sm">
         <span class="w-4 shrink-0 {muted}">{index + 1}</span>
         <span class="min-w-0 flex-1 truncate font-medium">{piece.title}</span>
-        <span
-          class="inline-flex items-center gap-1.5 text-xs whitespace-nowrap {piece.heard.playable
-            ? muted
-            : hero
-              ? 'text-amber-200'
-              : 'text-amber-700 dark:text-amber-400'}"
-        >
-          <span
-            class="size-1.5 rounded-full {piece.heard.playable ? 'bg-emerald-500' : 'bg-amber-500'}"
-            aria-hidden="true"
-          ></span>
-          {piece.heard.text}
-        </span>
+        <HeardLabel text={piece.heard.text} playable={piece.heard.playable} {hero} />
       </li>
     {:else}
       <li class="text-sm {muted}">No Pieces yet.</li>

@@ -19,6 +19,12 @@ export type PlaythroughOptions = {
   readonly preferVoicePart: boolean;
 };
 
+/** Both options off: how a Play-through starts until a Singer changes them on this device. */
+export const defaultPlaythroughOptions: PlaythroughOptions = {
+  skipEmpty: false,
+  preferVoicePart: false,
+};
+
 /** Which track a Singer hears first on a Piece: the option that matters outside a Play-through too. */
 export type TrackPreference = Pick<PlaythroughOptions, 'preferVoicePart'>;
 
@@ -111,6 +117,26 @@ export const resolvePlaythrough = <P extends PlaythroughPiece>(
   options: PlaythroughOptions,
 ): readonly PlaythroughEntry<P>[] =>
   pieces.map((piece) => resolveEntry(piece, voicePartId, nameOf, options));
+
+/** Whether a Play-through stops at this Piece: to play it, or to pause there. Skipped ones it passes. */
+const isStop = ({ kind }: PlaythroughEntry): boolean => kind !== 'skip';
+
+/** How many Pieces a Play-through stops at: those it plays and those it pauses at, not the skipped. */
+export const playCount = (entries: readonly PlaythroughEntry[]): number =>
+  entries.filter(isStop).length;
+
+/** The Piece a Play-through starts at: the first it stops at, or none when it would skip them all. */
+export const firstStop = <P extends PlaythroughPiece>(
+  entries: readonly PlaythroughEntry<P>[],
+): PlaythroughEntry<P> | undefined => entries.find(isStop);
+
+/** A Piece's label in the Overview: what the Singer would hear, with `Skipped · ` before a skipped one. */
+export const overviewRowText = (entry: PlaythroughEntry): string =>
+  entry.kind === 'skip' ? `Skipped · ${entry.heard.text}` : entry.heard.text;
+
+/** The Overview's Play button: `Play through · 3 Pieces`, or `1 Piece`. */
+export const playButtonText = (count: number): string =>
+  `Play through · ${String(count)} ${count === 1 ? 'Piece' : 'Pieces'}`;
 
 /** What a Singer picked in the part indicator: leave it to the default, or play this one once. */
 export type PartChoice =
