@@ -2,6 +2,7 @@
 // their paths from here and never write one out, so renaming or moving a page is one edit.
 import type { PerformanceId } from './performances';
 import type { PieceId } from './pieces';
+import type { PlaythroughOptions } from './playthrough';
 import type { TrackId } from './practice-tracks';
 import type { ScoreId } from './scores';
 import type { SafePath } from './safe-path';
@@ -39,6 +40,10 @@ export const nextParam = 'next';
 export const signInErrorParam = 'error';
 /** The query parameter that opens a Performance's Overview on whatever page it is added to. */
 export const overviewParam = 'overview';
+
+/** The query parameters that carry a Play-through's options: `1` for on, anything else off. */
+export const skipEmptyParam = 'skip-empty';
+export const preferVoicePartParam = 'prefer-voice-part';
 
 /** Form actions: the names a page's `actions` are registered under and its forms post to. */
 export const formActions = {
@@ -96,6 +101,22 @@ export const withoutOverview = (url: Pick<URL, 'pathname' | 'search' | 'hash'>):
   const search = query.toString();
   return `${url.pathname}${search === '' ? '' : `?${search}`}${url.hash}`;
 };
+
+/** The Play-through of a Performance, from its first Piece, with these options. */
+export const playthroughPath = (
+  id: PerformanceId,
+  { skipEmpty, preferVoicePart }: PlaythroughOptions,
+): string =>
+  `${paths.performances}/${id}/play?${new URLSearchParams({
+    [skipEmptyParam]: skipEmpty ? '1' : '0',
+    [preferVoicePartParam]: preferVoicePart ? '1' : '0',
+  }).toString()}`;
+
+/** The options a Play-through's address carries; one missing or not `1` is off, as by default. */
+export const playthroughOptionsOf = (query: URLSearchParams): PlaythroughOptions => ({
+  skipEmpty: query.get(skipEmptyParam) === '1',
+  preferVoicePart: query.get(preferVoicePartParam) === '1',
+});
 
 /** The page of one Piece. */
 export const piecePath = (id: PieceId): string => `${paths.repertoire}/${id}`;

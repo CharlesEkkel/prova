@@ -5,6 +5,7 @@ import { choirTimeOf, instantOfChoirTime, localDateTimeOf, type ChoirTimeZone } 
 import type { Permission } from './permissions';
 import type { PieceSummary } from './pieces';
 import {
+  defaultPlaythroughOptions,
   resolvePlaythrough,
   type PlaythroughOptions,
   type PlaythroughTrack,
@@ -89,11 +90,11 @@ export const homeTimeline = <P extends SidebarPerformance>(
 /** What the Edit Performance dialog changes, and what a Performance's heading shows: name, times, venue. */
 export type PerformanceDetails = SidebarPerformance & { readonly venue: string };
 
-/** A Piece as Home lists it: enough to say what the Singer would hear on it. */
-export type HomePiece = PieceSummary & { readonly tracks: readonly PlaythroughTrack[] };
+/** A Piece in a Performance's running order, with its tracks: enough to say what the Singer would hear on it. */
+export type PerformancePiece = PieceSummary & { readonly tracks: readonly PlaythroughTrack[] };
 
 /** A Performance as Home loads it: its details and its Pieces, with their tracks, in running order. */
-export type HomePerformance = PerformanceDetails & { readonly pieces: readonly HomePiece[] };
+export type HomePerformance = PerformanceDetails & { readonly pieces: readonly PerformancePiece[] };
 
 /** A Piece on a Home tile, saying what the Singer would hear on it. */
 export type HomeTilePiece = PieceSummary & { readonly heard: WhatYouWouldHear };
@@ -106,7 +107,7 @@ export type HomeTile = PerformanceDetails & {
 };
 
 /** Home has no Play-through options, so its tiles say what the defaults would play. */
-const homeOptions: PlaythroughOptions = { skipEmpty: false, preferVoicePart: false };
+const homeOptions: PlaythroughOptions = defaultPlaythroughOptions;
 
 /** What a Home tile shows for a Singer singing `voicePartId`, at `now`. */
 export const homeTileOf = (

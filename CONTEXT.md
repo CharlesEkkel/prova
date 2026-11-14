@@ -53,7 +53,7 @@ The list of every Piece the choir has, including those in no Performance and tho
 _Avoid_: Library, catalogue, song list
 
 **Play-through**:
-Playing a Performance's Pieces in order, from the first Piece. Two options, both off by default: skip Pieces with no usable Practice Track (otherwise it pauses at an empty Piece), and prefer my Voice Part (off: it plays the Combined Track and falls back to the Singer's part track; on: the reverse, the Singer's part track falling back to the Combined Track). Started from the Performance Overview.
+Playing a Performance's Pieces in order, from the first Piece. Two options, both off by default: skip Pieces with no usable Practice Track (otherwise it pauses at an empty Piece), and prefer my Voice Part (off: it plays the Combined Track and falls back to the Singer's part track; on: the reverse, the Singer's part track falling back to the Combined Track). A Singer's choices are remembered per device, like the Display Mode, and apply to every Performance. Started from the Performance Overview, for a past Performance as for an upcoming one.
 _Avoid_: Playlist, queue, autoplay
 
 **Singer**:

@@ -10,10 +10,11 @@ import {
   type HomePerformance,
   type PerformanceDetails,
   type PerformanceId,
+  type PerformancePiece,
   type PerformanceProblem,
   type SidebarPerformance,
 } from '../core/performances';
-import type { PieceId, PieceSummary } from '../core/pieces';
+import type { PieceId } from '../core/pieces';
 import { trackKinds } from '../core/practice-tracks';
 import { loadChoirTimeZone } from './choir-time-zone';
 import { formRunner, refusalOf } from './form';
@@ -50,50 +51,13 @@ export const loadPerformances = (
     supabase.from('performances').select(performanceColumns),
   ).pipe(Effect.map((rows) => rows.map(performanceOf)));
 
-/** A Performance as its Overview shows it: its details and its Pieces in running order. */
+/** A Performance as its Overview shows it: its details and its Pieces, with their tracks, in running order. */
 export type PerformanceOverview = PerformanceDetails & {
-  readonly pieces: readonly PieceSummary[];
+  readonly pieces: readonly PerformancePiece[];
 };
 
-const OverviewRow = Schema.Struct({
-  ...PerformanceRow.fields,
-  venue: Schema.String,
-  performance_pieces: Schema.Array(
-    Schema.Struct({
-      position: Schema.Number,
-      piece: Schema.Struct({ id: PieceIdSchema, title: Schema.String, composer: Schema.String }),
-    }),
-  ),
-});
-
-/** One Performance with its running order, or null when there is none with that id. */
-export const loadOverview = (
-  supabase: Supabase,
-  id: PerformanceId,
-): Effect.Effect<PerformanceOverview | null, SupabaseCallFailed> =>
-  callSupabaseAs(Schema.NullOr(OverviewRow), () =>
-    supabase
-      .from('performances')
-      .select(
-        `${performanceColumns}, venue, performance_pieces(position, piece:pieces(id, title, composer))`,
-      )
-      .eq('id', id)
-      .maybeSingle(),
-  ).pipe(
-    Effect.map((row) =>
-      row === null
-        ? null
-        : {
-            ...performanceOf(row),
-            venue: row.venue,
-            pieces: row.performance_pieces
-              .toSorted((a, b) => a.position - b.position)
-              .map(({ piece }) => piece),
-          },
-    ),
-  );
-
-const HomeRow = Schema.Struct({
+// A Performance with its running order, each Piece with its tracks: what Home and the Overview load.
+const PerformanceWithPiecesRow = Schema.Struct({
   ...PerformanceRow.fields,
   venue: Schema.String,
   performance_pieces: Schema.Array(
@@ -116,6 +80,8 @@ const HomeRow = Schema.Struct({
   ),
 });
 
+const performanceWithPiecesColumns = `${performanceColumns}, venue, performance_pieces(position, piece:pieces(id, title, composer, practice_tracks(id, voice_part_id, kind, created_at)))`;
+
 /** First uploaded first, as `loadTracks` lists them, so the resolver picks the same one. */
 const byUpload = (
   a: { readonly id: string; readonly created_at: string },
@@ -123,33 +89,38 @@ const byUpload = (
 ): number =>
   new Date(a.created_at).getTime() - new Date(b.created_at).getTime() || a.id.localeCompare(b.id);
 
+const performanceWithPiecesOf = (
+  row: typeof PerformanceWithPiecesRow.Type,
+): PerformanceOverview => ({
+  ...performanceOf(row),
+  venue: row.venue,
+  pieces: row.performance_pieces
+    .toSorted((a, b) => a.position - b.position)
+    .map(({ piece: { practice_tracks, ...piece } }) => ({
+      ...piece,
+      tracks: practice_tracks.toSorted(byUpload).map((track) => ({
+        id: track.id,
+        source: sourceOf(track.voice_part_id, track.kind),
+      })),
+    })),
+});
+
+/** One Performance with its running order, or null when there is none with that id. */
+export const loadOverview = (
+  supabase: Supabase,
+  id: PerformanceId,
+): Effect.Effect<PerformanceOverview | null, SupabaseCallFailed> =>
+  callSupabaseAs(Schema.NullOr(PerformanceWithPiecesRow), () =>
+    supabase.from('performances').select(performanceWithPiecesColumns).eq('id', id).maybeSingle(),
+  ).pipe(Effect.map((row) => (row === null ? null : performanceWithPiecesOf(row))));
+
 /** Every Performance with its Pieces and their tracks, in no particular order; `homeTimeline` orders them. */
 export const loadHomePerformances = (
   supabase: Supabase,
 ): Effect.Effect<readonly HomePerformance[], SupabaseCallFailed> =>
-  callSupabaseAs(Schema.Array(HomeRow), () =>
-    supabase
-      .from('performances')
-      .select(
-        `${performanceColumns}, venue, performance_pieces(position, piece:pieces(id, title, composer, practice_tracks(id, voice_part_id, kind, created_at)))`,
-      ),
-  ).pipe(
-    Effect.map((rows) =>
-      rows.map((row) => ({
-        ...performanceOf(row),
-        venue: row.venue,
-        pieces: row.performance_pieces
-          .toSorted((a, b) => a.position - b.position)
-          .map(({ piece: { practice_tracks, ...piece } }) => ({
-            ...piece,
-            tracks: practice_tracks.toSorted(byUpload).map((track) => ({
-              id: track.id,
-              source: sourceOf(track.voice_part_id, track.kind),
-            })),
-          })),
-      })),
-    ),
-  );
+  callSupabaseAs(Schema.Array(PerformanceWithPiecesRow), () =>
+    supabase.from('performances').select(performanceWithPiecesColumns),
+  ).pipe(Effect.map((rows) => rows.map(performanceWithPiecesOf)));
 
 const MembershipRow = Schema.Struct({ performance_id: PerformanceIdSchema });
 

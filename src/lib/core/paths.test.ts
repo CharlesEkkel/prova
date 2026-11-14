@@ -12,6 +12,8 @@ import {
   overviewLink,
   pathWithNext,
   performanceActionPath,
+  playthroughOptionsOf,
+  playthroughPath,
   withoutOverview,
   paths,
   signInErrorPath,
@@ -57,6 +59,41 @@ describe('overviewLink', () => {
     const id = performanceIdOf('5d34142f-5d7d-4ea8-9e80-2d9b7a5e4c11');
     if (id === null) throw new Error('the id is valid');
     expect(overviewLink(id)).toBe('?overview=5d34142f-5d7d-4ea8-9e80-2d9b7a5e4c11');
+  });
+});
+
+describe('playthroughPath and playthroughOptionsOf', () => {
+  const id = performanceIdOf('5d34142f-5d7d-4ea8-9e80-2d9b7a5e4c11');
+  if (id === null) throw new Error('test id is not a Performance id');
+
+  it('addresses a Play-through of the Performance, carrying both options', () => {
+    expect(playthroughPath(id, { skipEmpty: false, preferVoicePart: false })).toBe(
+      '/performances/5d34142f-5d7d-4ea8-9e80-2d9b7a5e4c11/play?skip-empty=0&prefer-voice-part=0',
+    );
+    expect(playthroughPath(id, { skipEmpty: true, preferVoicePart: true })).toBe(
+      '/performances/5d34142f-5d7d-4ea8-9e80-2d9b7a5e4c11/play?skip-empty=1&prefer-voice-part=1',
+    );
+  });
+
+  it('reads the options back from the address', () => {
+    expect(playthroughOptionsOf(new URLSearchParams('skip-empty=1&prefer-voice-part=0'))).toEqual({
+      skipEmpty: true,
+      preferVoicePart: false,
+    });
+    expect(playthroughOptionsOf(new URLSearchParams('skip-empty=0&prefer-voice-part=1'))).toEqual({
+      skipEmpty: false,
+      preferVoicePart: true,
+    });
+  });
+
+  it('takes an option that is missing or not 1 as off, as by default', () => {
+    expect(playthroughOptionsOf(new URLSearchParams(''))).toEqual({
+      skipEmpty: false,
+      preferVoicePart: false,
+    });
+    expect(
+      playthroughOptionsOf(new URLSearchParams('skip-empty=yes&prefer-voice-part=true')),
+    ).toEqual({ skipEmpty: false, preferVoicePart: false });
   });
 });
 
