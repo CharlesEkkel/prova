@@ -14,6 +14,8 @@ export const createAudioPlayer = () => {
   let position = $state(0);
   let length = $state(0);
   let failed = $state(false);
+  // The browser would not play without a tap first, as when a Play-through opens from a pasted link.
+  let blocked = $state(false);
   let knownLength = 0;
 
   const audio = (): HTMLAudioElement => {
@@ -52,9 +54,12 @@ export const createAudioPlayer = () => {
     try {
       await audio().play();
       failed = false;
-    } catch {
-      // A browser refusing to play (or a file that will not load) is shown as "could not play".
-      failed = true;
+      blocked = false;
+    } catch (cause) {
+      // Playing before the Singer has tapped anything is refused; that asks for a tap, not an apology.
+      if (cause instanceof DOMException && cause.name === 'NotAllowedError') blocked = true;
+      // A file that will not load is shown as "could not play".
+      else failed = true;
     }
   };
 
@@ -64,6 +69,7 @@ export const createAudioPlayer = () => {
     length = knownLength;
     position = 0;
     failed = false;
+    blocked = false;
     ended = false;
     target.src = src;
   };
@@ -88,6 +94,10 @@ export const createAudioPlayer = () => {
     get failed() {
       return failed;
     },
+    /** Whether the browser wants a tap before it will play. */
+    get blocked() {
+      return blocked;
+    },
     /** Loads this track and plays it. Only ever called by the Singer pressing Start. */
     start: async (src: string, seconds: number | null): Promise<void> => {
       started = true;
@@ -99,6 +109,9 @@ export const createAudioPlayer = () => {
       audio().pause();
       load(src, seconds);
       if (started) await play();
+    },
+    pause: (): void => {
+      element?.pause();
     },
     toggle: async (): Promise<void> => {
       if (audio().paused) await play();

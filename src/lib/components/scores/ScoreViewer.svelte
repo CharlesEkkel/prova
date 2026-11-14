@@ -30,6 +30,7 @@
     player,
     canStart,
     onStart,
+    closesWhenSongEnds = true,
   }: {
     readonly open: boolean;
     readonly onClose: () => void;
@@ -39,6 +40,8 @@
     /** Whether Start is offered: there is a track to play and the Singer has not started one. */
     readonly canStart: boolean;
     readonly onStart: () => void;
+    /** A Play-through moves the viewer on to the next Piece's score itself, so the end of a song does not close it. */
+    readonly closesWhenSongEnds?: boolean;
   } = $props();
 
   let count = $state(0);
@@ -105,7 +108,7 @@
   let sawEnd = false;
   $effect(() => {
     const ended = player.ended;
-    if (ended && !sawEnd && open) onClose();
+    if (ended && !sawEnd && open && closesWhenSongEnds) onClose();
     sawEnd = ended;
   });
 

@@ -119,7 +119,7 @@ export const resolvePlaythrough = <P extends PlaythroughPiece>(
   pieces.map((piece) => resolveEntry(piece, voicePartId, nameOf, options));
 
 /** Whether a Play-through stops at this Piece: to play it, or to pause there. Skipped ones it passes. */
-const isStop = ({ kind }: PlaythroughEntry): boolean => kind !== 'skip';
+export const isStop = ({ kind }: PlaythroughEntry): boolean => kind !== 'skip';
 
 /** How many Pieces a Play-through stops at: those it plays and those it pauses at, not the skipped. */
 export const playCount = (entries: readonly PlaythroughEntry[]): number =>

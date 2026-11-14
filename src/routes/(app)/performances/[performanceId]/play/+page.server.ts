@@ -2,15 +2,18 @@ import { error, redirect } from '@sveltejs/kit';
 import { Effect } from 'effect';
 import { homeOverviewPath, paths, playthroughOptionsOf } from '../../../../../lib/core/paths';
 import { performanceIdOf } from '../../../../../lib/core/performances';
-import { firstStop, resolvePlaythrough } from '../../../../../lib/core/playthrough';
-import { partNamesOf } from '../../../../../lib/core/practice-tracks';
+import { choirScoreOf } from '../../../../../lib/core/scores';
 import { loadOverview } from '../../../../../lib/shell/performances';
+import { loadTracks } from '../../../../../lib/shell/practice-tracks';
 import { valueOrNull } from '../../../../../lib/shell/run';
+import { loadScores } from '../../../../../lib/shell/scores';
 import { loadVoiceParts } from '../../../../../lib/shell/voice-parts';
 import type { PageServerLoad } from './$types';
 
-// A stand-in for the Play-through player (#24): it shows what the Overview's Play button started,
-// so the hand-over from the Overview is in place before the player is.
+const unavailable = 'The Play-through could not be loaded. Try again in a moment.';
+
+// The Play-through player: a Performance's Pieces in running order, each with its Practice Tracks
+// and choir score, as they are now. The run plays these and does not reload them as it goes.
 export const load: PageServerLoad = async ({ locals: { visitor, supabase }, params, url }) => {
   // The gate lets only a ready Singer in here; anyone else goes back through it.
   if (visitor.stage !== 'ready') redirect(303, paths.home);
@@ -22,25 +25,36 @@ export const load: PageServerLoad = async ({ locals: { visitor, supabase }, para
     valueOrNull(loadOverview(supabase, id).pipe(Effect.map((performance) => ({ performance })))),
     valueOrNull(loadVoiceParts(supabase)),
   ]);
-  if (loaded === null || voiceParts === null) {
-    error(503, 'The Performance could not be loaded. Try again in a moment.');
-  }
+  if (loaded === null || voiceParts === null) error(503, unavailable);
   const { performance } = loaded;
   if (performance === null) error(404, 'There is no such Performance.');
 
-  const options = playthroughOptionsOf(url.searchParams);
-  const entries = resolvePlaythrough(
-    performance.pieces,
-    visitor.voicePart.id,
-    partNamesOf(voiceParts),
-    options,
+  // The player needs each track's length and label, and each Piece's Scores, beyond what the
+  // running order carries.
+  const pieces = await valueOrNull(
+    Effect.all(
+      performance.pieces.map(({ id: pieceId, title, composer }) =>
+        Effect.all([loadTracks(supabase, pieceId), loadScores(supabase, pieceId)]).pipe(
+          Effect.map(([tracks, scores]) => ({
+            id: pieceId,
+            title,
+            composer,
+            tracks,
+            choirScore: choirScoreOf(scores) ?? null,
+          })),
+        ),
+      ),
+      { concurrency: 'unbounded' },
+    ),
   );
-  const first = firstStop(entries);
+  if (pieces === null) error(503, unavailable);
 
   return {
-    name: performance.name,
-    options,
-    first: first === undefined ? null : { title: first.piece.title, heard: first.heard.text },
+    performance: { id, name: performance.name },
+    pieces,
+    voiceParts,
+    voicePartId: visitor.voicePart.id,
+    options: playthroughOptionsOf(url.searchParams),
     overview: homeOverviewPath(id),
   };
 };

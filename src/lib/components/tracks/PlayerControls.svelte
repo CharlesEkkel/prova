@@ -1,13 +1,23 @@
 <script lang="ts">
   // The controls of a started player: a seek slider with the time played and left, back and forward
   // 10 seconds, and play/pause. Shared by the Piece's player and the Score viewer, which show the same
-  // audio.
-  import { Pause, Play, RotateCcw, RotateCw } from '@lucide/svelte';
+  // audio. A Play-through adds previous and next Piece on either side.
+  import { Pause, Play, RotateCcw, RotateCw, SkipBack, SkipForward } from '@lucide/svelte';
   import { durationText } from '../../core/practice-tracks';
   import type { AudioPlayer } from '../../shell/audio-player.svelte';
   import Btn from '../ui/Btn.svelte';
 
-  const { player }: { readonly player: AudioPlayer } = $props();
+  const {
+    player,
+    onPrevious,
+    onNext,
+  }: {
+    readonly player: AudioPlayer;
+    /** Previous Piece, during a Play-through. */
+    readonly onPrevious?: () => void;
+    /** Next Piece, during a Play-through. */
+    readonly onNext?: () => void;
+  } = $props();
 
   // Where the thumb is while the Singer drags it, before the audio has been asked to move.
   let scrubbing = $state<number | null>(null);
@@ -38,6 +48,11 @@
   </div>
 </div>
 <div class="flex items-center justify-center gap-2 sm:gap-4">
+  {#if onPrevious !== undefined}
+    <Btn variant="ghost" size="icon" aria-label="Previous Piece" onclick={onPrevious}
+      ><SkipBack class="size-5" /></Btn
+    >
+  {/if}
   <Btn
     variant="ghost"
     size="icon"
@@ -62,4 +77,9 @@
       player.skipBy(10);
     }}><RotateCw class="size-5" /></Btn
   >
+  {#if onNext !== undefined}
+    <Btn variant="ghost" size="icon" aria-label="Next Piece" onclick={onNext}
+      ><SkipForward class="size-5" /></Btn
+    >
+  {/if}
 </div>
