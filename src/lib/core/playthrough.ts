@@ -26,15 +26,18 @@ export type TrackPreference = Pick<PlaythroughOptions, 'preferVoicePart'>;
 export type WhatYouWouldHear = { readonly text: string; readonly playable: boolean };
 
 /**
- * What a Play-through does at a Piece: play `track`, or, with no track, pause there unless
- * `skipped`. `heard` says which, for the Overview, Home and the Play-through's "Up next".
+ * What a Play-through does at a Piece: play its `track`, or, with no track, pause there, or skip it
+ * when skip-empty is on. `heard` says which, for the Overview, Home and the Play-through's "Up next".
  */
-export type PlaythroughEntry<P extends PlaythroughPiece = PlaythroughPiece> = {
-  readonly piece: P;
-  readonly track: P['tracks'][number] | undefined;
-  readonly skipped: boolean;
-  readonly heard: WhatYouWouldHear;
-};
+export type PlaythroughEntry<P extends PlaythroughPiece = PlaythroughPiece> =
+  | {
+      readonly kind: 'play';
+      readonly piece: P;
+      readonly track: P['tracks'][number];
+      readonly heard: WhatYouWouldHear;
+    }
+  | { readonly kind: 'pause'; readonly piece: P; readonly heard: WhatYouWouldHear }
+  | { readonly kind: 'skip'; readonly piece: P; readonly heard: WhatYouWouldHear };
 
 /** The first Combined Track (the first uploaded wins when there are several). */
 const combinedTrack = <T extends PlaythroughTrack>(tracks: readonly T[]): T | undefined =>
@@ -91,12 +94,9 @@ const resolveEntry = <P extends PlaythroughPiece>(
   options: PlaythroughOptions,
 ): PlaythroughEntry<P> => {
   const track = chooseTrack(piece.tracks, voicePartId, options);
-  return {
-    piece,
-    track,
-    skipped: track === undefined && options.skipEmpty,
-    heard: whatYouWouldHear(piece, track, voicePartId, nameOf),
-  };
+  const heard = whatYouWouldHear(piece, track, voicePartId, nameOf);
+  if (track !== undefined) return { kind: 'play', piece, track, heard };
+  return { kind: options.skipEmpty ? 'skip' : 'pause', piece, heard };
 };
 
 /**

@@ -5,6 +5,7 @@ import {
   defaultChoice,
   trackForChoice,
   resolvePlaythrough,
+  type PlaythroughEntry,
   type PlaythroughPiece,
   type PlaythroughTrack,
 } from './playthrough';
@@ -19,6 +20,9 @@ const part = (
   voicePartId: string,
   kind: TrackKind = 'part-only',
 ): PlaythroughTrack => ({ id, source: { type: 'part', voicePartId, kind } });
+
+/** The id of the track an entry plays, or `-` when it plays nothing. */
+const played = (entry: PlaythroughEntry): string => (entry.kind === 'play' ? entry.track.id : '-');
 
 const byDefault = { preferVoicePart: false };
 const preferringPart = { preferVoicePart: true };
@@ -70,6 +74,10 @@ describe('resolvePlaythrough', () => {
     { id: 'alto-only', tracks: [part('alto-only-alto', alto)] },
     { id: 'alto-mix', tracks: [part('alto-mix-alto', alto, 'part-predominant')] },
     { id: 'tenor', tracks: [part('tenor-tenor', tenor)] },
+    {
+      id: 'tenor-and-alto',
+      tracks: [part('tenor-and-alto-tenor', tenor), part('tenor-and-alto-alto', alto)],
+    },
   ];
   const everySkipEmpty = [false, true];
   const everyPreferVoicePart = [false, true];
@@ -87,8 +95,18 @@ describe('resolvePlaythrough', () => {
         'alto-only-alto',
         'alto-mix-alto',
         '-',
+        'tenor-and-alto-alto',
       ],
-      heard: ['All', 'All', 'No tracks yet', 'All', 'Alto only', 'Alto + mix', 'No Alto track'],
+      heard: [
+        'All',
+        'All',
+        'No tracks yet',
+        'All',
+        'Alto only',
+        'Alto + mix',
+        'No Alto track',
+        'Alto only',
+      ],
     },
     {
       preferVoicePart: true,
@@ -100,6 +118,7 @@ describe('resolvePlaythrough', () => {
         'alto-only-alto',
         'alto-mix-alto',
         '-',
+        'tenor-and-alto-alto',
       ],
       heard: [
         'Alto only',
@@ -109,11 +128,12 @@ describe('resolvePlaythrough', () => {
         'Alto only',
         'Alto + mix',
         'No Alto track',
+        'Alto only',
       ],
     },
   ])(
     'with prefer-my-Voice-Part $preferVoicePart, plays and labels every Piece in order',
-    ({ preferVoicePart, played, heard }) => {
+    ({ preferVoicePart, played: playedIds, heard }) => {
       for (const skipEmpty of everySkipEmpty) {
         const entries = resolvePlaythrough(performance, alto, nameOf, {
           skipEmpty,
@@ -121,29 +141,36 @@ describe('resolvePlaythrough', () => {
         });
 
         expect(entries.map((entry) => entry.piece)).toEqual(performance);
-        expect(entries.map(({ track }) => track?.id ?? '-')).toEqual(played);
+        expect(entries.map(played)).toEqual(playedIds);
         expect(entries.map((entry) => entry.heard.text)).toEqual(heard);
         expect(entries.map((entry) => entry.heard.playable)).toEqual(
-          played.map((id) => id !== '-'),
+          playedIds.map((id) => id !== '-'),
         );
       }
     },
   );
 
-  // Skip-empty decides which Pieces are skipped, whatever prefer-my-Voice-Part is.
+  // Skip-empty decides whether a Piece with nothing to play pauses or is skipped, whatever
+  // prefer-my-Voice-Part is.
   it.each([
-    { skipEmpty: false, skipped: [false, false, false, false, false, false, false] },
-    { skipEmpty: true, skipped: [false, false, true, false, false, false, true] },
+    {
+      skipEmpty: false,
+      kinds: ['play', 'play', 'pause', 'play', 'play', 'play', 'pause', 'play'],
+    },
+    {
+      skipEmpty: true,
+      kinds: ['play', 'play', 'skip', 'play', 'play', 'play', 'skip', 'play'],
+    },
   ])(
-    'with skip-empty $skipEmpty, skips only Pieces with nothing to play',
-    ({ skipEmpty, skipped }) => {
+    'with skip-empty $skipEmpty, pauses at or skips only Pieces with nothing to play',
+    ({ skipEmpty, kinds }) => {
       for (const preferVoicePart of everyPreferVoicePart) {
         const entries = resolvePlaythrough(performance, alto, nameOf, {
           skipEmpty,
           preferVoicePart,
         });
 
-        expect(entries.map((entry) => entry.skipped)).toEqual(skipped);
+        expect(entries.map((entry) => entry.kind)).toEqual(kinds);
       }
     },
   );
@@ -154,16 +181,18 @@ describe('resolvePlaythrough', () => {
       { id: 'alto-only', tracks: [part('a', alto)] },
     ];
 
-    const entries = resolvePlaythrough(pieces, null, nameOf, {
-      skipEmpty: false,
-      preferVoicePart: true,
-    });
+    for (const skipEmpty of everySkipEmpty) {
+      for (const preferVoicePart of everyPreferVoicePart) {
+        const entries = resolvePlaythrough(pieces, null, nameOf, { skipEmpty, preferVoicePart });
 
-    expect(entries.map(({ track }) => track?.id ?? '-')).toEqual(['c', '-']);
-    expect(entries.map((entry) => entry.heard)).toEqual([
-      { text: 'All', playable: true },
-      { text: 'No Combined track', playable: false },
-    ]);
+        expect(entries.map(played)).toEqual(['c', '-']);
+        expect(entries.map((entry) => entry.kind)).toEqual(['play', skipEmpty ? 'skip' : 'pause']);
+        expect(entries.map((entry) => entry.heard)).toEqual([
+          { text: 'All', playable: true },
+          { text: 'No Combined track', playable: false },
+        ]);
+      }
+    }
   });
 
   it('answers nothing for an empty Performance', () => {
