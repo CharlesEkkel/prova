@@ -12,12 +12,14 @@
     choiceOptions,
     defaultChoice,
     resolvePlaythrough,
+    selectedPart,
     trackForChoice,
     type PartChoice,
     type PlaythroughOptions,
   } from '../../core/playthrough';
   import {
     advanceRun,
+    isRestart,
     startRun,
     upNext,
     type RunEvent,
@@ -58,20 +60,29 @@
     readonly player: AudioPlayer;
   } = $props();
 
+  // The run plays the Pieces as they were when it opened, even if the page's data is reloaded.
+  const runPieces = untrack(() => pieces);
   let options = $state<PlaythroughOptions>(untrack(() => initialOptions));
   const nameOf = $derived(partNamesOf(voiceParts));
-  const entries = $derived(resolvePlaythrough(pieces, voicePartId, nameOf, options));
+  const entries = $derived(resolvePlaythrough(runPieces, voicePartId, nameOf, options));
   let run = $state<RunState<RunPiece>>(untrack(() => startRun(entries)));
   const move = (event: RunEvent): void => {
     run = advanceRun(run, event, entries);
+  };
+  const toNext = (): void => {
+    move({ type: 'next' });
+  };
+  const toPrevious = (): void => {
+    move({ type: 'previous', playedSeconds: player.position });
   };
 
   const at = $derived(run.kind === 'at' ? run : null);
   const piece = $derived(at?.entry.piece ?? null);
   const next = $derived(upNext(run, entries));
 
-  // A part picked in the indicator plays once, on this Piece only. With none picked, the Piece plays
-  // what the run arrived with, so an option changed meanwhile applies from the next Piece.
+  // A part picked in the indicator plays once, on this Piece only (a restart of it keeps it). With
+  // none picked, the Piece plays what the run arrived with, so an option changed meanwhile applies
+  // from the next Piece. A picked part does not depend on the options.
   let choice = $state<PartChoice>(defaultChoice);
   const track = $derived.by((): PracticeTrack | undefined => {
     if (at === null) return undefined;
@@ -80,9 +91,7 @@
     return at.entry.kind === 'play' ? at.entry.track : undefined;
   });
   const offered = $derived(choiceOptions(piece?.tracks ?? []));
-  const selected = $derived(
-    track === undefined ? '' : track.source.type === 'combined' ? 'all' : track.source.voicePartId,
-  );
+  const selected = $derived(selectedPart(track));
 
   const play = (found: PracticeTrack, of: RunPiece): Promise<void> =>
     player.start(trackAudioPath(of.id, found.id), found.durationSeconds);
@@ -100,19 +109,24 @@
   // Piece's choir score, and closes when there is none, at a pause, or when the run is over.
   let viewing = $state(false);
 
-  // Every arrival (a new take) forgets the play-once choice and plays the Piece from the start.
+  // Every arrival (a new take) plays the Piece from the start. Moving to another Piece forgets the
+  // play-once choice; restarting this one keeps it.
+  let before: RunState<RunPiece> = { kind: 'nothing' };
+  let handledTake = -1;
   $effect(() => {
-    const arrived = run;
+    const take = run.kind === 'nothing' ? 0 : run.take;
+    if (take === handledTake) return;
+    handledTake = take;
     untrack(() => {
-      choice = defaultChoice;
-      const playing = arrived.kind === 'at' && arrived.entry.kind === 'play' ? arrived : null;
-      if (playing === null || playing.entry.kind !== 'play') {
+      if (!isRestart(before, run)) choice = defaultChoice;
+      before = run;
+      if (at === null || track === undefined) {
         player.pause();
         viewing = false;
         return;
       }
-      if (playing.entry.piece.choirScore === null) viewing = false;
-      void play(playing.entry.track, playing.entry.piece);
+      if (at.entry.piece.choirScore === null) viewing = false;
+      void playCurrent();
     });
   });
 
@@ -121,9 +135,7 @@
   $effect(() => {
     const ended = player.ended;
     if (ended && !sawEnd) {
-      untrack(() => {
-        move({ type: 'next' });
-      });
+      untrack(toNext);
     }
     sawEnd = ended;
   });
@@ -157,7 +169,11 @@
       {#if run.kind === 'nothing'}
         <div class="rounded-3xl border p-6 text-center">
           <h1 class="text-lg font-semibold">Nothing to play in this Play-through</h1>
-          <p class="mt-1 text-sm text-zinc-500">Every Piece is skipped.</p>
+          <p class="mt-1 text-sm text-zinc-500">
+            {runPieces.length === 0
+              ? 'This Performance has no Pieces yet.'
+              : 'Every Piece is skipped.'}
+          </p>
           <Btn href={overview} variant="soft" class="mt-4">Back to the Overview</Btn>
         </div>
       {:else if run.kind === 'finished'}
@@ -207,23 +223,16 @@
                   ? 'This Piece has no Practice Tracks yet.'
                   : 'Choose a track above to play it once, or carry on.'}
               </p>
-              <Btn
-                class="mt-3"
-                onclick={() => {
-                  move({ type: 'next' });
-                }}>Continue to next Piece</Btn
-              >
+              <div class="mt-3 flex flex-wrap gap-2">
+                <Btn variant="outline" onclick={toPrevious}>Previous Piece</Btn>
+                <Btn onclick={toNext}>Continue to next Piece</Btn>
+              </div>
             </div>
           {:else if player.failed}
             <AlertMessage>That track could not be played.</AlertMessage>
             <div class="flex flex-wrap gap-2">
               <Btn onclick={playCurrent}>Retry</Btn>
-              <Btn
-                variant="outline"
-                onclick={() => {
-                  move({ type: 'next' });
-                }}>Continue to next Piece</Btn
-              >
+              <Btn variant="outline" onclick={toNext}>Continue to next Piece</Btn>
             </div>
           {:else if player.blocked}
             <Btn onclick={playCurrent} class="self-start"
@@ -232,15 +241,7 @@
           {/if}
 
           {#if track !== undefined}
-            <PlayerControls
-              {player}
-              onPrevious={() => {
-                move({ type: 'previous', playedSeconds: player.position });
-              }}
-              onNext={() => {
-                move({ type: 'next' });
-              }}
-            />
+            <PlayerControls {player} onPrevious={toPrevious} onNext={toNext} />
           {/if}
 
           <p class="text-sm text-zinc-500" data-testid="up-next">
@@ -274,7 +275,7 @@
             onStart={() => {
               void playCurrent();
             }}
-            closesWhenSongEnds={false}
+            closesWhenTrackEnds={false}
           />
         {/if}
       {/if}

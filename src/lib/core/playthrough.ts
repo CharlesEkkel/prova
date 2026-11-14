@@ -166,6 +166,10 @@ export const trackForChoice = <T extends PlaythroughTrack>(
   }
 };
 
+/** Which choice in the part indicator a track is: `all` for the Combined Track, its Voice Part, or none. */
+export const selectedPart = (track: PlaythroughTrack | undefined): string =>
+  track === undefined ? '' : track.source.type === 'combined' ? 'all' : track.source.voicePartId;
+
 /** What the part indicator offers on a Piece: All if it has a Combined Track, and each Voice Part that has a track. */
 export const choiceOptions = (
   tracks: readonly PlaythroughTrack[],

@@ -104,11 +104,7 @@ const previous = <P extends PlaythroughPiece>(
   playedSeconds: number,
   entries: readonly PlaythroughEntry<P>[],
 ): RunState<P> => {
-  if (state.kind === 'nothing') return state;
-  if (state.kind === 'finished') {
-    const last = stopBefore(entries, entries.length);
-    return last === undefined ? state : arriveAt(entries, last, state.take + 1);
-  }
+  if (state.kind !== 'at') return state;
   const restart = { ...state, take: state.take + 1 };
   if (playedSeconds > restartAfterSeconds) return restart;
   const found = stopBefore(entries, state.index);
@@ -134,6 +130,10 @@ export const advanceRun = <P extends PlaythroughPiece>(
       return startRun(entries, takeOf(state) + 1);
   }
 };
+
+/** Whether a move kept the run on the same Piece (previous after 3 seconds, or a jump to it), so a play-once choice stays. */
+export const isRestart = (before: RunState, after: RunState): boolean =>
+  before.kind === 'at' && after.kind === 'at' && before.index === after.index;
 
 /** The Piece the Play-through stops at after this one, or nothing when this is the last. */
 export const upNext = <P extends PlaythroughPiece>(

@@ -15,6 +15,7 @@
     tapDirection,
     type PageDirection,
     type Score,
+    type ScoreId,
   } from '../../core/scores';
   import type { AudioPlayer } from '../../shell/audio-player.svelte';
   import { pageOfScore, rememberScorePage } from '../../shell/score-pages.svelte';
@@ -30,7 +31,7 @@
     player,
     canStart,
     onStart,
-    closesWhenSongEnds = true,
+    closesWhenTrackEnds = true,
   }: {
     readonly open: boolean;
     readonly onClose: () => void;
@@ -40,11 +41,19 @@
     /** Whether Start is offered: there is a track to play and the Singer has not started one. */
     readonly canStart: boolean;
     readonly onStart: () => void;
-    /** A Play-through moves the viewer on to the next Piece's score itself, so the end of a song does not close it. */
-    readonly closesWhenSongEnds?: boolean;
+    /** A Play-through moves the viewer on to the next Piece's score itself, so the end of a track does not close it. */
+    readonly closesWhenTrackEnds?: boolean;
   } = $props();
 
   let count = $state(0);
+  // A Play-through moves an open viewer on to the next Piece's score: its page count is not known yet.
+  let countedFor: ScoreId | null = null;
+  $effect.pre(() => {
+    const showing = score?.id ?? null;
+    if (showing === countedFor) return;
+    countedFor = showing;
+    count = 0;
+  });
   let stage = $state<HTMLElement>();
   let content = $state<HTMLElement | null>(null);
   let browserFullScreen = $state(false);
@@ -108,7 +117,7 @@
   let sawEnd = false;
   $effect(() => {
     const ended = player.ended;
-    if (ended && !sawEnd && open && closesWhenSongEnds) onClose();
+    if (ended && !sawEnd && open && closesWhenTrackEnds) onClose();
     sawEnd = ended;
   });
 

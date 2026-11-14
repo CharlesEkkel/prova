@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolvePlaythrough, type PlaythroughPiece, type PlaythroughTrack } from './playthrough';
 import { combinedSource } from './practice-tracks';
-import { advanceRun, startRun, upNext, type RunState } from './playthrough-run';
+import { advanceRun, isRestart, startRun, upNext, type RunState } from './playthrough-run';
 
 const alto = 'part-alto';
 const nameOf = () => 'Alto';
@@ -133,17 +133,14 @@ describe('advanceRun: previous', () => {
     expect(again.kind === 'at' && first.kind === 'at' && again.take > first.take).toBe(true);
   });
 
-  it('goes back to the last stop from the finished state', () => {
+  it('does nothing once the run is over, where there is no Piece to go back from', () => {
     const finished = advanceRun(
       advanceRun(atThree, { type: 'next' }, pausing),
       { type: 'next' },
       pausing,
     );
 
-    expect(where(finished)).toBe('finished');
-    expect(where(advanceRun(finished, { type: 'previous', playedSeconds: 0 }, pausing))).toBe(
-      'last-empty',
-    );
+    expect(advanceRun(finished, { type: 'previous', playedSeconds: 0 }, pausing)).toBe(finished);
   });
 });
 
@@ -201,5 +198,25 @@ describe('upNext', () => {
 
     expect(upNext(atThree, skipping)).toBeUndefined();
     expect(upNext(advanceRun(atThree, { type: 'next' }, skipping), skipping)).toBeUndefined();
+  });
+});
+
+describe('isRestart', () => {
+  it('is a move that stays on the same Piece: previous after 3 seconds, or a jump to it', () => {
+    const first = startRun(pausing);
+
+    expect(
+      isRestart(first, advanceRun(first, { type: 'previous', playedSeconds: 5 }, pausing)),
+    ).toBe(true);
+    expect(isRestart(first, advanceRun(first, { type: 'jump', index: 0 }, pausing))).toBe(true);
+  });
+
+  it('is not a move to another Piece, or Play it again after the end', () => {
+    const first = startRun(pausing);
+    const second = advanceRun(first, { type: 'next' }, pausing);
+    const finished: RunState = { kind: 'finished', take: 9 };
+
+    expect(isRestart(first, second)).toBe(false);
+    expect(isRestart(finished, advanceRun(finished, { type: 'restart' }, pausing))).toBe(false);
   });
 });

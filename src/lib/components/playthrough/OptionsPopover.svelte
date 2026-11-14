@@ -42,7 +42,6 @@
           onChange({ ...options, preferVoicePart });
         }}
       />
-      <p class="mt-1 text-xs text-zinc-500">Changes apply from the next Piece.</p>
     </Popover.Content>
   </Popover.Portal>
 </Popover.Root>
