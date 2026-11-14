@@ -119,7 +119,7 @@ export const resolvePlaythrough = <P extends PlaythroughPiece>(
   pieces.map((piece) => resolveEntry(piece, voicePartId, nameOf, options));
 
 /** Whether a Play-through stops at this Piece: to play it, or to pause there. Skipped ones it passes. */
-const isStop = ({ kind }: PlaythroughEntry): boolean => kind !== 'skip';
+export const isStop = ({ kind }: PlaythroughEntry): boolean => kind !== 'skip';
 
 /** How many Pieces a Play-through stops at: those it plays and those it pauses at, not the skipped. */
 export const playCount = (entries: readonly PlaythroughEntry[]): number =>
@@ -165,6 +165,10 @@ export const trackForChoice = <T extends PlaythroughTrack>(
       return partTrack(tracks, choice.voicePartId);
   }
 };
+
+/** Which choice in the part indicator a track is: `all` for the Combined Track, its Voice Part, or none. */
+export const selectedPart = (track: PlaythroughTrack | undefined): string =>
+  track === undefined ? '' : track.source.type === 'combined' ? 'all' : track.source.voicePartId;
 
 /** What the part indicator offers on a Piece: All if it has a Combined Track, and each Voice Part that has a track. */
 export const choiceOptions = (

@@ -130,10 +130,11 @@ test.describe('the Play-through options in the Overview', () => {
     await play.click();
 
     await expect(page).toHaveURL(`/performances/${id}/play?skip-empty=1&prefer-voice-part=1`);
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText(`Play-through of ${name}`);
-    await expect(page.getByText(`First: ${both} · Alto only`)).toBeVisible();
+    // The player starts at the first Piece it stops at, with the options the address carries.
+    await expect(page.getByTestId('player').getByRole('heading', { level: 1 })).toHaveText(both);
+    await expect(page.getByTestId('player')).toContainText('Alto only');
 
-    await page.getByRole('link', { name: 'Back' }).click();
+    await page.getByRole('link', { name: 'Back to the Overview' }).first().click();
     await expect(page.getByRole('dialog', { name })).toBeVisible();
   });
 

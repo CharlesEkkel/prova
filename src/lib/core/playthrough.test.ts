@@ -7,6 +7,7 @@ import {
   overviewRowText,
   playButtonText,
   playCount,
+  selectedPart,
   trackForChoice,
   resolvePlaythrough,
   type PlaythroughEntry,
@@ -357,5 +358,13 @@ describe('choiceOptions', () => {
     expect([...offered.voicePartIds]).toEqual([alto]);
     expect(choiceOptions([part('t', tenor)]).hasCombined).toBe(false);
     expect(choiceOptions([]).voicePartIds.size).toBe(0);
+  });
+});
+
+describe('selectedPart', () => {
+  it('says which choice in the part indicator the track is: All, its Voice Part, or none', () => {
+    expect(selectedPart(combined('c'))).toBe('all');
+    expect(selectedPart(part('p', alto))).toBe(alto);
+    expect(selectedPart(undefined)).toBe('');
   });
 });

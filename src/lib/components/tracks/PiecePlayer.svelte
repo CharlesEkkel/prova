@@ -1,6 +1,7 @@
 <script lang="ts">
   // The player for one Piece: the part indicator, a Start button (nothing plays on its own), a seek
-  // slider, back and forward 10 seconds, and play/pause. #24 shows the same screen for a Play-through.
+  // slider, back and forward 10 seconds, and play/pause. A Play-through has its own player, built from
+  // the same parts (PlaythroughPlayer).
   // The audio belongs to the page that owns the player, which stops it when the Singer leaves.
   import { Play } from '@lucide/svelte';
   import { trackAudioPath } from '../../core/paths';
@@ -8,6 +9,7 @@
   import {
     choiceOptions,
     defaultChoice,
+    selectedPart,
     trackForChoice,
     type PartChoice,
   } from '../../core/playthrough';
@@ -26,7 +28,6 @@
     tracks,
     voiceParts,
     voicePartId,
-    preferVoicePart = false,
     onControl,
   }: {
     readonly pieceId: PieceId;
@@ -35,20 +36,18 @@
     readonly voiceParts: readonly VoicePart[];
     /** The Voice Part in effect on this Piece: the Singer's default. */
     readonly voicePartId: string | null;
-    /** The Play-through option, passed by #24's Play-through; a Piece played on its own leaves it off. */
-    readonly preferVoicePart?: boolean;
     /** Hands over what the Score viewer needs to start this player when the Singer has not. */
     readonly onControl: (control: StartControl) => void;
   } = $props();
 
+  // A Piece played on its own plays the Combined Track first: prefer-my-Voice-Part is a Play-through option.
+  const noPreference = { preferVoicePart: false };
   // Picking a part in the indicator plays it once; it is forgotten when the Singer leaves.
   let choice = $state<PartChoice>(defaultChoice);
-  const track = $derived(trackForChoice(tracks, voicePartId, choice, { preferVoicePart }));
+  const track = $derived(trackForChoice(tracks, voicePartId, choice, noPreference));
   const options = $derived(choiceOptions(tracks));
   const nameOf = $derived(partNamesOf(voiceParts));
-  const selected = $derived(
-    track === undefined ? '' : track.source.type === 'combined' ? 'all' : track.source.voicePartId,
-  );
+  const selected = $derived(selectedPart(track));
   const sourceOf = (found: PracticeTrack): [string, number | null] => [
     trackAudioPath(pieceId, found.id),
     found.durationSeconds,
@@ -64,7 +63,7 @@
   });
   const choose = async (next: PartChoice): Promise<void> => {
     choice = next;
-    const chosen = trackForChoice(tracks, voicePartId, next, { preferVoicePart });
+    const chosen = trackForChoice(tracks, voicePartId, next, noPreference);
     if (chosen !== undefined) await player.switchTo(...sourceOf(chosen));
   };
 </script>
