@@ -1,8 +1,8 @@
 import { error, redirect } from '@sveltejs/kit';
 import { Effect } from 'effect';
-import { overviewLink, paths, playthroughOptionsOf } from '../../../../../lib/core/paths';
+import { homeOverviewPath, paths, playthroughOptionsOf } from '../../../../../lib/core/paths';
 import { performanceIdOf } from '../../../../../lib/core/performances';
-import { resolvePlaythrough } from '../../../../../lib/core/playthrough';
+import { firstStop, resolvePlaythrough } from '../../../../../lib/core/playthrough';
 import { partNamesOf } from '../../../../../lib/core/practice-tracks';
 import { loadOverview } from '../../../../../lib/shell/performances';
 import { valueOrNull } from '../../../../../lib/shell/run';
@@ -35,12 +35,12 @@ export const load: PageServerLoad = async ({ locals: { visitor, supabase }, para
     partNamesOf(voiceParts),
     options,
   );
-  const first = entries.find(({ kind }) => kind !== 'skip');
+  const first = firstStop(entries);
 
   return {
     name: performance.name,
     options,
     first: first === undefined ? null : { title: first.piece.title, heard: first.heard.text },
-    overview: `${paths.home}${overviewLink(id)}`,
+    overview: homeOverviewPath(id),
   };
 };

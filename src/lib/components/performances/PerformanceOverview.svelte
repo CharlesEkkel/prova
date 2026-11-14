@@ -23,6 +23,7 @@
     performanceWhenAndWhere,
     type PerformanceAction,
     type PerformancePiece,
+    type PerformanceWithPieces,
     type PieceRowAction,
   } from '../../core/performances';
   import {
@@ -40,8 +41,8 @@
     getPlaythroughOptions,
     setPlaythroughOptions,
   } from '../../shell/playthrough-options-adapter';
-  import type { PerformanceOverview } from '../../shell/performances';
   import AlertMessage from '../AlertMessage.svelte';
+  import HeardLabel from '../HeardLabel.svelte';
   import Btn from '../ui/Btn.svelte';
   import MajorBadge from '../ui/MajorBadge.svelte';
   import ManageMenu from '../ui/ManageMenu.svelte';
@@ -58,7 +59,7 @@
     voiceParts,
   }: {
     /** The Performance whose Overview is open, or null when none is. */
-    readonly overview: PerformanceOverview | null;
+    readonly overview: PerformanceWithPieces | null;
     readonly choirTimeZone: ChoirTimeZone;
     readonly actions: readonly PerformanceAction[];
     readonly rowActions: readonly PieceRowAction[];
@@ -82,12 +83,15 @@
   let removeForm = $state<HTMLFormElement | null>(null);
   let removing = $state<PerformancePiece | null>(null);
 
-  // The switches start as this device left them, and every change is remembered at once.
+  // The switches start as this device left them, and every change is remembered at once. Play waits
+  // for the remembered options, so it never starts with the defaults by mistake.
   let options = $state<PlaythroughOptions>(defaultPlaythroughOptions);
+  let optionsLoaded = $state(false);
   onMount(async () => {
     options = await getPlaythroughOptions();
+    optionsLoaded = true;
   });
-  const choose = (next: PlaythroughOptions) => {
+  const chooseOptions = (next: PlaythroughOptions) => {
     options = next;
     void setPlaythroughOptions(next);
   };
@@ -101,7 +105,7 @@
       entries.map((entry) => [entry.piece.id, entry]),
     ),
   );
-  const count = $derived(playCount(entries));
+  const stopCount = $derived(playCount(entries));
 
   const onConsider = (event: CustomEvent<DndEvent<PerformancePiece>>) => {
     items = event.detail.items;
@@ -185,7 +189,7 @@
               title="Skip Pieces with nothing to play"
               checked={options.skipEmpty}
               onChange={(skipEmpty) => {
-                choose({ ...options, skipEmpty });
+                chooseOptions({ ...options, skipEmpty });
               }}
             />
             <SwitchRow
@@ -193,7 +197,7 @@
               title="Prefer my Voice Part"
               checked={options.preferVoicePart}
               onChange={(preferVoicePart) => {
-                choose({ ...options, preferVoicePart });
+                chooseOptions({ ...options, preferVoicePart });
               }}
             />
           </div>
@@ -281,20 +285,7 @@
                         <span class="block truncate text-sm text-zinc-500">{piece.composer}</span>
                       </span>
                       {#if entry !== undefined}
-                        <span
-                          class="inline-flex items-center gap-1.5 text-xs whitespace-nowrap {entry
-                            .heard.playable
-                            ? 'text-zinc-500'
-                            : 'text-amber-700 dark:text-amber-400'}"
-                        >
-                          <span
-                            class="size-1.5 rounded-full {entry.heard.playable
-                              ? 'bg-emerald-500'
-                              : 'bg-amber-500'}"
-                            aria-hidden="true"
-                          ></span>
-                          {overviewRowText(entry)}
-                        </span>
+                        <HeardLabel text={overviewRowText(entry)} playable={entry.heard.playable} />
                       {/if}
                       <ChevronRight
                         class="size-4 shrink-0 text-zinc-400 transition group-hover:translate-x-0.5"
@@ -309,12 +300,12 @@
         </div>
 
         <div class="border-t border-zinc-100 p-4 dark:border-zinc-800">
-          {#if count > 0}
+          {#if optionsLoaded && stopCount > 0}
             <Btn href={playthroughPath(overview.id, options)} class="w-full">
-              {playButtonText(count)}
+              {playButtonText(stopCount)}
             </Btn>
           {:else}
-            <Btn disabled class="w-full">{playButtonText(count)}</Btn>
+            <Btn disabled class="w-full">{playButtonText(stopCount)}</Btn>
           {/if}
         </div>
       </Dialog.Content>

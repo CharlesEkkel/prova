@@ -7,7 +7,6 @@ import type { PieceSummary } from './pieces';
 import {
   defaultPlaythroughOptions,
   resolvePlaythrough,
-  type PlaythroughOptions,
   type PlaythroughTrack,
   type WhatYouWouldHear,
 } from './playthrough';
@@ -93,8 +92,10 @@ export type PerformanceDetails = SidebarPerformance & { readonly venue: string }
 /** A Piece in a Performance's running order, with its tracks: enough to say what the Singer would hear on it. */
 export type PerformancePiece = PieceSummary & { readonly tracks: readonly PlaythroughTrack[] };
 
-/** A Performance as Home loads it: its details and its Pieces, with their tracks, in running order. */
-export type HomePerformance = PerformanceDetails & { readonly pieces: readonly PerformancePiece[] };
+/** A Performance with its details and its Pieces, with their tracks, in running order: what Home and the Overview load. */
+export type PerformanceWithPieces = PerformanceDetails & {
+  readonly pieces: readonly PerformancePiece[];
+};
 
 /** A Piece on a Home tile, saying what the Singer would hear on it. */
 export type HomeTilePiece = PieceSummary & { readonly heard: WhatYouWouldHear };
@@ -106,12 +107,9 @@ export type HomeTile = PerformanceDetails & {
   readonly pieces: readonly HomeTilePiece[];
 };
 
-/** Home has no Play-through options, so its tiles say what the defaults would play. */
-const homeOptions: PlaythroughOptions = defaultPlaythroughOptions;
-
 /** What a Home tile shows for a Singer singing `voicePartId`, at `now`. */
 export const homeTileOf = (
-  { pieces, ...performance }: HomePerformance,
+  { pieces, ...performance }: PerformanceWithPieces,
   now: Date,
   zone: ChoirTimeZone,
   voicePartId: string,
@@ -119,7 +117,8 @@ export const homeTileOf = (
 ): HomeTile => ({
   ...performance,
   startsIn: startsIn(performance.startsAt, performance.endsAt, now, zone),
-  pieces: resolvePlaythrough(pieces, voicePartId, nameOf, homeOptions).map(
+  // Home has no Play-through options, so its tiles say what the defaults would play.
+  pieces: resolvePlaythrough(pieces, voicePartId, nameOf, defaultPlaythroughOptions).map(
     ({ piece: { id, title, composer }, heard }) => ({ id, title, composer, heard }),
   ),
 });
@@ -132,7 +131,7 @@ export const pastRowOf = ({
   endsAt,
   isMajor,
   venue,
-}: HomePerformance): PerformanceDetails => ({ id, name, startsAt, endsAt, isMajor, venue });
+}: PerformanceWithPieces): PerformanceDetails => ({ id, name, startsAt, endsAt, isMajor, venue });
 
 export type AddToPerformanceChoice = SidebarEntry & { readonly alreadyIn: boolean };
 

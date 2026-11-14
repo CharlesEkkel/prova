@@ -94,6 +94,9 @@ export const signInErrorPath = (problem: string, headedFor: SafePath): string =>
 export const overviewLink = (id: PerformanceId): string =>
   `?${new URLSearchParams({ [overviewParam]: id }).toString()}`;
 
+/** A Performance's Overview opened on Home, for a page with no Overview of its own to return to. */
+export const homeOverviewPath = (id: PerformanceId): string => `${paths.home}${overviewLink(id)}`;
+
 /** The current page's address with its Overview closed: the rest of the query and the hash kept. */
 export const withoutOverview = (url: Pick<URL, 'pathname' | 'search' | 'hash'>): string => {
   const query = new URLSearchParams(url.search);

@@ -7,11 +7,9 @@ import {
   performanceMessages,
   performanceProblemOf,
   performanceTimesOf,
-  type HomePerformance,
-  type PerformanceDetails,
   type PerformanceId,
-  type PerformancePiece,
   type PerformanceProblem,
+  type PerformanceWithPieces,
   type SidebarPerformance,
 } from '../core/performances';
 import type { PieceId } from '../core/pieces';
@@ -51,11 +49,6 @@ export const loadPerformances = (
     supabase.from('performances').select(performanceColumns),
   ).pipe(Effect.map((rows) => rows.map(performanceOf)));
 
-/** A Performance as its Overview shows it: its details and its Pieces, with their tracks, in running order. */
-export type PerformanceOverview = PerformanceDetails & {
-  readonly pieces: readonly PerformancePiece[];
-};
-
 // A Performance with its running order, each Piece with its tracks: what Home and the Overview load.
 const PerformanceWithPiecesRow = Schema.Struct({
   ...PerformanceRow.fields,
@@ -91,7 +84,7 @@ const byUpload = (
 
 const performanceWithPiecesOf = (
   row: typeof PerformanceWithPiecesRow.Type,
-): PerformanceOverview => ({
+): PerformanceWithPieces => ({
   ...performanceOf(row),
   venue: row.venue,
   pieces: row.performance_pieces
@@ -109,7 +102,7 @@ const performanceWithPiecesOf = (
 export const loadOverview = (
   supabase: Supabase,
   id: PerformanceId,
-): Effect.Effect<PerformanceOverview | null, SupabaseCallFailed> =>
+): Effect.Effect<PerformanceWithPieces | null, SupabaseCallFailed> =>
   callSupabaseAs(Schema.NullOr(PerformanceWithPiecesRow), () =>
     supabase.from('performances').select(performanceWithPiecesColumns).eq('id', id).maybeSingle(),
   ).pipe(Effect.map((row) => (row === null ? null : performanceWithPiecesOf(row))));
@@ -117,7 +110,7 @@ export const loadOverview = (
 /** Every Performance with its Pieces and their tracks, in no particular order; `homeTimeline` orders them. */
 export const loadHomePerformances = (
   supabase: Supabase,
-): Effect.Effect<readonly HomePerformance[], SupabaseCallFailed> =>
+): Effect.Effect<readonly PerformanceWithPieces[], SupabaseCallFailed> =>
   callSupabaseAs(Schema.Array(PerformanceWithPiecesRow), () =>
     supabase.from('performances').select(performanceWithPiecesColumns),
   ).pipe(Effect.map((rows) => rows.map(performanceWithPiecesOf)));

@@ -118,9 +118,17 @@ export const resolvePlaythrough = <P extends PlaythroughPiece>(
 ): readonly PlaythroughEntry<P>[] =>
   pieces.map((piece) => resolveEntry(piece, voicePartId, nameOf, options));
 
+/** Whether a Play-through stops at this Piece: to play it, or to pause there. Skipped ones it passes. */
+const isStop = ({ kind }: PlaythroughEntry): boolean => kind !== 'skip';
+
 /** How many Pieces a Play-through stops at: those it plays and those it pauses at, not the skipped. */
 export const playCount = (entries: readonly PlaythroughEntry[]): number =>
-  entries.filter(({ kind }) => kind !== 'skip').length;
+  entries.filter(isStop).length;
+
+/** The Piece a Play-through starts at: the first it stops at, or none when it would skip them all. */
+export const firstStop = <P extends PlaythroughPiece>(
+  entries: readonly PlaythroughEntry<P>[],
+): PlaythroughEntry<P> | undefined => entries.find(isStop);
 
 /** A Piece's label in the Overview: what the Singer would hear, with `Skipped · ` before a skipped one. */
 export const overviewRowText = (entry: PlaythroughEntry): string =>

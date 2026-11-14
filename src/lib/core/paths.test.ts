@@ -9,6 +9,7 @@ import {
   pdfjsPrefix,
   isCurrentPage,
   isInSection,
+  homeOverviewPath,
   overviewLink,
   pathWithNext,
   performanceActionPath,
@@ -94,6 +95,14 @@ describe('playthroughPath and playthroughOptionsOf', () => {
     expect(
       playthroughOptionsOf(new URLSearchParams('skip-empty=yes&prefer-voice-part=true')),
     ).toEqual({ skipEmpty: false, preferVoicePart: false });
+  });
+});
+
+describe('homeOverviewPath', () => {
+  it('opens a Performance Overview on Home, from a page that is not under it', () => {
+    const id = performanceIdOf('5d34142f-5d7d-4ea8-9e80-2d9b7a5e4c11');
+    if (id === null) throw new Error('the id is valid');
+    expect(homeOverviewPath(id)).toBe('/?overview=5d34142f-5d7d-4ea8-9e80-2d9b7a5e4c11');
   });
 });
 

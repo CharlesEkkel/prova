@@ -3,6 +3,7 @@ import {
   choiceOptions,
   chooseTrack,
   defaultChoice,
+  firstStop,
   overviewRowText,
   playButtonText,
   playCount,
@@ -242,6 +243,45 @@ describe('playCount', () => {
         }),
       ),
     ).toBe(0);
+  });
+});
+
+describe('firstStop', () => {
+  const nameOf = () => 'Alto';
+  const pieces: readonly PlaythroughPiece[] = [
+    { id: 'none', tracks: [] },
+    { id: 'tenor', tracks: [part('t', tenor)] },
+    { id: 'combined', tracks: [combined('c')] },
+  ];
+
+  it('is the first Piece when skip-empty is off, even one the Play-through pauses at', () => {
+    const entries = resolvePlaythrough(pieces, alto, nameOf, {
+      skipEmpty: false,
+      preferVoicePart: false,
+    });
+
+    expect(firstStop(entries)?.piece.id).toBe('none');
+  });
+
+  it('is the first Piece not skipped when skip-empty is on', () => {
+    const entries = resolvePlaythrough(pieces, alto, nameOf, {
+      skipEmpty: true,
+      preferVoicePart: false,
+    });
+
+    expect(firstStop(entries)?.piece.id).toBe('combined');
+  });
+
+  it('is nothing when every Piece is skipped, or there are none', () => {
+    expect(firstStop([])).toBeUndefined();
+    expect(
+      firstStop(
+        resolvePlaythrough([{ id: 'none', tracks: [] }], alto, nameOf, {
+          skipEmpty: true,
+          preferVoicePart: false,
+        }),
+      ),
+    ).toBeUndefined();
   });
 });
 
