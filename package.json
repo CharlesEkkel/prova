@@ -43,7 +43,7 @@
     "@playwright/test": "^1.63.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
-    "@sveltejs/adapter-cloudflare": "^8.0.0",
+    "@sveltejs/adapter-cloudflare": "^8.0.2",
     "@sveltejs/kit": "^3.0.1",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@tailwindcss/vite": "^4.3.3",
